@@ -1,11 +1,11 @@
 # Reads the Playwright version pinned in package-lock.json. A separate stage, so the
 # browser layer below is rebuilt only when that version changes, not on every
 # change of the frontend dependencies.
-FROM mcr.microsoft.com/devcontainers/python:3.14 AS playwright-version
+FROM mcr.microsoft.com/devcontainers/python:3.15 AS playwright-version
 COPY frontend/package-lock.json /tmp/package-lock.json
 RUN python -c "import json; print(json.load(open('/tmp/package-lock.json'))['packages']['node_modules/@playwright/test']['version'])" > /tmp/playwright-version
 
-FROM mcr.microsoft.com/devcontainers/python:3.14
+FROM mcr.microsoft.com/devcontainers/python:3.15
 
 # Project virtual env, baked into the image
 ENV VIRTUAL_ENV=/opt/venv
