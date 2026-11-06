@@ -124,7 +124,9 @@ describe("rebalancing", () => {
     expect(screen.getByText("Nothing to do.")).toBeInTheDocument(); // no dip buys
     const cash = screen.getByLabelText("Cash calculation");
     expect(within(cash).getByText("Available for buys").nextSibling).toHaveTextContent("650");
-    expect(within(screen.getByLabelText("Buys per broker")).getByText("Northbank")).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText("Buys per broker")).getByText("Northbank"),
+    ).toBeInTheDocument();
   });
 
   it("[RB-15] shows precise amounts when the portfolio asks for them", async () => {
@@ -162,7 +164,13 @@ describe("rebalancing", () => {
     const withdrawing = plan({
       withdrawal: "300",
       instructions: [
-        { phase: "3", ticker: "BBB", action: "Sell (Withdrawal)", broker: "Northbank", amount: "200" },
+        {
+          phase: "3",
+          ticker: "BBB",
+          action: "Sell (Withdrawal)",
+          broker: "Northbank",
+          amount: "200",
+        },
       ],
       result: result({
         total_sell_proceeds: "0",
