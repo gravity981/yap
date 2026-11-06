@@ -24,7 +24,7 @@ dependencies = [
     # releases younger than two weeks out; raise them deliberately.
     "anthropic>=1.15.0,<1.16",
     "openai>=3.35.0,<3.35.1",
-    "google-genai>=2.31.0,<2.32",
+    "google-genai>=2.33.0,<2.34",
     "cryptography>=50.0.2,<51",
 ]
 
