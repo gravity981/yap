@@ -94,7 +94,7 @@ jobs:
       - name: Smoke test
         run: bash scripts/smoke-test.sh "$IMAGE:$VERSION-rc" "$VERSION"
 
-      - uses: docker/login-action@v4.6.0
+      - uses: docker/login-action@v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
