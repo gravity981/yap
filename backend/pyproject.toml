@@ -33,7 +33,7 @@ dev = [
     "pytest>=9.2,<10",
     "pytest-cov>=7,<8",
     "ruff>=0.14",
-    "mypy>=1.19",
+    "mypy>=2.4.0",
     "types-jsonschema>=4.26.0.20261006",
     "pyyaml>=6.0.3,<7", # reads the CI workflow in tests/tools/test_ci_setup.py
 ]
