@@ -87,7 +87,7 @@ jobs:
       # install, before lint, tests and build write their caches into it
       - name: Restore node_modules
         id: node-modules
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: frontend/node_modules
           key: node-modules-${{ runner.os }}-node26-${{ hashFiles('frontend/package-lock.json') }}
@@ -98,7 +98,7 @@ jobs:
 
       - name: Save node_modules
         if: ${{ steps.node-modules.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: frontend/node_modules
           key: ${{ steps.node-modules.outputs.cache-primary-key }}
@@ -177,7 +177,7 @@ jobs:
       # Saved by the frontend job
       - name: Restore node_modules
         id: node-modules
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: frontend/node_modules
           key: node-modules-${{ runner.os }}-node26-${{ hashFiles('frontend/package-lock.json') }}
