@@ -18,7 +18,7 @@ ARG APP_VERSION
 RUN APP_VERSION="${APP_VERSION}" npm run build \
     && node scripts/third-party-licenses.mjs dist/third-party-licenses.txt
 
-FROM python:3.14.7-slim-bookworm
+FROM python:3.15.0-slim-bookworm
 LABEL org.opencontainers.image.title="yap" \
       org.opencontainers.image.description="Investment strategy management: theses, policies, portfolios, rebalancing" \
       org.opencontainers.image.source="https://github.com/gravity981/yap"
