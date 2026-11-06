@@ -1,0 +1,56 @@
+{
+  "description": "Position not in the policy is sold completely, proceeds reinvested (RB-08)",
+  "approved": true,
+  "calculation": [
+    "Total 60000. L is not in the policy -> sold completely: 10000.",
+    "A: target 100 %, allocation 83.33 % < sell threshold 120 % -> no sell.",
+    "Phase 3: available 10000, final 60000. A to target = 60000 - 50000 = 10000 -> A buys 10000."
+  ],
+  "input": {
+    "contribution": 0,
+    "positions": [
+      {
+        "ticker": "A",
+        "name": "A",
+        "type": "ETF",
+        "value": 50000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 100,
+        "buy_threshold_pct": -10,
+        "sell_threshold_pct": 20
+      },
+      {
+        "ticker": "L",
+        "name": "L",
+        "type": "stock",
+        "value": 10000,
+        "exit": false,
+        "in_policy": false,
+        "broker": "B1"
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "A": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 10000,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (Below Target)"
+      },
+      "L": {
+        "buffer_buy": 0,
+        "sell_amount": 10000,
+        "buy_amount": 0,
+        "phase1_action": "Sell All (Exit)",
+        "phase3_action": "-"
+      }
+    },
+    "total_sell_proceeds": 10000,
+    "available_cash": 10000,
+    "total_buffer_used": 0
+  }
+}

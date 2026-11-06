@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "thesis.v1.schema.json",
+  "additionalProperties": false,
+  "description": "A thesis (IMP-01). Visibility only applies when a new thesis is created.",
+  "properties": {
+    "$schema": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional reference to the JSON Schema, e.g. for editor validation",
+      "title": "$Schema"
+    },
+    "schema_version": {
+      "description": "Schema version the file follows; any 1.x is accepted",
+      "examples": [
+        "1.3"
+      ],
+      "pattern": "^1\\.[0-9]+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 200,
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Title",
+      "type": "string"
+    },
+    "visibility": {
+      "default": "private",
+      "enum": [
+        "private",
+        "shared"
+      ],
+      "title": "Visibility",
+      "type": "string"
+    },
+    "status": {
+      "default": "intact",
+      "enum": [
+        "intact",
+        "needs_adaptation",
+        "broken"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "content_md": {
+      "description": "Thesis content in markdown",
+      "title": "Content Md",
+      "type": "string"
+    },
+    "change_note": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Why the thesis changed; needed at the latest when the draft is activated",
+      "title": "Change Note"
+    }
+  },
+  "required": [
+    "schema_version",
+    "title",
+    "content_md"
+  ],
+  "title": "Thesis import",
+  "type": "object"
+}

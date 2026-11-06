@@ -1,0 +1,40 @@
+name: Bug report
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Please do not include real financial data (portfolio values, personal strategies)
+        or API keys. Security problems are reported privately (see SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in the app's footer and at /api/version.
+      placeholder: 1.2.0
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: If you know it, name the requirement from spec/sw-architecture.md (e.g. RB-08).
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Error messages, screenshots, relevant log lines (docker compose logs app).
+    validations:
+      required: true

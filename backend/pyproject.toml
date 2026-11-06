@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yap"
+version = "0.0.0"
+description = "Investment strategy management: theses, policies, portfolios, rebalancing"
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.14"
+dependencies = [
+    "sqlalchemy>=2.1,<2.2",
+    "alembic>=1.20,<2",
+    "pydantic>=2.14,<3",
+    "jsonschema>=4.25,<5",
+    "fastapi>=0.160,<1",
+    "uvicorn[standard]>=0.54.0,<1",
+    "argon2-cffi>=25.1,<26",
+    # Time zone names for USR-11 and NFR-14; the slim image has no system time zone data
+    "tzdata>=2026.5,<2026.6",
+    # HTTP client of the price providers (PRC-01); the LLM SDKs use the same one
+    "httpx2>=2.15,<3",
+    # LLM providers for reviews (REV-14) and key encryption (REV-15). Upper bounds keep
+    # releases younger than two weeks out; raise them deliberately.
+    "anthropic>=1.15.0,<1.16",
+    "openai>=3.35.0,<3.35.1",
+    "google-genai>=2.31.0,<2.32",
+    "cryptography>=50.0.2,<51",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.2,<10",
+    "pytest-cov>=7,<8",
+    "ruff>=0.14",
+    "mypy>=1.19",
+    "types-jsonschema>=4.26.0.20261006",
+    "pyyaml>=6.0.3,<7", # reads the CI workflow in tests/tools/test_ci_setup.py
+]
+
+[tool.setuptools.packages.find]
+include = ["yap*"]
+
+[tool.setuptools.package-data]
+yap = ["migrations/*.ini", "migrations/*.mako", "migrations/versions/*.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers"
+markers = [
+    "req(*ids): requirement IDs from spec/sw-architecture.md verified by this test",
+]
+
+[tool.coverage.run]
+source = ["yap"]
+branch = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+allowed-confusables = ["×", "–", "−"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+plugins = []

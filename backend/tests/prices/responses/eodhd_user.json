@@ -1,0 +1,14 @@
+{
+  "name": "Test account",
+  "email": "test@example.com",
+  "subscriptionType": "free",
+  "paymentMethod": "Not Available",
+  "apiRequests": 12,
+  "apiRequestsDate": "2026-11-03",
+  "dailyRateLimit": 20,
+  "extraLimit": 0,
+  "inviteToken": null,
+  "inviteTokenClicked": 0,
+  "subscriptionMode": "free",
+  "canManageOrganizations": false
+}

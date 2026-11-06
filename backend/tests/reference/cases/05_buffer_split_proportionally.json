@@ -1,0 +1,98 @@
+{
+  "description": "Buffer too small for two dips: split in proportion to dip depth (RB-07)",
+  "approved": true,
+  "calculation": [
+    "Total 100000. X: target 10 %, buy -40 % -> 6 %; allocation 1 % -> deficit 5 points, needs 5000.",
+    "Y: target 10 %, buy -50 % -> 5 %; allocation 4 % -> deficit 1 point, needs 1000.",
+    "Buffer 2000 < 6000 needed -> split 5:1: X 1666.67, Y 333.33. Buffer fully deployed.",
+    "Z 93 % < sell threshold 101.4 %. No sells, contribution 0, no buys."
+  ],
+  "input": {
+    "contribution": 0,
+    "positions": [
+      {
+        "ticker": "CASH",
+        "name": "CASH",
+        "type": "cash_buffer",
+        "value": 2000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 2,
+        "buy_threshold_pct": -100,
+        "sell_threshold_pct": 100
+      },
+      {
+        "ticker": "X",
+        "name": "X",
+        "type": "ETF",
+        "value": 1000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 10,
+        "buy_threshold_pct": -40,
+        "sell_threshold_pct": 20
+      },
+      {
+        "ticker": "Y",
+        "name": "Y",
+        "type": "ETF",
+        "value": 4000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 10,
+        "buy_threshold_pct": -50,
+        "sell_threshold_pct": 20
+      },
+      {
+        "ticker": "Z",
+        "name": "Z",
+        "type": "ETF",
+        "value": 93000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 78,
+        "buy_threshold_pct": -10,
+        "sell_threshold_pct": 30
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "CASH": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "phase1_action": "Deploy",
+        "phase3_action": "Hold"
+      },
+      "X": {
+        "buffer_buy": "1666.67",
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "phase1_action": "Buy (Buffer)",
+        "phase3_action": "Hold"
+      },
+      "Y": {
+        "buffer_buy": "333.33",
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "phase1_action": "Buy (Buffer)",
+        "phase3_action": "Hold"
+      },
+      "Z": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "phase1_action": "Hold",
+        "phase3_action": "Hold"
+      }
+    },
+    "total_sell_proceeds": 0,
+    "available_cash": 0,
+    "total_buffer_used": 2000
+  }
+}

@@ -1,0 +1,37 @@
+# YAP on the LAN server (spec 2.6, 5.5, 5.6). One directory per
+# environment (prod, staging) with this file, deploy.sh and its own .env; deploy.sh sets
+# IMAGE_TAG and APP_VERSION_SUFFIX. Plain HTTP in the trusted LAN, no reverse proxy.
+services:
+  app:
+    image: ghcr.io/gravity981/yap:${IMAGE_TAG:?IMAGE_TAG is set by deploy.sh}
+    restart: unless-stopped
+    # Docker keeps the log until the container is recreated (each deploy); this caps its size.
+    # Two files: after a rotation the previous 5 MB are still there
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"
+    ports:
+      - "${APP_PORT:?set APP_PORT in .env}:8000"
+    environment:
+      APP_ENV: ${APP_ENV:?set APP_ENV in .env}
+      # Set by deploy.sh: rc.N for a release candidate, reported as <version>-rc.N (5.7)
+      APP_VERSION_SUFFIX: ${APP_VERSION_SUFFIX:-}
+      # Plain HTTP: browsers drop Secure cookies (spec 2.6, NFR-02)
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Encrypts the stored LLM API keys; a file, not an environment variable (REV-15)
+      APP_SECRET_KEY_FILE: /run/secrets/app_secret_key
+    secrets:
+      - app_secret_key
+    volumes:
+      - db:/var/lib/yap
+      - ${BACKUP_DIR:-./backups}:/backups
+
+volumes:
+  db:
+    name: ${DB_VOLUME:?set DB_VOLUME in .env}
+
+secrets:
+  app_secret_key:
+    file: ./secrets/app_secret_key

@@ -1,0 +1,91 @@
+{
+  "description": "A buffer buy into a dip is rounded down to whole units; the rest stays in the cash buffer, not unallocated (RB-24, RB-07)",
+  "approved": true,
+  "input": {
+    "contribution": 0,
+    "positions": [
+      {
+        "ticker": "AAA",
+        "name": "World ETF",
+        "type": "ETF",
+        "value": 6000,
+        "target_pct": 50,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20,
+        "exit": false,
+        "broker": "Southbank",
+        "units": 60,
+        "price": 100,
+        "whole_units": true
+      },
+      {
+        "ticker": "BBB",
+        "name": "Bond ETF",
+        "type": "ETF",
+        "value": 3000,
+        "target_pct": 40,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20,
+        "exit": false,
+        "broker": "Southbank",
+        "units": 40,
+        "price": 75,
+        "whole_units": true
+      },
+      {
+        "ticker": "CASH",
+        "name": "Cash buffer",
+        "type": "cash_buffer",
+        "value": 1000,
+        "target_pct": 10,
+        "buy_threshold_pct": -100,
+        "sell_threshold_pct": 10,
+        "exit": false,
+        "broker": "Southbank"
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "AAA": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "buffer_buy_units": 0,
+        "sell_units": 0,
+        "buy_units": 0,
+        "withdrawal_sell_units": 0,
+        "units_after": 60,
+        "phase1_action": "Hold",
+        "phase3_action": "Hold"
+      },
+      "BBB": {
+        "buffer_buy": 150,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "buffer_buy_units": 2,
+        "sell_units": 0,
+        "buy_units": 0,
+        "withdrawal_sell_units": 0,
+        "units_after": 42,
+        "phase1_action": "Buy (Buffer)",
+        "phase3_action": "Hold"
+      },
+      "CASH": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "phase1_action": "Deploy",
+        "phase3_action": "Hold"
+      }
+    },
+    "total_sell_proceeds": 0,
+    "available_cash": 0,
+    "total_withdrawal_sells": 0,
+    "total_buffer_used": 150,
+    "unallocated_cash": 0,
+    "rounding_cash": 0,
+    "total_value_after": 10000
+  },
+  "calculation": "Expected values are the results of the calculation followed by the conversion into units (RB-24), checked by hand; amounts rounded to cents, units exact."
+}

@@ -1,0 +1,46 @@
+{
+  "coins": [
+    {
+      "id": "bitcoin",
+      "name": "Bitcoin",
+      "api_symbol": "bitcoin",
+      "symbol": "BTC",
+      "market_cap_rank": 1
+    },
+    {
+      "id": "bitget-wrapped-btc",
+      "name": "Bitget Wrapped BTC",
+      "api_symbol": "bitget-wrapped-btc",
+      "symbol": "BGBTC",
+      "market_cap_rank": 260
+    },
+    {
+      "id": "ebtc-2",
+      "name": "eBTC",
+      "api_symbol": "ebtc-2",
+      "symbol": "EBTC",
+      "market_cap_rank": 481
+    },
+    {
+      "id": "bitcoin-pro",
+      "name": "Bitcoin Pro",
+      "api_symbol": "bitcoin-pro",
+      "symbol": "BTCP",
+      "market_cap_rank": 1425
+    },
+    {
+      "id": "strkbtc",
+      "name": "strkBTC",
+      "api_symbol": "strkbtc",
+      "symbol": "STRKBTC",
+      "market_cap_rank": 1441
+    },
+    {
+      "id": "bitcoin-usd-btcfi",
+      "name": "Bitcoin USD (BTCFi)",
+      "api_symbol": "bitcoin-usd-btcfi",
+      "symbol": "BTCUSD",
+      "market_cap_rank": 1637
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "description": "Sell to midband with a withdrawal that the sell proceeds cover (RB-08, RB-09, RB-10)",
+  "approved": true,
+  "calculation": [
+    "F = V + C - W = 100000 + 0 - 10000 = 90000.",
+    "Sell A = 70000 - 0.55 x 90000 = 20500. A after: 49500 = 55 % of F.",
+    "Phase 2: available = 0 + 20500 - 10000 = 10500. B is below target (target value 45000), so it gets all 10500 -> 40500 = 45 % of F."
+  ],
+  "input": {
+    "contribution": 0,
+    "withdrawal": 10000,
+    "positions": [
+      {
+        "ticker": "A",
+        "name": "A",
+        "type": "ETF",
+        "value": 70000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 50,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20
+      },
+      {
+        "ticker": "B",
+        "name": "B",
+        "type": "ETF",
+        "value": 30000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 50,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "A": {
+        "buffer_buy": 0,
+        "sell_amount": 20500,
+        "buy_amount": 0,
+        "withdrawal_sell": 0,
+        "phase1_action": "Sell",
+        "phase3_action": "Hold"
+      },
+      "B": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 10500,
+        "withdrawal_sell": 0,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (Below Target)"
+      }
+    },
+    "total_sell_proceeds": 20500,
+    "available_cash": 10500,
+    "total_withdrawal_sells": 0,
+    "total_buffer_used": 0
+  }
+}

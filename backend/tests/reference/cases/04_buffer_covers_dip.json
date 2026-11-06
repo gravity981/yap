@@ -1,0 +1,78 @@
+{
+  "description": "Cash buffer covers the dip completely (RB-07)",
+  "approved": true,
+  "calculation": [
+    "Total 100000. GOLD: target 10 %, buy -40 % -> buy threshold 6 %; allocation 3 % -> candidate.",
+    "Need to reach 6 % of the total: 6000 - 3000 = 3000 <= buffer 10000 -> GOLD buys 3000, buffer deploys 3000.",
+    "After phase 1A: CASH 7000 (7 % < sell threshold 15 %), GOLD 6 %, STOCK 87 % (< 96 %). No sells, contribution 0, no buys."
+  ],
+  "input": {
+    "contribution": 0,
+    "positions": [
+      {
+        "ticker": "CASH",
+        "name": "CASH",
+        "type": "cash_buffer",
+        "value": 10000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 10,
+        "buy_threshold_pct": -100,
+        "sell_threshold_pct": 50
+      },
+      {
+        "ticker": "GOLD",
+        "name": "GOLD",
+        "type": "ETF",
+        "value": 3000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 10,
+        "buy_threshold_pct": -40,
+        "sell_threshold_pct": 20
+      },
+      {
+        "ticker": "STOCK",
+        "name": "STOCK",
+        "type": "ETF",
+        "value": 87000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 80,
+        "buy_threshold_pct": -10,
+        "sell_threshold_pct": 20
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "CASH": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "phase1_action": "Deploy",
+        "phase3_action": "Hold"
+      },
+      "GOLD": {
+        "buffer_buy": 3000,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "phase1_action": "Buy (Buffer)",
+        "phase3_action": "Hold"
+      },
+      "STOCK": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "phase1_action": "Hold",
+        "phase3_action": "Hold"
+      }
+    },
+    "total_sell_proceeds": 0,
+    "available_cash": 0,
+    "total_buffer_used": 3000
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "description": "Contribution and withdrawal together; the withdrawal needs more than the sells and the surplus, the rest is sold in proportion to target (RB-01, RB-08, RB-22)",
+  "approved": true,
+  "calculation": [
+    "F = 100000 + 1000 - 51000 = 50000. A (60 % > sell threshold 48 %) is sold to its midband 44 % of F: 60000 - 22000 = 38000.",
+    "Phase 2: available = 1000 + 38000 - 51000 = -12000, sold in phase 3 from B and C (A was sold in 1B).",
+    "Surplus against F: B and C 20000 each = 40 % (target 30). Equal weights: 6000 each proposed, capped at 5000 to reach the target value 15000; 2000 left.",
+    "No position above target any more: the 2000 is sold in proportion to target (30 : 30), 1000 each. B and C end at 14000 = 28 %, A 22000 = 44 %; total 50000."
+  ],
+  "input": {
+    "contribution": 1000,
+    "withdrawal": 51000,
+    "positions": [
+      {
+        "ticker": "A",
+        "name": "A",
+        "type": "ETF",
+        "value": 60000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 40,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20
+      },
+      {
+        "ticker": "B",
+        "name": "B",
+        "type": "ETF",
+        "value": 20000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 30,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20
+      },
+      {
+        "ticker": "C",
+        "name": "C",
+        "type": "ETF",
+        "value": 20000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 30,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "A": {
+        "buffer_buy": 0,
+        "sell_amount": 38000,
+        "buy_amount": 0,
+        "withdrawal_sell": 0,
+        "phase1_action": "Sell",
+        "phase3_action": "Hold"
+      },
+      "B": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "withdrawal_sell": 6000,
+        "phase1_action": "Hold",
+        "phase3_action": "Sell (Withdrawal)"
+      },
+      "C": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "withdrawal_sell": 6000,
+        "phase1_action": "Hold",
+        "phase3_action": "Sell (Withdrawal)"
+      }
+    },
+    "total_sell_proceeds": 38000,
+    "available_cash": 0,
+    "total_withdrawal_sells": 12000,
+    "total_buffer_used": 0
+  }
+}

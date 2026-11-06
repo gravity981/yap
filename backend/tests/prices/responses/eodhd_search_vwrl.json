@@ -1,0 +1,35 @@
+[
+  {
+    "Code": "VWRL",
+    "Exchange": "SW",
+    "Name": "Vanguard FTSE All-World UCITS ETF USD Distributing",
+    "Type": "ETF",
+    "Country": "Switzerland",
+    "Currency": "CHF",
+    "ISIN": "IE00B3RBWM25",
+    "previousClose": 148.2,
+    "previousCloseDate": "2026-11-02"
+  },
+  {
+    "Code": "VWRL",
+    "Exchange": "LSE",
+    "Name": "Vanguard FTSE All-World UCITS ETF USD Distributing",
+    "Type": "ETF",
+    "Country": "UK",
+    "Currency": "GBP",
+    "ISIN": "IE00B3RBWM25",
+    "previousClose": 118.4,
+    "previousCloseDate": "2026-11-02"
+  },
+  {
+    "Code": "VWRA",
+    "Exchange": "LSE",
+    "Name": "Vanguard FTSE All-World UCITS ETF USD Accumulation",
+    "Type": "ETF",
+    "Country": "UK",
+    "Currency": "USD",
+    "ISIN": "IE00BK5BQT80",
+    "previousClose": 152.3,
+    "previousCloseDate": "2026-11-02"
+  }
+]

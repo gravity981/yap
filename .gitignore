@@ -1,0 +1,13 @@
+data
+.idea
+output
+__pycache__/
+.req-results/
+.coverage
+*.egg-info/
+
+# Local Claude Code settings (permissions of one developer)
+.claude/settings.local.json
+
+# Core dumps of crashed processes (core.<pid>)
+core.[0-9]*

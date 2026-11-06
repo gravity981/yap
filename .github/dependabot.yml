@@ -1,0 +1,68 @@
+# Monthly dependency updates, as pull requests that CI tests (low maintenance: one pull
+# request per area for minor and patch updates, major updates separately).
+# cooldown: only releases that are at least 14 days old are proposed (project rule).
+# Security updates come independently as soon as an advisory is published, once
+# "Dependabot security updates" is enabled in the repository settings.
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    versioning-strategy: increase
+    groups:
+      backend:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps(backend)"
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    groups:
+      frontend:
+        update-types: [minor, patch]
+    ignore:
+      # typescript-eslint and openapi-typescript need TypeScript below 6
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+    commit-message:
+      prefix: "deps(frontend)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    groups:
+      actions:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps(actions)"
+
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /.devcontainer
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    groups:
+      # The Python images in a pull request of their own (all update types): a new
+      # Python version must also be set in the CI workflows, backend/pyproject.toml
+      # and README.md, by hand. Listed first, because a dependency goes to the
+      # first group it matches.
+      python:
+        patterns: ["python", "*/python"]
+      docker:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps(docker)"

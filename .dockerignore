@@ -1,0 +1,18 @@
+# Only what the image build needs (Dockerfile): frontend sources, backend package
+*
+!Dockerfile
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/index.html
+!frontend/public
+!frontend/src
+!frontend/tsconfig*.json
+!frontend/vite.config.ts
+!frontend/eslint.config.js
+!frontend/scripts
+!backend/pyproject.toml
+!backend/yap
+**/__pycache__
+**/*.test.ts
+**/*.test.tsx
+frontend/src/test

@@ -1,0 +1,104 @@
+{
+  "description": "Withdrawal beyond the sells is sold from positions above target, weighted by surplus², the cash buffer included (RB-09, RB-22)",
+  "approved": true,
+  "calculation": [
+    "F = 100000 + 500 - 8000 = 92500. No dip (D 16 % > buy threshold 10 %), no sell threshold reached, so available = 500 - 8000 = -7500 is sold in phase 3.",
+    "Above target against F: A 44000 = 47.5676 % (target 40, surplus 7.5676 pp), CASH 13000 = 14.0541 % (target 10, surplus 4.0541 pp). B 29.19 % and D 17.30 % are below target.",
+    "Weights 57.2681 and 16.4354: A sells 7500 x 57.2681 / 73.7034 = 5827.55, CASH 1672.45. Neither reaches its cap (A to 37000: 7000, CASH to 9250: 3750).",
+    "After: A 38172.45 = 41.27 %, B 27000, CASH 11327.55 = 12.25 %, D 16000; total 92500."
+  ],
+  "input": {
+    "contribution": 500,
+    "withdrawal": 8000,
+    "positions": [
+      {
+        "ticker": "A",
+        "name": "A",
+        "type": "ETF",
+        "value": 44000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 40,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 25
+      },
+      {
+        "ticker": "B",
+        "name": "B",
+        "type": "ETF",
+        "value": 27000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 30,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 25
+      },
+      {
+        "ticker": "CASH",
+        "name": "CASH",
+        "type": "cash_buffer",
+        "value": 13000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 10,
+        "buy_threshold_pct": -50,
+        "sell_threshold_pct": 50
+      },
+      {
+        "ticker": "D",
+        "name": "D",
+        "type": "ETF",
+        "value": 16000,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 20,
+        "buy_threshold_pct": -50,
+        "sell_threshold_pct": 50
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "A": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "withdrawal_sell": "5827.55",
+        "phase1_action": "Hold",
+        "phase3_action": "Sell (Withdrawal)"
+      },
+      "B": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "withdrawal_sell": 0,
+        "phase1_action": "Hold",
+        "phase3_action": "Hold"
+      },
+      "CASH": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "withdrawal_sell": "1672.45",
+        "phase1_action": "Hold",
+        "phase3_action": "Sell (Withdrawal)"
+      },
+      "D": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "withdrawal_sell": 0,
+        "phase1_action": "Hold",
+        "phase3_action": "Hold"
+      }
+    },
+    "total_sell_proceeds": 0,
+    "available_cash": 0,
+    "total_withdrawal_sells": 7500,
+    "total_buffer_used": 0
+  }
+}

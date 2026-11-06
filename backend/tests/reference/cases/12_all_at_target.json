@@ -1,0 +1,143 @@
+{
+  "description": "All positions at target: contribution distributed proportionally to target (RB-10)",
+  "approved": true,
+  "input": {
+    "contribution": 1000,
+    "positions": [
+      {
+        "ticker": "XUS",
+        "name": "US Equity",
+        "type": "ETF",
+        "value": 45000,
+        "target_pct": 45,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 25,
+        "exit": false,
+        "broker": "Northbank"
+      },
+      {
+        "ticker": "ETH",
+        "name": "Ethereum",
+        "type": "crypto",
+        "value": 10000,
+        "target_pct": 10,
+        "buy_threshold_pct": -30,
+        "sell_threshold_pct": 60,
+        "exit": false,
+        "broker": "Bitexchange"
+      },
+      {
+        "ticker": "DIV",
+        "name": "Dividend Equity",
+        "type": "ETF",
+        "value": 15000,
+        "target_pct": 15,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 50,
+        "exit": false,
+        "broker": "Southbank"
+      },
+      {
+        "ticker": "EURO",
+        "name": "Europe Equity",
+        "type": "ETF",
+        "value": 15000,
+        "target_pct": 15,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20,
+        "exit": false,
+        "broker": "Southbank"
+      },
+      {
+        "ticker": "QEM",
+        "name": "Emerging Markets",
+        "type": "ETF",
+        "value": 10000,
+        "target_pct": 10,
+        "buy_threshold_pct": -25,
+        "sell_threshold_pct": 25,
+        "exit": false,
+        "broker": "Southbank"
+      },
+      {
+        "ticker": "BTC",
+        "name": "Bitcoin",
+        "type": "crypto",
+        "value": 5000,
+        "target_pct": 5,
+        "buy_threshold_pct": -30,
+        "sell_threshold_pct": 40,
+        "exit": false,
+        "broker": "Bitexchange"
+      },
+      {
+        "ticker": "CASH",
+        "name": "Cash Buffer",
+        "type": "cash_buffer",
+        "value": 0,
+        "target_pct": 0,
+        "buy_threshold_pct": -100,
+        "sell_threshold_pct": 10,
+        "exit": false,
+        "broker": "Southbank"
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "XUS": {
+        "buffer_buy": 0.0,
+        "sell_amount": 0.0,
+        "buy_amount": 450.0,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (At Target)"
+      },
+      "ETH": {
+        "buffer_buy": 0.0,
+        "sell_amount": 0.0,
+        "buy_amount": 100.0,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (At Target)"
+      },
+      "DIV": {
+        "buffer_buy": 0.0,
+        "sell_amount": 0.0,
+        "buy_amount": 150.0,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (At Target)"
+      },
+      "EURO": {
+        "buffer_buy": 0.0,
+        "sell_amount": 0.0,
+        "buy_amount": 150.0,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (At Target)"
+      },
+      "QEM": {
+        "buffer_buy": 0.0,
+        "sell_amount": 0.0,
+        "buy_amount": 100.0,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (At Target)"
+      },
+      "BTC": {
+        "buffer_buy": 0.0,
+        "sell_amount": 0.0,
+        "buy_amount": 50.0,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (At Target)"
+      },
+      "CASH": {
+        "buffer_buy": 0.0,
+        "sell_amount": 0.0,
+        "buy_amount": 0.0,
+        "phase1_action": "Hold",
+        "phase3_action": "Hold"
+      }
+    },
+    "total_sell_proceeds": 0.0,
+    "available_cash": 1000.0,
+    "total_buffer_used": 0.0
+  },
+  "calculation": "Expected values are the reviewed results of the calculation, rounded to cents."
+}

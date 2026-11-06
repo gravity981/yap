@@ -1,0 +1,92 @@
+name: Promote
+
+# Promotes a verified release candidate to a release (spec 5.4) without building: the
+# same image and the same commit get the release tags. The image already contains the
+# release version.
+on:
+  workflow_dispatch:
+    inputs:
+      candidate:
+        description: "The candidate to promote, e.g. v1.2.0-rc.2 (only the latest one)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/gravity981/yap
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.candidate }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # git tag and GitHub release
+      packages: write
+    env:
+      CANDIDATE: ${{ inputs.candidate }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the candidate
+        run: |
+          version="$(bash scripts/release.sh promote "$CANDIDATE")"
+          {
+            echo "VERSION=$version"
+            echo "COMMIT=$(git rev-list -n 1 "$CANDIDATE")"
+            echo "MINOR=${version%.*}"
+            echo "MAJOR=${version%%.*}"
+          } >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v4.4.1
+
+      - uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check the candidate's image
+        run: |
+          labels="$(docker buildx imagetools inspect "$IMAGE:${CANDIDATE#v}" --format '{{ json .Image.Config.Labels }}')"
+          image_version="$(jq -r '."org.opencontainers.image.version"' <<<"$labels")"
+          image_commit="$(jq -r '."org.opencontainers.image.revision"' <<<"$labels")"
+          if [[ "$image_version" != "$VERSION" || "$image_commit" != "$COMMIT" ]]; then
+            echo "::error::$IMAGE:${CANDIDATE#v} has version $image_version, commit $image_commit; expected $VERSION, $COMMIT"
+            exit 1
+          fi
+
+      - name: Tag the commit v${{ env.VERSION }}
+        run: |
+          git tag "v$VERSION" "$COMMIT"
+          git push origin "refs/tags/v$VERSION"
+
+      - name: Add the release image tags (no build)
+        run: |
+          docker buildx imagetools create \
+            --tag "$IMAGE:$VERSION" --tag "$IMAGE:$MINOR" --tag "$IMAGE:$MAJOR" \
+            "$IMAGE:${CANDIDATE#v}"
+
+      - name: GitHub release with the deployment bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git checkout --quiet "$CANDIDATE" # the bundle of exactly the promoted commit
+          bundle="$(bash scripts/bundle.sh "v$VERSION" dist)"
+          previous="$(bash scripts/release.sh previous-release "v$VERSION")"
+          notes="$(printf '%s\n\n%s\n' \
+            "Promoted from $CANDIDATE (commit $COMMIT) without rebuilding: image \`$IMAGE:$VERSION\`." \
+            "$(bash scripts/release.sh notes "v$VERSION" "$GITHUB_REPOSITORY")")"
+          gh release create "v$VERSION" "$bundle" \
+            --latest \
+            --title "v$VERSION" \
+            --notes "$notes" \
+            --generate-notes \
+            ${previous:+--notes-start-tag "$previous"}
+          echo "Release **v$VERSION** published" >> "$GITHUB_STEP_SUMMARY"

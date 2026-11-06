@@ -1,0 +1,60 @@
+{
+  "quotes": [
+    {
+      "exchange": "AMS",
+      "shortname": "Vanguard FTSE All-World UCITS E",
+      "quoteType": "ETF",
+      "symbol": "VWRL.AS",
+      "longname": "Vanguard FTSE All-World UCITS ETF",
+      "exchDisp": "Amsterdam"
+    },
+    {
+      "exchange": "LSE",
+      "shortname": "VANGUARD FUNDS PLC VANGUARD FTS",
+      "quoteType": "ETF",
+      "symbol": "VWRL.L",
+      "longname": "Vanguard FTSE All-World UCITS ETF",
+      "exchDisp": "London"
+    },
+    {
+      "exchange": "EBS",
+      "shortname": "Vanguard All World ETF Dist",
+      "quoteType": "ETF",
+      "symbol": "VWRL.SW",
+      "longname": "Vanguard FTSE All-World UCITS ETF",
+      "exchDisp": "Swiss"
+    },
+    {
+      "exchange": "MIL",
+      "shortname": "Vanguard FTSE All-World UCITS E",
+      "quoteType": "ETF",
+      "symbol": "VWRL.MI",
+      "longname": "Vanguard FTSE All-World UCITS ETF",
+      "exchDisp": "Milan"
+    },
+    {
+      "exchange": "AQS",
+      "shortname": "VANGUARD FUNDS PLC",
+      "quoteType": "ETF",
+      "symbol": "VWRL.AQ",
+      "longname": null,
+      "exchDisp": "AQS"
+    },
+    {
+      "exchange": "CXE",
+      "shortname": "Vanguard FTSE All-World UCITS E",
+      "quoteType": "ETF",
+      "symbol": "VWRLL.XC",
+      "longname": null,
+      "exchDisp": "CXE"
+    },
+    {
+      "exchange": "CXE",
+      "shortname": "Vanguard FTSE All-World UCITS E",
+      "quoteType": "ETF",
+      "symbol": "VWRLZ.XC",
+      "longname": "Vanguard FTSE All-World UCITS ETF",
+      "exchDisp": "CXE"
+    }
+  ]
+}

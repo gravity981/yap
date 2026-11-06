@@ -1,0 +1,58 @@
+{
+  "description": "Empty portfolio (total 0) with a contribution: distributed by target allocation (RB-05, RB-10)",
+  "approved": true,
+  "calculation": [
+    "Total 0 -> all allocations 0 %. Contribution 1000, final value 1000.",
+    "Deficits 50 and 50 points -> equal weights -> 500 each, which is exactly each target value (50 % of 1000). Done in one round."
+  ],
+  "input": {
+    "contribution": 1000,
+    "positions": [
+      {
+        "ticker": "A",
+        "name": "A",
+        "type": "ETF",
+        "value": 0,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 50,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20
+      },
+      {
+        "ticker": "B",
+        "name": "B",
+        "type": "ETF",
+        "value": 0,
+        "exit": false,
+        "in_policy": true,
+        "broker": "B1",
+        "target_pct": 50,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "A": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 500,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (Below Target)"
+      },
+      "B": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 500,
+        "phase1_action": "Hold",
+        "phase3_action": "Buy (Below Target)"
+      }
+    },
+    "total_sell_proceeds": 0,
+    "available_cash": 1000,
+    "total_buffer_used": 0
+  }
+}

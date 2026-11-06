@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "current-structure.v1.schema.json",
+  "$defs": {
+    "CurrentPosition": {
+      "additionalProperties": false,
+      "properties": {
+        "ticker": {
+          "maxLength": 32,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Ticker",
+          "type": "string"
+        },
+        "units": {
+          "anyOf": [
+            {
+              "description": "Quantity held (shares, coins); for the cash buffer its amount",
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Since 1.3; needed except for the cash buffer. Files before 1.3 have only values",
+          "title": "Units"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "description": "Price of one unit in the portfolio currency",
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional; without price and value, the price last entered is used",
+          "title": "Price"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "description": "In the portfolio currency",
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional with units (then price = value / units); the cash buffer's amount",
+          "title": "Value"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Needed only for tickers not yet known",
+          "title": "Name"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "enum": [
+                "ETF",
+                "stock",
+                "crypto",
+                "cash_buffer"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Needed only for tickers not yet known",
+          "title": "Type"
+        }
+      },
+      "required": [
+        "ticker"
+      ],
+      "title": "CurrentPosition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Current positions of a portfolio (IMP-03); imported into the selected portfolio.",
+  "properties": {
+    "$schema": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional reference to the JSON Schema, e.g. for editor validation",
+      "title": "$Schema"
+    },
+    "schema_version": {
+      "description": "Schema version the file follows; any 1.x is accepted",
+      "examples": [
+        "1.3"
+      ],
+      "pattern": "^1\\.[0-9]+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "positions": {
+      "items": {
+        "$ref": "#/$defs/CurrentPosition"
+      },
+      "title": "Positions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "positions"
+  ],
+  "title": "Current structure import",
+  "type": "object"
+}

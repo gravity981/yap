@@ -1,0 +1,129 @@
+name: Release candidate
+
+# Builds a release candidate of a version from main (spec 5.4): image with the version
+# baked in, image tag <version>-rc.N, git tag v<version>-rc.N, GitHub pre-release with the
+# deployment bundle. Deploy it to staging and verify it, then run "Promote".
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version this is a candidate for, e.g. 1.2.0"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/gravity981/yap
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read # the CI runs of the commit
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the candidate
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "::error::Release candidates are made from main, not $GITHUB_REF"
+            exit 1
+          fi
+          passed="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$GITHUB_SHA&status=success" --jq .total_count)"
+          if [[ "$passed" -eq 0 ]]; then
+            echo "::error::CI has not passed for $GITHUB_SHA"
+            exit 1
+          fi
+          tag="$(bash scripts/release.sh candidate "$VERSION")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Candidate **$tag** on \`$GITHUB_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+
+  tests:
+    name: Full test suite
+    needs: check
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      packages: write
+
+  release:
+    name: Build and publish the candidate
+    needs: [check, tests]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # git tag and GitHub release
+      packages: write
+    env:
+      TAG: ${{ needs.check.outputs.tag }}
+      VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: docker/setup-buildx-action@v4.4.1
+
+      # The image contains the version without -rc.N; only its tags carry it (spec 5.1)
+      - name: Build image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          load: true
+          tags: ${{ env.IMAGE }}:${{ inputs.version }}-rc
+          build-args: |
+            APP_VERSION=${{ inputs.version }}
+            APP_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        run: bash scripts/smoke-test.sh "$IMAGE:$VERSION-rc" "$VERSION"
+
+      - uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image ${{ needs.check.outputs.tag }}
+        run: |
+          docker tag "$IMAGE:$VERSION-rc" "$IMAGE:${TAG#v}"
+          docker push "$IMAGE:${TAG#v}"
+
+      - name: Tag the commit
+        run: |
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+
+      - name: GitHub pre-release with the deployment bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bundle="$(bash scripts/bundle.sh "$TAG" dist)"
+          previous="$(bash scripts/release.sh previous-release "$TAG")"
+          notes="$(printf '%s\n\n%s\n\n%s\n' \
+            "Image \`$IMAGE:${TAG#v}\` (version $VERSION, commit $GITHUB_SHA)." \
+            "$(bash scripts/release.sh notes "$TAG" "$GITHUB_REPOSITORY")" \
+            "Verify staging with the checklist in spec/test-strategy.md §9, then run the Promote workflow.")"
+          gh release create "$TAG" "$bundle" \
+            --prerelease \
+            --title "$TAG" \
+            --notes "$notes" \
+            --generate-notes \
+            ${previous:+--notes-start-tag "$previous"}
+          echo "Pre-release **$TAG** published" >> "$GITHUB_STEP_SUMMARY"

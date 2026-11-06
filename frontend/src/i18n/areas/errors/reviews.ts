@@ -1,0 +1,61 @@
+import type { MessageCode } from "./index";
+
+// German texts of the backend's reviews messages (backend/yap/messages/reviews.py)
+export const de = {
+  provider_status: "{{provider}} hat mit Fehler {{status}} geantwortet",
+  provider_status_detail: "{{provider}} hat mit Fehler {{status}} geantwortet: {{detail}}",
+  provider_rejected_key: "{{provider}} hat den API-Schlüssel abgelehnt",
+  provider_no_model: "{{provider}} hat kein Modell {{model}}",
+  provider_timeout: "{{provider}} hat nicht rechtzeitig geantwortet",
+  provider_unreachable: "{{provider}} ist nicht erreichbar",
+  provider_declined: "{{provider}} hat die Anfrage abgelehnt",
+  provider_no_answer: "{{provider}} hat keine Antwort geliefert",
+  provider_search_unfinished: "{{provider}} hat die Websuche nicht abgeschlossen",
+  provider_stopped: "{{provider}} hat die Antwort abgebrochen ({{reason}})",
+  answer_too_long: "Die Antwort war zu lang und wurde abgeschnitten",
+  provider_error: "{{detail}}",
+  answer_format_invalid: "Die Antwort hat nicht das erwartete Format ({{error}})",
+  answer_aspects_wrong: "Die Antwort muss genau die Aspekte {{aspects}} bewerten",
+  score_invalid: "Die Bewertung {{score}} liegt nicht zwischen 0 und 10 in Schritten von 0.5",
+  review_reviewer_not_found: "KI-Reviewer {{id}} nicht gefunden",
+  review_choose_reviewer: "Wähle einen KI-Reviewer",
+  review_reviewer_archived:
+    "Der KI-Reviewer {{name}} ist nicht mehr verfügbar; wähle einen anderen",
+  review_reviewer_disabled:
+    "Der KI-Reviewer {{name}} ist deaktiviert; wähle einen anderen oder frag den Admin",
+  review_reviewer_unusable:
+    "Der KI-Reviewer {{name}} kann nicht verwendet werden: {{detail}} Frag den Admin.",
+  review_reviewer_no_reviews: "Der KI-Reviewer {{name}} umfasst keine Prüfungen",
+  review_limit_reached: "Alle {{limit}} Prüfungen mit {{name}} sind für diesen Monat verbraucht",
+  review_thesis_no_draft: "Anlagethese {{id}} hat keinen Entwurf",
+  review_policy_no_draft: "Anlagestrategie {{name}} hat keinen Entwurf",
+  review_running: "Eine Prüfung dieses Entwurfs läuft noch",
+  review_running_wait: "Eine Prüfung dieses Entwurfs läuft noch; warte, bis sie fertig ist",
+  review_no_reviewer: "Die Prüfung hat keinen KI-Reviewer",
+  review_not_found: "Prüfung {{id}} nicht gefunden",
+  review_not_changeable: "Nur Prüfungen deiner eigenen offenen Entwürfe können geändert werden",
+  review_not_finished: "Nur eine abgeschlossene Prüfung kann geändert werden",
+  review_news_days_invalid: "Der Nachrichtenzeitraum muss zwischen 1 und {{max}} Tagen liegen",
+  review_unknown_aspect: "Unbekannter Aspekt {{aspect}}",
+  review_no_verdict: "Nur Prüfungen von Anlagethesen haben ein Urteil",
+  review_unknown_verdict: "Unbekanntes Urteil {{verdict}}",
+  review_note_required: "Begründe, warum du das Ergebnis der KI geändert hast",
+  review_interrupted: "Durch einen Neustart der App unterbrochen; starte die Prüfung neu",
+  review_failed_unexpectedly: "Die Prüfung ist unerwartet fehlgeschlagen ({{detail}})",
+  review_revision_not_found:
+    "Revision {{revision_no}} der Anlagethese {{thesis_id}} nicht gefunden",
+  review_version_not_found: "Version {{version_no}} der Anlagestrategie {{policy}} nicht gefunden",
+  review_revision_no_review: "Revision {{revision_no}} hat keine Prüfung",
+  review_version_no_review: "{{version}} hat keine Prüfung",
+  rebalance_values_missing: "Erfasse zuerst die aktuellen Werte des Portfolios",
+  rebalance_snapshot_not_found: "Stand {{id}} nicht gefunden",
+  rebalance_policy_changed:
+    "Die Anlagestrategie hat sich seit der Vorschau geändert; berechne das Rebalancing neu",
+  rebalance_no_instruction: "Keine Anweisung {{phase}} für {{ticker}}",
+  rebalance_executed_negative: "Ausgeführte Beträge müssen 0 oder mehr sein",
+  rebalance_buffer_exceeded:
+    "Die Käufe aus der Liquiditätsreserve übersteigen zusammen die Reserve",
+  rebalance_sell_exceeds: "Der Verkauf von {{ticker}} übersteigt den Wert der Position",
+  rebalance_not_found: "Rebalancing {{id}} nicht gefunden",
+  rebalance_cycles_invalid: "Die Anzahl Zyklen muss zwischen 1 und {{max}} liegen",
+} satisfies Partial<Record<MessageCode, string>>;

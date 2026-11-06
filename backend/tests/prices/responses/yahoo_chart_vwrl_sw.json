@@ -1,0 +1,23 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "CHF",
+          "symbol": "VWRL.SW",
+          "exchangeName": "EBS",
+          "fullExchangeName": "Swiss",
+          "instrumentType": "ETF",
+          "regularMarketTime": 1793707370,
+          "gmtoffset": 3600,
+          "timezone": "CET",
+          "exchangeTimezoneName": "Europe/Zurich",
+          "regularMarketPrice": 148.2,
+          "longName": "Vanguard FTSE All-World UCITS ETF",
+          "shortName": "Vanguard All World ETF Dist"
+        }
+      }
+    ],
+    "error": null
+  }
+}

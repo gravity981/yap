@@ -1,0 +1,69 @@
+{
+  "name": "Linux Dev Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  // Dev servers, reachable from the browser on the host (see .vscode/tasks.json)
+  "forwardPorts": [5173, 8000],
+  "portsAttributes": {
+    "5173": { "label": "Frontend (Vite dev server)", "onAutoForward": "notify" },
+    "8000": { "label": "Backend (FastAPI)", "onAutoForward": "silent" }
+  },
+  "mounts": [
+    "source=claude-config,target=/home/vscode/.claude,type=volume",
+    "source=yap-db-dev,target=/var/lib/yap,type=volume"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+    "APP_ENV": "dev",
+    "DATABASE_URL": "sqlite:////var/lib/yap/app.db",
+    // Encrypts the LLM API keys stored in the dev database; production sets its own
+    "APP_SECRET_KEY": "dev-only-secret-not-for-production"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker",
+
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "vitest.explorer",
+        "ms-playwright.playwright",
+
+        "qwtel.sqlite-viewer",
+        "humao.rest-client",
+        "ms-azuretools.vscode-containers",
+        "redhat.vscode-yaml",
+
+        "bierner.markdown-mermaid",
+        "davidanson.vscode-markdownlint",
+        "editorconfig.editorconfig"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/venv/bin/python",
+        "python-envs.terminal.autoActivationType": "shellStartup",
+        "npm.enableScriptExplorer": true,
+        "python.testing.pytestEnabled": true,
+        // pytest's configuration (testpaths, pythonpath, markers) is in backend/pyproject.toml
+        "python.testing.cwd": "${workspaceFolder}/backend",
+        "python.testing.pytestArgs": ["tests"],
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true
+        },
+        "[typescript][typescriptreact][json][jsonc]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        }
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}

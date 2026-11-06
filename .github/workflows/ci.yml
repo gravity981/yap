@@ -1,0 +1,314 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # The release-candidate workflow runs the full suite through this workflow (spec 5.4)
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  # The caller's name when called, so a release run does not cancel CI on main
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/pyproject.toml
+
+      - name: Install dependencies
+        run: uv pip install --system -e '.[dev]'
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Format check
+        run: ruff format --check .
+
+      - name: Type check
+        run: mypy yap
+
+      - name: Schema drift check (IMP-09)
+        run: python -m yap.imports.schemas --check
+
+      # Includes the migration check: migrations apply to an empty database, can be
+      # rolled back, and match the models (tests/db/test_database.py)
+      - name: Tests with coverage (NFR-12)
+        run: >
+          pytest
+          --cov --cov-report=term-missing
+          --cov-fail-under=90
+
+      - name: Full coverage of critical modules (NFR-12)
+        run: >
+          coverage report --fail-under=100
+          --include='yap/domain/rebalancing.py,yap/services/versioning.py,yap/imports/importer.py,yap/imports/models.py'
+
+      - name: Keep requirement results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: req-results-backend
+          path: backend/.req-results/pytest.json
+          include-hidden-files: true
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      # node_modules itself is cached, so a hit skips npm ci; saved right after the
+      # install, before lint, tests and build write their caches into it
+      - name: Restore node_modules
+        id: node-modules
+        uses: actions/cache/restore@v5
+        with:
+          path: frontend/node_modules
+          key: node-modules-${{ runner.os }}-node26-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install npm dependencies
+        if: ${{ steps.node-modules.outputs.cache-hit != 'true' }}
+        run: npm ci
+
+      - name: Save node_modules
+        if: ${{ steps.node-modules.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: frontend/node_modules
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
+
+      # The API types are generated from the backend's OpenAPI description
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/pyproject.toml
+
+      - name: Install Python dependencies
+        run: uv pip install --system -e '../backend'
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: API drift check
+        run: |
+          npm run gen:api
+          git diff --exit-code -- src/api/ || {
+            echo "src/api is out of date; run: npm run gen:api"
+            exit 1
+          }
+
+      - name: Tests with coverage (NFR-12)
+        run: npm run coverage
+        env:
+          REQ_RESULTS_DIR: ${{ github.workspace }}/req-results
+
+      - name: Build
+        run: npm run build
+
+      # The end-to-end tests run against this build instead of building again
+      - name: Keep the build
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Keep requirement results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: req-results-frontend
+          path: req-results/vitest.json
+
+  e2e:
+    name: End-to-end
+    # On main and in releases (test strategy §2); pull requests run the unit and
+    # integration tests
+    if: ${{ github.event_name != 'pull_request' }}
+    needs: [backend, frontend]
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      # Saved by the frontend job
+      - name: Restore node_modules
+        id: node-modules
+        uses: actions/cache/restore@v5
+        with:
+          path: frontend/node_modules
+          key: node-modules-${{ runner.os }}-node26-${{ hashFiles('frontend/package-lock.json') }}
+
+      - name: Install npm dependencies
+        if: ${{ steps.node-modules.outputs.cache-hit != 'true' }}
+        run: npm ci
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          uv pip install --system -e '../backend'
+          npx playwright install --with-deps chromium
+
+      - name: Download the frontend build
+        uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      - name: End-to-end tests
+        run: npm run e2e
+        env:
+          REQ_RESULTS_DIR: ${{ github.workspace }}/req-results
+
+      - name: Keep traces of failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: frontend/test-results/
+
+      - name: Keep requirement results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: req-results-e2e
+          path: req-results/playwright.json
+
+  image:
+    name: Image
+    # Built and smoke-tested on every run; pushed on main once the end-to-end tests passed
+    needs: [backend, frontend, e2e]
+    if: >-
+      ${{ !cancelled() && needs.backend.result == 'success'
+      && needs.frontend.result == 'success' && needs.e2e.result != 'failure' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/gravity981/yap
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the release tags determine the version (spec 5.2)
+
+      - name: Determine version
+        id: version
+        run: |
+          version="$(bash scripts/version.sh build "$GITHUB_RUN_NUMBER")"
+          tag="$(bash scripts/version.sh image-tag "$version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Version $version, image tag $tag" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: docker/setup-buildx-action@v4.4.1
+
+      - name: Build image (version baked in, spec 5.7)
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          load: true
+          tags: ${{ env.IMAGE }}:${{ steps.version.outputs.tag }}
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+            APP_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        run: >
+          bash scripts/smoke-test.sh
+          "$IMAGE:${{ steps.version.outputs.tag }}" "${{ steps.version.outputs.version }}"
+
+      - name: Log in to ghcr.io
+        if: ${{ github.event_name == 'push' }}
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image (main only)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          docker tag "$IMAGE:${{ steps.version.outputs.tag }}" "$IMAGE:main"
+          docker push "$IMAGE:${{ steps.version.outputs.tag }}"
+          docker push "$IMAGE:main"
+
+  requirements:
+    name: Requirement coverage
+    needs: [backend, frontend, e2e]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: req-results-*
+          path: req-results
+          merge-multiple: true
+
+      - name: Requirement coverage report (NFR-11)
+        working-directory: backend
+        run: |
+          status=0
+          python -m yap.tools.req_report \
+            --results "$GITHUB_WORKSPACE/req-results" --output req-report.md || status=$?
+          cat req-report.md >> "$GITHUB_STEP_SUMMARY"
+          exit $status

@@ -1,0 +1,336 @@
+import type { Messages } from "../messages";
+
+// Rebalancing: instructions, explanation, report, detail (features/rebalance).
+export const en = {
+  units: "{{units}} units",
+  action: {
+    sell: "Sell",
+    sellAllExit: "Sell All (Exit)",
+    buyBuffer: "Buy (Buffer)",
+    deploy: "Deploy",
+    sellAndDeploy: "Sell & Deploy",
+    hold: "Hold",
+    buyBelowTarget: "Buy (Below Target)",
+    buyAtTarget: "Buy (At Target)",
+    sellWithdrawal: "Sell (Withdrawal)",
+  },
+  page: {
+    title: "Rebalance",
+    titleOf: "Rebalance {{name}}",
+    intro:
+      "These are instructions only; nothing is stored until you confirm the executed trades below.",
+    enterValues: "Enter values",
+    oldValues: "The values are from {{date}}. Enter current values for up-to-date instructions.",
+    contribution: "Contribution",
+    withdrawal: "Withdrawal",
+    recalculate: "Recalculate",
+    valuesFrom: "Values from {{date}} against {{version}}",
+    withdrawalHelp:
+      "Withdrawal: cash to take out of the portfolio. It is paid from the contribution and the sells first; anything missing is sold from the positions furthest above target.",
+    report: "Report for printing / PDF",
+    notAdvice:
+      "These instructions only apply the rules of your policy; they are not financial advice. You decide whether and how to trade.",
+  },
+  phases: {
+    dips: "Buy dips from the cash buffer",
+    sell: "Sell",
+    buy: "Buy",
+    withdrawal: "Sell for the withdrawal",
+    nothing: "Nothing to do.",
+  },
+  cash: {
+    title: "Cash",
+    description: "Sell proceeds stay in the portfolio; only the withdrawal leaves it.",
+    calculation: "Cash calculation",
+    contribution: "Contribution",
+    sellProceeds: "Sell proceeds",
+    withdrawal: "Withdrawal",
+    bufferUsed: "Cash buffer used for dips",
+    toSell: "To sell for the withdrawal",
+    available: "Available for buys",
+    unallocated: "Unallocated (no position can take it)",
+    rounding: "Left over by whole units",
+    withdrawalSellsPerBroker: "Withdrawal sells per broker",
+    buysPerBroker: "Buys per broker",
+    noBuys: "No buys.",
+    noBroker: "no broker set",
+  },
+  table: {
+    summary: "All positions in detail",
+    position: "Position",
+    target: "Target",
+    before: "Before",
+    phase1: "Phase 1",
+    afterPhase1: "After phase 1",
+    phase3: "Phase 3",
+    after: "After",
+    toTarget: "To target",
+    notInPolicy: "not in policy",
+    aboveTarget: "above target by {{pct}}",
+    belowTarget: "below target by {{pct}}",
+    atTarget: "= at target",
+  },
+  confirm: {
+    nothing: "Nothing to rebalance: all positions are where the policy wants them.",
+    title: "Confirm after executing",
+    description:
+      "Adjust the units and the amount of each action to what was actually executed (0 = not executed). Confirming stores the rebalance and the resulting values; it cannot be changed afterwards.",
+    executed: "Executed {{action}} {{ticker}}",
+    executedUnits: "Executed units {{action}} {{ticker}}",
+    units: "units",
+    amount: "amount",
+    submit: "Confirm rebalance",
+  },
+  simulation: {
+    summary: "Simulate several cycles",
+    cycles: "Cycles",
+    submit: "Simulate",
+    perCycle:
+      "Contribution {{contribution}} and withdrawal {{withdrawal}} per cycle, prices unchanged.",
+    table: "Simulated cycles",
+    cycle: "Cycle",
+    sold: "Sold",
+    bought: "Bought",
+    valueAfter: "Value after",
+    afterCycle: "After cycle {{cycle}}",
+    target: " (target {{pct}})",
+  },
+  detail: {
+    title: "Rebalance of {{date}}",
+    facts: "Contribution {{contribution}} · withdrawal {{withdrawal}} · ",
+    valuesBefore: "values before",
+    valuesAfter: "values after",
+    portfolio: "portfolio",
+    report: "report for printing / PDF",
+    phase: "Phase",
+    position: "Position",
+    action: "Action",
+    broker: "Broker",
+    calculated: "Calculated",
+    executed: "Executed",
+    calculatedUnits: "Calculated units",
+    executedUnits: "Executed units",
+  },
+  report: {
+    print: "Print / save as PDF",
+    planTitle: "Rebalancing instructions – {{name}}",
+    planPolicy: "Policy {{version}} · values from {{date}}",
+    planFacts:
+      "Contribution {{contribution}} · withdrawal {{withdrawal}} · not confirmed · created {{date}}",
+    confirmedTitle: "Rebalance – {{name}}",
+    confirmedFacts:
+      "Confirmed {{date}} · contribution {{contribution}} · withdrawal {{withdrawal}}",
+    table: "Calculated and executed",
+  },
+  explanation: {
+    title: "How this was calculated",
+    finalValue:
+      "Final value of the portfolio: {{before}} + contribution {{contribution}} − withdrawal {{withdrawal}} = {{final}}. Targets and midbands below are shares of this value.",
+    dips: {
+      title: "Dip buys from the cash buffer",
+      none: "Nothing to do: no position is below its buy threshold, or there is no cash buffer with money in it.",
+      intro:
+        "The cash buffer pays {{amount}} into the positions below their buy threshold; the deeper the dip, the more a position gets:",
+      item: "+{{amount}}",
+    },
+    sells: {
+      title: "Sells",
+      none: "Nothing to sell: no position is above its sell threshold, has the exit flag or is outside the policy.",
+      threshold:
+        "at {{before}}, above its sell threshold: sold down to its midband of {{after}}, −{{amount}}",
+      exit: "has the exit flag: sold completely, −{{amount}}",
+      notInPolicy: "is not in the policy: sold completely, −{{amount}}",
+    },
+    cash: {
+      title: "Cash",
+      sum: "Contribution {{contribution}} + sell proceeds {{sells}} − withdrawal {{withdrawal}} = {{cash}}.",
+      available: "This is invested in step 4.",
+      missing: "{{amount}} is missing for the withdrawal; it is sold in step 4.",
+      nothing: "Nothing is left for buys.",
+    },
+    buys: {
+      title: "Buys",
+      none: "Nothing to buy.",
+      intro:
+        "Positions below target get the cash, weighted by how far below they are, each at most up to its target; anything left over is spread in proportion to target. Positions sold in step 2 get nothing.",
+      item: "+{{amount}}, now {{after}} (target {{target}})",
+      unallocated: "{{amount}} cannot be invested: no position can take it.",
+      rounding:
+        "{{amount}} is left over because positions are traded in whole units (buys rounded down, sells up); it is not invested.",
+    },
+    withdrawal: {
+      title: "Sells for the withdrawal",
+      intro:
+        "The missing {{amount}} is sold from the positions furthest above target first, each at most down to its target; anything still missing is sold in proportion to target. Positions sold in step 2 are left alone.",
+      item: "−{{amount}}, now {{after}} (target {{target}})",
+    },
+  },
+};
+
+// German in Swiss spelling (ss, no ß), addressing the user with "du"; see src/i18n/README.md
+export const de: Messages<typeof en> = {
+  units: "{{units}} Stück",
+  action: {
+    sell: "Verkaufen",
+    sellAllExit: "Alles verkaufen (Exit)",
+    buyBuffer: "Kaufen (Liquiditätsreserve)",
+    deploy: "Einsetzen",
+    sellAndDeploy: "Verkaufen & einsetzen",
+    hold: "Halten",
+    buyBelowTarget: "Kaufen (unter Ziel)",
+    buyAtTarget: "Kaufen (im Ziel)",
+    sellWithdrawal: "Verkaufen (Entnahme)",
+  },
+  page: {
+    title: "Rebalancing",
+    titleOf: "Rebalancing {{name}}",
+    intro:
+      "Das sind nur Anweisungen; gespeichert wird erst, wenn du unten die ausgeführten Trades bestätigst.",
+    enterValues: "Werte erfassen",
+    oldValues: "Die Werte sind vom {{date}}. Erfasse aktuelle Werte für aktuelle Anweisungen.",
+    contribution: "Einzahlung",
+    withdrawal: "Entnahme",
+    recalculate: "Neu berechnen",
+    valuesFrom: "Werte vom {{date}} gegen {{version}}",
+    withdrawalHelp:
+      "Entnahme: Geld, das aus dem Portfolio genommen wird. Es wird zuerst aus der Einzahlung und den Verkäufen bezahlt; was fehlt, wird bei den Positionen verkauft, die am weitesten über ihrem Ziel liegen.",
+    report: "Bericht zum Drucken / als PDF",
+    notAdvice:
+      "Diese Anweisungen wenden nur die Regeln deiner Anlagestrategie an; sie sind keine Finanzberatung. Du entscheidest, ob und wie du handelst.",
+  },
+  phases: {
+    dips: "Kursrückgänge aus der Liquiditätsreserve kaufen",
+    sell: "Verkaufen",
+    buy: "Kaufen",
+    withdrawal: "Verkaufen für die Entnahme",
+    nothing: "Nichts zu tun.",
+  },
+  cash: {
+    title: "Liquidität",
+    description: "Verkaufserlöse bleiben im Portfolio; nur die Entnahme verlässt es.",
+    calculation: "Berechnung der Liquidität",
+    contribution: "Einzahlung",
+    sellProceeds: "Verkaufserlös",
+    withdrawal: "Entnahme",
+    bufferUsed: "Liquiditätsreserve für Kursrückgänge verwendet",
+    toSell: "Zu verkaufen für die Entnahme",
+    available: "Verfügbar für Käufe",
+    unallocated: "Nicht investiert (keine Position kann es aufnehmen)",
+    rounding: "Übrig wegen ganzer Stücke",
+    withdrawalSellsPerBroker: "Verkäufe für die Entnahme pro Broker",
+    buysPerBroker: "Käufe pro Broker",
+    noBuys: "Keine Käufe.",
+    noBroker: "kein Broker festgelegt",
+  },
+  table: {
+    summary: "Alle Positionen im Detail",
+    position: "Position",
+    target: "Ziel",
+    before: "Vorher",
+    phase1: "Phase 1",
+    afterPhase1: "Nach Phase 1",
+    phase3: "Phase 3",
+    after: "Nachher",
+    toTarget: "Zum Ziel",
+    notInPolicy: "nicht in der Anlagestrategie",
+    aboveTarget: "{{pct}} über dem Ziel",
+    belowTarget: "{{pct}} unter dem Ziel",
+    atTarget: "= im Ziel",
+  },
+  confirm: {
+    nothing:
+      "Nichts zu rebalancieren: Alle Positionen liegen dort, wo die Anlagestrategie sie haben will.",
+    title: "Nach dem Ausführen bestätigen",
+    description:
+      "Passe Anzahl und Betrag jeder Aktion an das an, was tatsächlich ausgeführt wurde (0 = nicht ausgeführt). Mit der Bestätigung werden das Rebalancing und die resultierenden Werte gespeichert; danach lässt es sich nicht mehr ändern.",
+    executed: "Ausgeführt {{action}} {{ticker}}",
+    executedUnits: "Ausgeführte Anzahl {{action}} {{ticker}}",
+    units: "Anzahl",
+    amount: "Betrag",
+    submit: "Rebalancing bestätigen",
+  },
+  simulation: {
+    summary: "Mehrere Zyklen simulieren",
+    cycles: "Zyklen",
+    submit: "Simulieren",
+    perCycle:
+      "Einzahlung {{contribution}} und Entnahme {{withdrawal}} pro Zyklus, Kurse unverändert.",
+    table: "Simulierte Zyklen",
+    cycle: "Zyklus",
+    sold: "Verkauft",
+    bought: "Gekauft",
+    valueAfter: "Wert danach",
+    afterCycle: "Nach Zyklus {{cycle}}",
+    target: " (Ziel {{pct}})",
+  },
+  detail: {
+    title: "Rebalancing vom {{date}}",
+    facts: "Einzahlung {{contribution}} · Entnahme {{withdrawal}} · ",
+    valuesBefore: "Werte vorher",
+    valuesAfter: "Werte nachher",
+    portfolio: "Portfolio",
+    report: "Bericht zum Drucken / als PDF",
+    phase: "Phase",
+    position: "Position",
+    action: "Aktion",
+    broker: "Broker",
+    calculated: "Berechnet",
+    executed: "Ausgeführt",
+    calculatedUnits: "Berechnete Anzahl",
+    executedUnits: "Ausgeführte Anzahl",
+  },
+  report: {
+    print: "Drucken / als PDF speichern",
+    planTitle: "Rebalancing-Anweisungen – {{name}}",
+    planPolicy: "Anlagestrategie {{version}} · Werte vom {{date}}",
+    planFacts:
+      "Einzahlung {{contribution}} · Entnahme {{withdrawal}} · nicht bestätigt · erstellt {{date}}",
+    confirmedTitle: "Rebalancing – {{name}}",
+    confirmedFacts: "Bestätigt {{date}} · Einzahlung {{contribution}} · Entnahme {{withdrawal}}",
+    table: "Berechnet und ausgeführt",
+  },
+  explanation: {
+    title: "So wurde gerechnet",
+    finalValue:
+      "Endwert des Portfolios: {{before}} + Einzahlung {{contribution}} − Entnahme {{withdrawal}} = {{final}}. Ziele und Mittelbänder unten sind Anteile an diesem Wert.",
+    dips: {
+      title: "Kursrückgänge aus der Liquiditätsreserve kaufen",
+      none: "Nichts zu tun: Keine Position liegt unter ihrer Kaufschwelle, oder es gibt keine Liquiditätsreserve mit Geld darin.",
+      intro:
+        "Die Liquiditätsreserve zahlt {{amount}} in die Positionen unter ihrer Kaufschwelle; je tiefer der Rückgang, desto mehr erhält eine Position:",
+      item: "+{{amount}}",
+    },
+    sells: {
+      title: "Verkäufe",
+      none: "Nichts zu verkaufen: Keine Position liegt über ihrer Verkaufsschwelle, hat die Exit-Markierung oder ist ausserhalb der Anlagestrategie.",
+      threshold:
+        "bei {{before}}, über ihrer Verkaufsschwelle: verkauft bis auf ihr Mittelband von {{after}}, −{{amount}}",
+      exit: "hat die Exit-Markierung: vollständig verkauft, −{{amount}}",
+      notInPolicy: "ist nicht in der Anlagestrategie: vollständig verkauft, −{{amount}}",
+    },
+    cash: {
+      title: "Liquidität",
+      sum: "Einzahlung {{contribution}} + Verkaufserlös {{sells}} − Entnahme {{withdrawal}} = {{cash}}.",
+      available: "Dieser Betrag wird in Schritt 4 investiert.",
+      missing: "Für die Entnahme fehlen {{amount}}; sie werden in Schritt 4 verkauft.",
+      nothing: "Für Käufe bleibt nichts übrig.",
+    },
+    buys: {
+      title: "Käufe",
+      none: "Nichts zu kaufen.",
+      intro:
+        "Positionen unter ihrem Ziel erhalten das Geld, gewichtet danach, wie weit sie darunter liegen, jede höchstens bis zu ihrem Ziel; was übrig bleibt, wird im Verhältnis der Ziele verteilt. In Schritt 2 verkaufte Positionen erhalten nichts.",
+      item: "+{{amount}}, jetzt {{after}} (Ziel {{target}})",
+      unallocated:
+        "{{amount}} können nicht investiert werden: Keine Position kann den Betrag aufnehmen.",
+      rounding:
+        "{{amount}} bleiben übrig, weil Positionen in ganzen Stücken gehandelt werden (Käufe abgerundet, Verkäufe aufgerundet); sie werden nicht investiert.",
+    },
+    withdrawal: {
+      title: "Verkäufe für die Entnahme",
+      intro:
+        "Die fehlenden {{amount}} werden zuerst bei den Positionen verkauft, die am weitesten über ihrem Ziel liegen, jede höchstens bis auf ihr Ziel; was dann noch fehlt, wird im Verhältnis der Ziele verkauft. In Schritt 2 verkaufte Positionen bleiben unberührt.",
+      item: "−{{amount}}, jetzt {{after}} (Ziel {{target}})",
+    },
+  },
+};

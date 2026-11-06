@@ -1,0 +1,75 @@
+{
+  "description": "Withdrawal sells are rounded up to whole units, never above the units held; the surplus stays unallocated (RB-24, RB-22)",
+  "approved": true,
+  "input": {
+    "contribution": 0,
+    "withdrawal": 1030,
+    "positions": [
+      {
+        "ticker": "AAA",
+        "name": "World ETF",
+        "type": "ETF",
+        "value": 6500,
+        "target_pct": 60,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20,
+        "exit": false,
+        "broker": "Southbank",
+        "units": 65,
+        "price": 100,
+        "whole_units": true
+      },
+      {
+        "ticker": "BBB",
+        "name": "Bond ETF",
+        "type": "ETF",
+        "value": 3500,
+        "target_pct": 40,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20,
+        "exit": false,
+        "broker": "Southbank",
+        "units": 10,
+        "price": 350,
+        "whole_units": true
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "AAA": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "withdrawal_sell": 1100,
+        "buffer_buy_units": 0,
+        "sell_units": 0,
+        "buy_units": 0,
+        "withdrawal_sell_units": 11,
+        "units_after": 54,
+        "phase1_action": "Hold",
+        "phase3_action": "Sell (Withdrawal)"
+      },
+      "BBB": {
+        "buffer_buy": 0,
+        "sell_amount": 0,
+        "buy_amount": 0,
+        "buffer_buy_units": 0,
+        "sell_units": 0,
+        "buy_units": 0,
+        "withdrawal_sell_units": 0,
+        "units_after": 10,
+        "phase1_action": "Hold",
+        "phase3_action": "Hold"
+      }
+    },
+    "total_sell_proceeds": 0,
+    "available_cash": 0,
+    "total_withdrawal_sells": 1030,
+    "total_buffer_used": 0,
+    "unallocated_cash": 70,
+    "rounding_cash": 70,
+    "total_value_after": 8900
+  },
+  "calculation": "Expected values are the results of the calculation followed by the conversion into units (RB-24), checked by hand; amounts rounded to cents, units exact."
+}
