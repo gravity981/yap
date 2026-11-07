@@ -56,6 +56,8 @@ const review = (extra: Record<string, unknown> = {}) => ({
   provider: "anthropic",
   model: "claude-x",
   scoring_version: "2",
+  method: "ai",
+  prompt_id: null,
   news_from: "2025-12-01T10:00:00+00:00",
   news_to: "2026-03-01T10:00:00+00:00",
   started_at: "2026-03-01T10:00:00+00:00",
@@ -323,6 +325,21 @@ describe("reviews", () => {
     german("1");
     const old = await screen.findByRole("region", { name: "Prüfung der Anlagethese" });
     expect(await within(old).findByText("T1 Kernaussage")).toBeInTheDocument();
+  });
+
+  it("[REV-17] [REV-18] names the model of a manual review", async () => {
+    setup(
+      {
+        "GET /api/reviews/30": () =>
+          json(review({ method: "manual", provider: "manual", model: "ChatGPT 5" })),
+      },
+      brief(30, 6.5),
+    );
+    renderApp("/theses/7");
+    const section = await screen.findByRole("region", { name: "Thesis review" });
+    expect(
+      await within(section).findByText(/manual review with ChatGPT 5 · scoring v2/),
+    ).toBeInTheDocument();
   });
 
   it("[REV-09] marks a review as outdated when the draft changed", async () => {

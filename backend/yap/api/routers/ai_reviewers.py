@@ -33,7 +33,10 @@ class AiReviewerOption(BaseModel):
 
 
 class Choice(BaseModel):
+    """USR-08: the default review method; `manual` wins over an AI reviewer."""
+
     ai_reviewer_id: int | None
+    manual: bool = False
 
 
 @router.get("")
@@ -43,5 +46,5 @@ def list_options(session: DbSession, user: CurrentUser) -> list[AiReviewerOption
 
 @router.put("/choice")
 def choose(body: Choice, session: DbSession, user: CurrentUser) -> Choice:
-    investor = ai_reviewers.choose_reviewer(session, user, body.ai_reviewer_id)
-    return Choice(ai_reviewer_id=investor.ai_reviewer_id)
+    investor = ai_reviewers.choose_reviewer(session, user, body.ai_reviewer_id, body.manual)
+    return Choice(ai_reviewer_id=investor.ai_reviewer_id, manual=investor.manual_review_default)

@@ -47,9 +47,11 @@ class ReviewOut(BaseModel):
     error: str | None
     thesis_revision_id: int | None
     policy_version_id: int | None
-    ai_reviewer_name: str | None  # REV-17; null for reviews from before AI reviewers
-    provider: str
-    model: str
+    method: str  # ai | manual (REV-18)
+    ai_reviewer_name: str | None  # REV-17; null for manual reviews and those before reviewers
+    provider: str  # "manual" for a manual review
+    model: str  # for a manual review: the model the investor named (REV-17)
+    prompt_id: str | None  # REV-19; null for reviews before it
     scoring_version: str  # REV-06
     news_from: datetime | None
     news_to: datetime | None
@@ -76,7 +78,9 @@ def _out(session: DbSession, review: Review) -> ReviewOut:
         error=review.error,
         thesis_revision_id=review.thesis_revision_id,
         policy_version_id=review.policy_version_id,
+        method=review.method,
         ai_reviewer_name=review.ai_reviewer_name,
+        prompt_id=review.prompt_id,
         provider=review.provider,
         model=review.model,
         scoring_version=review.scoring_version,
@@ -212,6 +216,13 @@ def start_policy_review(
     return _out(session, review)
 
 
+class ManualAnswer(BaseModel):
+    """REV-18: the answer of an AI outside the app, and which model wrote it (REV-17)."""
+
+    answer: str
+    model: str
+
+
 class ReviewPromptOut(BaseModel):
     """REV-19: the review prompt to copy into an AI outside the app."""
 
@@ -239,6 +250,28 @@ def get_policy_review_prompt(
     """REV-19: the prompt of the policy draft as it is saved now; changes nothing."""
     prompt = reviews.policy_review_prompt(session, user, clock, policy_id)
     return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
+
+
+@router.post("/theses/{thesis_id}/draft/review/manual", status_code=201)
+def submit_manual_thesis_review(
+    thesis_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
+) -> ReviewOut:
+    """REV-18: stores the pasted answer as the review of the thesis draft."""
+    review = reviews.submit_manual_thesis_review(
+        session, user, clock, thesis_id, body.answer, body.model
+    )
+    return _out(session, review)
+
+
+@router.post("/policies/{policy_id}/draft/review/manual", status_code=201)
+def submit_manual_policy_review(
+    policy_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
+) -> ReviewOut:
+    """REV-18: stores the pasted answer as the review of the policy draft."""
+    review = reviews.submit_manual_policy_review(
+        session, user, clock, policy_id, body.answer, body.model
+    )
+    return _out(session, review)
 
 
 @router.get("/reviews/{review_id}")

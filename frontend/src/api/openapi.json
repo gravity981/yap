@@ -505,6 +505,7 @@
         "type": "object"
       },
       "Choice": {
+        "description": "USR-08: the default review method; `manual` wins over an AI reviewer.",
         "properties": {
           "ai_reviewer_id": {
             "anyOf": [
@@ -516,6 +517,11 @@
               }
             ],
             "title": "Ai Reviewer Id"
+          },
+          "manual": {
+            "default": false,
+            "title": "Manual",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1304,6 +1310,25 @@
         "title": "LookupOut",
         "type": "object"
       },
+      "ManualAnswer": {
+        "description": "REV-18: the answer of an AI outside the app, and which model wrote it (REV-17).",
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer",
+          "model"
+        ],
+        "title": "ManualAnswer",
+        "type": "object"
+      },
       "Me": {
         "properties": {
           "ai_reviewer_id": {
@@ -1351,6 +1376,10 @@
             ],
             "title": "Language"
           },
+          "manual_review_default": {
+            "title": "Manual Review Default",
+            "type": "boolean"
+          },
           "must_change_password": {
             "title": "Must Change Password",
             "type": "boolean"
@@ -1378,6 +1407,7 @@
           "is_investor",
           "base_currency",
           "ai_reviewer_id",
+          "manual_review_default",
           "language",
           "time_zone",
           "must_change_password"
@@ -3320,6 +3350,10 @@
               }
             ]
           },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
           "model": {
             "title": "Model",
             "type": "string"
@@ -3362,6 +3396,17 @@
               }
             ],
             "title": "Policy Version Id"
+          },
+          "prompt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Id"
           },
           "provider": {
             "title": "Provider",
@@ -3435,9 +3480,11 @@
           "error",
           "thesis_revision_id",
           "policy_version_id",
+          "method",
           "ai_reviewer_name",
           "provider",
           "model",
+          "prompt_id",
           "scoring_version",
           "news_from",
           "news_to",
@@ -7096,6 +7143,75 @@
         ]
       }
     },
+    "/api/policies/{policy_id}/draft/review/manual": {
+      "post": {
+        "description": "REV-18: stores the pasted answer as the review of the policy draft.",
+        "operationId": "submit_manual_policy_review_api_policies__policy_id__draft_review_manual_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Manual Policy Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/api/policies/{policy_id}/draft/thesis-revision": {
       "put": {
         "operationId": "set_draft_thesis_revision_api_policies__policy_id__draft_thesis_revision_put",
@@ -9966,6 +10082,75 @@
           }
         },
         "summary": "Get Thesis Review Prompt",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/theses/{thesis_id}/draft/review/manual": {
+      "post": {
+        "description": "REV-18: stores the pasted answer as the review of the thesis draft.",
+        "operationId": "submit_manual_thesis_review_api_theses__thesis_id__draft_review_manual_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "thesis_id",
+            "required": true,
+            "schema": {
+              "title": "Thesis Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Manual Thesis Review",
         "tags": [
           "reviews"
         ]

@@ -252,9 +252,15 @@ function ReviewResult({
           )}
           {review.outdated && <Badge variant="warning">{t("reviews.result.outdated")}</Badge>}
           <span className="text-muted-foreground">
-            {review.ai_reviewer_name && `${review.ai_reviewer_name}: `}
-            {review.provider} {review.model} ·{" "}
-            {t("reviews.result.scoring", { version: review.scoring_version })}
+            {review.method === "manual" ? (
+              t("reviews.result.manual", { model: review.model })
+            ) : (
+              <>
+                {review.ai_reviewer_name && `${review.ai_reviewer_name}: `}
+                {review.provider} {review.model}
+              </>
+            )}{" "}
+            · {t("reviews.result.scoring", { version: review.scoring_version })}
             {review.news_from && review.news_to && (
               <>
                 {" · "}

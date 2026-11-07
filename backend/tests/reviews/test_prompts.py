@@ -57,15 +57,16 @@ def test_a_thesis_answer_is_parsed() -> None:
 @pytest.mark.parametrize(
     ("text", "message"),
     [
-        ("not json", "expected format"),
-        (thesis_answer(verdict="soft", prompt_id=PROMPT_ID), "expected format"),
+        ("not json", "no JSON object"),
+        ('{"prompt_id": "x",}', "no valid JSON: Illegal trailing comma"),
+        (thesis_answer(verdict="soft", prompt_id=PROMPT_ID), "verdict: Input should be"),
         (thesis_answer(scores=(7, 6, 8, 5, 7), prompt_id=PROMPT_ID), "exactly the aspects"),
         (thesis_answer(scores=(7, 6, 8, 5, 7, 6.3), prompt_id=PROMPT_ID), "steps of 0.5"),
         (thesis_answer(scores=(7, 6, 8, 5, 7, 11), prompt_id=PROMPT_ID), "between 0 and 10"),
-        (thesis_answer(extra_field=1, prompt_id=PROMPT_ID), "expected format"),
+        (thesis_answer(extra_field=1, prompt_id=PROMPT_ID), "extra_field: Extra inputs"),
         # a policy answer to a thesis review
-        (policy_answer(prompt_id=PROMPT_ID), "expected format"),
-        (thesis_answer(), "expected format"),  # no prompt ID
+        (policy_answer(prompt_id=PROMPT_ID), "verdict: Field required"),
+        (thesis_answer(), "prompt_id: Field required"),
         (thesis_answer(prompt_id="T1-20260115T100000Z-90-ffffff"), "prompt ID " + PROMPT_ID),
     ],
 )
@@ -155,3 +156,30 @@ def test_the_prompt_text_holds_instructions_content_and_answer_format(
     assert "2025-12-16" in text and "2026-01-15" in text
     assert json.dumps(prompt.json_schema, indent=2) in text
     assert "alice" not in text
+
+
+@pytest.mark.req("REV-18")
+def test_every_problem_of_an_answer_is_listed() -> None:
+    answer = thesis_answer(scores=(7, 6, 8, 5, 11), prompt_id="other")
+    parsed, problems = review_prompts.check_answer(ReviewKind.THESIS, answer, PROMPT_ID)
+    assert parsed is None
+    assert [p.code for p in problems] == [
+        "answer_prompt_id_wrong",
+        "answer_aspects_wrong",
+        "score_invalid",
+    ]
+    _, problems = review_prompts.check_answer(
+        ReviewKind.THESIS, '{"prompt_id": 1, "aspects": "none"}', PROMPT_ID
+    )
+    assert {str(p).split(":")[0] for p in problems} >= {
+        "prompt_id",
+        "aspects",
+        "verdict",
+        "sources",
+        "suggestions",
+    }
+    assert (
+        review_prompts.answer_prompt_id(f"Here:\n```json\n{thesis_answer(prompt_id=' a ')}```")
+        == "a"
+    )
+    assert review_prompts.answer_prompt_id("[1, 2]") is None

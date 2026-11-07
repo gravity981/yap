@@ -20,7 +20,7 @@ from yap.db.models import PolicyVersion, ThesisRevision
 from yap.domain.reviews import ASPECTS, ReviewKind, Verdict, to_half_points
 from yap.llm import LlmError
 from yap.llm.base import LlmRequest
-from yap.messages import msg
+from yap.messages import Message, msg
 
 SUGGESTION_KINDS = ("thesis_text", "thesis_status", "policy_position")
 
@@ -141,35 +141,73 @@ def _valid_score(score: float) -> bool:
     return True
 
 
-def parse_answer(kind: ReviewKind, text: str, prompt_id: str) -> ParsedReview:
-    """Validates the answer strictly; an invalid answer fails the review (REV-08). It must
-    repeat the ID of its prompt (REV-19)."""
-    match = re.search(r"\{.*\}", text, re.DOTALL)  # tolerate a code fence around the JSON
+def _json_object(text: str) -> tuple[Any, Message | None]:
+    """The JSON object in the text; text around it (e.g. a code fence) is ignored."""
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        return None, msg("answer_no_json")
     try:
-        data = json.loads(match.group(0) if match else text)
+        return json.loads(match.group(0)), None
+    except json.JSONDecodeError as e:
+        return None, msg("answer_json_invalid", error=f"{e.msg}, line {e.lineno} column {e.colno}")
+
+
+def answer_prompt_id(text: str) -> str | None:
+    """The prompt ID an answer repeats, if it has one (REV-19)."""
+    data, _ = _json_object(text)
+    value = data.get("prompt_id") if isinstance(data, dict) else None
+    return value.strip() if isinstance(value, str) else None
+
+
+def check_answer(
+    kind: ReviewKind, text: str, prompt_id: str
+) -> tuple[ParsedReview | None, list[Message]]:
+    """The parsed answer, or every problem found in it, each saying where it is (REV-18).
+    The answer must repeat the ID of its prompt (REV-19)."""
+    data, problem = _json_object(text)
+    if problem:
+        return None, [problem]
+    try:
         answer: ThesisAnswer | PolicyAnswer = (
             ThesisAnswer.model_validate(data)
             if kind == ReviewKind.THESIS
             else PolicyAnswer.model_validate(data)
         )
-    except (json.JSONDecodeError, ValidationError) as e:
-        raise LlmError(msg("answer_format_invalid", error=type(e).__name__)) from e
+    except ValidationError as e:
+        return None, [
+            msg(
+                "answer_field_invalid",
+                field=".".join(str(part) for part in error["loc"]) or "answer",
+                error=error["msg"],
+            )
+            for error in e.errors()
+        ]
+    problems: list[Message] = []
     if answer.prompt_id.strip() != prompt_id:
-        raise LlmError(msg("answer_prompt_id_wrong", prompt_id=prompt_id))
+        problems.append(msg("answer_prompt_id_wrong", prompt_id=prompt_id))
     expected = [a.code for a in ASPECTS[kind]]
     if sorted(a.code for a in answer.aspects) != expected:
-        raise LlmError(msg("answer_aspects_wrong", aspects=", ".join(expected)))
-    try:
-        aspects = [
-            ParsedAspect(a.code, to_half_points(a.score), a.reasoning.strip())
-            for a in sorted(answer.aspects, key=lambda a: a.code)
-        ]
-    except ValueError:
-        bad = next(a.score for a in answer.aspects if not _valid_score(a.score))
-        raise LlmError(msg("score_invalid", score=bad)) from None
+        problems.append(msg("answer_aspects_wrong", aspects=", ".join(expected)))
+    problems.extend(
+        msg("score_invalid", score=a.score) for a in answer.aspects if not _valid_score(a.score)
+    )
+    if problems:
+        return None, problems
+    aspects = [
+        ParsedAspect(a.code, to_half_points(a.score), a.reasoning.strip())
+        for a in sorted(answer.aspects, key=lambda a: a.code)
+    ]
     if isinstance(answer, ThesisAnswer):
-        return ParsedReview(aspects, answer.verdict, answer.sources, answer.suggestions)
-    return ParsedReview(aspects, None, [], answer.suggestions)
+        return ParsedReview(aspects, answer.verdict, answer.sources, answer.suggestions), []
+    return ParsedReview(aspects, None, [], answer.suggestions), []
+
+
+def parse_answer(kind: ReviewKind, text: str, prompt_id: str) -> ParsedReview:
+    """The answer of an AI reviewer; an invalid one fails the review (REV-08)."""
+    parsed, problems = check_answer(kind, text, prompt_id)
+    if parsed is None:
+        raise LlmError(problems[0])
+    return parsed
 
 
 # --- Prompt ID -------------------------------------------------------------------------

@@ -90,12 +90,15 @@ export const en = {
       browser: "Like the browser ({{zone}})",
     },
     reviewer: {
-      title: "Default AI reviewer",
+      title: "Default review method",
       description:
-        "The AI that is preselected when you start a thesis or policy review; you can choose another one for each review. Each reviewer has its own monthly limit, set by the admin.",
+        "What is preselected when you review a thesis or policy draft; you can choose another one for each review. Each AI reviewer has its own monthly limit, set by the admin.",
       usage: "{{used}} of {{limit}} reviews with {{name}} used this month.",
       gone: "Your default AI reviewer is no longer available; choose another one.",
-      none: "There are no AI reviewers yet, so reviews are not available. Ask the admin.",
+      none: "There are no AI reviewers yet; you can still review manually.",
+      manual: "Manual",
+      manualDescription:
+        "You copy the review prompt into an AI of your choice and paste its answer back. Counts towards no limit.",
       perMonth: "{{provider}} {{model}} · {{limit}} reviews per month",
     },
   },

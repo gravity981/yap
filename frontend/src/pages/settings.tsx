@@ -109,11 +109,21 @@ function ReviewerCard() {
   const { data: me } = useMe();
   const usage = useUsage();
   const options = useReviewerOptions();
-  const [chosen, setChosen] = useState<number | null | undefined>(undefined);
-  const selected = chosen === undefined ? (me?.ai_reviewer_id ?? null) : chosen;
+  // USR-08: an AI reviewer's ID, "manual" (REV-18), or null for no choice yet
+  type Method = number | "manual" | null;
+  const [chosen, setChosen] = useState<Method | undefined>(undefined);
+  const current: Method = me?.manual_review_default ? "manual" : (me?.ai_reviewer_id ?? null);
+  const selected = chosen === undefined ? current : chosen;
   const save = useMutation({
     mutationFn: () =>
-      unwrap(api.PUT("/api/ai-reviewers/choice", { body: { ai_reviewer_id: selected } })),
+      unwrap(
+        api.PUT("/api/ai-reviewers/choice", {
+          body:
+            selected === "manual"
+              ? { ai_reviewer_id: null, manual: true }
+              : { ai_reviewer_id: selected, manual: false },
+        }),
+      ),
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: ME_KEY }),
@@ -126,9 +136,8 @@ function ReviewerCard() {
     event.preventDefault();
     save.mutate();
   };
-  const current = me?.ai_reviewer_id ?? null;
   const currentGone =
-    current !== null && options.data && !options.data.some((o) => o.id === current);
+    typeof current === "number" && options.data && !options.data.some((o) => o.id === current);
 
   return (
     <Card>
@@ -178,6 +187,19 @@ function ReviewerCard() {
                 </span>
               </label>
             ))}
+            <label className="flex cursor-pointer items-start gap-3 rounded-md border p-3 has-[:checked]:border-primary">
+              <input
+                type="radio"
+                name="ai-reviewer"
+                className="mt-1"
+                checked={selected === "manual"}
+                onChange={() => setChosen("manual")}
+              />
+              <span className="grid gap-0.5">
+                <span className="font-medium">{t("settings.reviewer.manual")}</span>
+                <span className="text-sm">{t("settings.reviewer.manualDescription")}</span>
+              </span>
+            </label>
           </fieldset>
           <FormError error={options.error ?? save.error} />
           {save.isSuccess && <Alert>{t("common.saved")}</Alert>}

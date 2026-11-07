@@ -602,6 +602,7 @@ erDiagram
         bool is_investor "at least one of both"
         string base_currency "ISO 4217, e.g. CHF; preset for new portfolios; null without investor role"
         int ai_reviewer_id FK "default, USR-08; null until chosen"
+        bool manual_review_default "USR-08: the default method is manual"
         string language "en or de; null = the browser's, USR-10"
         string time_zone "IANA name; null = the browser's, USR-11"
         bool active
@@ -841,13 +842,12 @@ erDiagram
         string verdict "thesis review: intact, needs_adaptation, broken"
         string method "ai or manual, REV-18"
         string prompt_id "REV-19"
-        string manual_model "manual review: model the investor named, required"
         text legacy_modification "reviews before the rework: investor changes and note (REV-10, dropped), read-only"
         string scoring_version "REV-06"
         int ai_reviewer_id FK "runs on it, null for manual"
         string ai_reviewer_name "REV-17, at the start"
-        string provider "REV-17"
-        string model "REV-17"
+        string provider "REV-17; manual for a manual review"
+        string model "REV-17; for a manual review the model the investor named, required"
         text error "if failed"
         datetime started_at
         datetime completed_at

@@ -141,7 +141,7 @@ def test_only_drafts_of_own_theses_and_policies_are_reviewed(
     ("error", "answer", "message"),
     [
         ("OpenAI did not answer in time", None, "OpenAI did not answer in time"),
-        (None, "not json", "expected format"),
+        (None, "not json", "no JSON object"),
     ],
 )
 def test_a_failed_run_keeps_its_reason(
@@ -427,3 +427,26 @@ def test_deleting_the_draft_deletes_its_review(
     review_id = run(_start(session, factory, owner, thesis_id)).id
     theses.delete_draft(session, owner, thesis_id)
     assert session.get(Review, review_id) is None
+
+
+@pytest.mark.req("REV-18", "REV-09")
+def test_no_manual_answer_while_an_ai_review_runs(session: Session, factory: Factory) -> None:
+    from tests.reviews.answers import thesis_answer
+    from yap.services import review_prompts
+
+    _configure(session, factory)
+    owner = factory.investor()
+    thesis_id = _thesis_with_draft(factory, owner)
+    queued = _start(session, factory, owner, thesis_id)
+    prompt = reviews.thesis_review_prompt(session, owner, factory.clock, thesis_id)
+    assert review_prompts.parse_prompt_id(prompt.prompt_id) is not None
+    with pytest.raises(ConflictError, match="still running"):
+        reviews.submit_manual_thesis_review(
+            session,
+            owner,
+            factory.clock,
+            thesis_id,
+            thesis_answer(prompt_id=prompt.prompt_id),
+            "GPT",
+        )
+    assert reviews.draft_review(session, reviews.draft_of(session, queued)) == queued

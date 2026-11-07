@@ -126,6 +126,8 @@ BODIES: dict[tuple[str, str], Any] = {
         "base_currency": "CHF",
     },
     ("POST", "/api/theses/{thesis_id}/draft/review"): {"news_days": 30},
+    ("POST", "/api/theses/{thesis_id}/draft/review/manual"): {"answer": "{}", "model": "m"},
+    ("POST", "/api/policies/{policy_id}/draft/review/manual"): {"answer": "{}", "model": "m"},
     ("PUT", "/api/admin/price-providers/{provider_id}"): {"provider": "yahoo"},
     ("PUT", "/api/admin/ai-reviewers/{reviewer_id}"): {
         "name": "x",

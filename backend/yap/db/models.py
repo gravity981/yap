@@ -46,6 +46,8 @@ class Investor(Base):
     base_currency: Mapped[str | None] = mapped_column(String(3))  # null without investor role
     # The investor's choice (USR-08); null until chosen and without the investor role
     ai_reviewer_id: Mapped[int | None] = mapped_column(ForeignKey("ai_reviewer.id"))
+    # USR-08: the default review method is manual instead of an AI reviewer
+    manual_review_default: Mapped[bool] = mapped_column(Boolean, default=False)
     language: Mapped[str | None] = mapped_column(String(5))  # en | de; null = browser's (USR-10)
     time_zone: Mapped[str | None] = mapped_column(String(64))  # IANA; null = browser's (USR-11)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -469,7 +471,10 @@ class Review(Base):
     # verdict, scores per aspect); null for all newer reviews
     legacy_modification: Mapped[str | None] = mapped_column(Text)
     scoring_version: Mapped[str] = mapped_column(String(20))  # REV-06
-    # REV-17: the AI reviewer it runs on, its name at the start, provider and model
+    method: Mapped[str] = mapped_column(String(10), default="ai")  # ai | manual (REV-18)
+    prompt_id: Mapped[str | None] = mapped_column(String(60))  # REV-19; null before it
+    # REV-17: the AI reviewer it runs on, its name at the start, provider and model; a
+    # manual review has the provider "manual" and the model the investor named
     ai_reviewer_id: Mapped[int | None] = mapped_column(ForeignKey("ai_reviewer.id"))
     ai_reviewer_name: Mapped[str | None] = mapped_column(String(100))  # null before 0007
     provider: Mapped[str] = mapped_column(String(20))

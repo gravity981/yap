@@ -196,6 +196,7 @@ def _start(
         news_from=now - timedelta(days=news_days) if news_days else None,
         news_to=now if news_days else None,
         scoring_version=SCORING_VERSION,
+        method="ai",
         ai_reviewer_id=reviewer.id,
         ai_reviewer_name=reviewer.name,
         provider=reviewer.provider,
@@ -268,6 +269,92 @@ def policy_review_prompt(
     draft = _policy_draft(session, actor, policy_id)
     ref = review_prompts.PromptRef(ReviewKind.POLICY, draft.id, clock.now(), 0)
     return _prompt(session, ref)
+
+
+# --- Manual review (REV-18) ------------------------------------------------------------
+
+MODEL_MAX = 100
+
+
+def _submit_manual(
+    session: Session,
+    actor: Investor,
+    clock: Clock,
+    kind: ReviewKind,
+    draft: ThesisRevision | PolicyVersion,
+    answer: str,
+    model: str,
+) -> Review:
+    """Stores the answer of an AI outside the app as the review of the draft. It is made
+    when its prompt was copied, so a later change of the draft makes it outdated (REV-09).
+    Every problem of the answer is reported at once."""
+    problems: list[tuple[str, Message]] = []
+    model = " ".join(model.split())
+    if not model:
+        problems.append(("model", msg("review_model_required")))
+    elif len(model) > MODEL_MAX:
+        problems.append(("model", msg("review_model_too_long", max=MODEL_MAX)))
+    prompt_id = review_prompts.answer_prompt_id(answer)
+    ref = review_prompts.parse_prompt_id(prompt_id) if prompt_id else None
+    parsed = None
+    if ref is None:
+        _, format_problems = review_prompts.check_answer(kind, answer, "")
+        id_problem = msg("answer_prompt_id_unknown")
+        answer_problems = [
+            id_problem,
+            *(p for p in format_problems if p.code != "answer_prompt_id_wrong"),
+        ]
+        problems.extend(("answer", p) for p in answer_problems)
+    elif ref.kind != kind or ref.draft_id != draft.id:
+        problems.append(("answer", msg("answer_prompt_id_other_draft")))
+    else:
+        parsed, answer_problems = review_prompts.check_answer(kind, answer, ref.prompt_id)
+        problems.extend(("answer", p) for p in answer_problems)
+    if problems:
+        raise ValidationError(problems)
+    assert ref is not None and parsed is not None
+    previous = draft_review(session, draft)
+    if previous is not None:
+        if previous.state in UNFINISHED:
+            raise ConflictError(msg("review_running"))
+        session.delete(previous)  # replaces the previous review (REV-09)
+        session.flush()
+    review = Review(
+        kind=kind.value,
+        thesis_revision_id=draft.id if isinstance(draft, ThesisRevision) else None,
+        policy_version_id=draft.id if isinstance(draft, PolicyVersion) else None,
+        started_by=actor.id,
+        state="done",
+        news_from=ref.issued_at - timedelta(days=ref.news_days) if ref.news_days else None,
+        news_to=ref.issued_at if ref.news_days else None,
+        scoring_version=SCORING_VERSION,
+        method="manual",
+        prompt_id=ref.prompt_id,
+        provider="manual",
+        model=model,
+        started_at=ref.issued_at,
+        completed_at=clock.now(),
+    )
+    _store(review, parsed)
+    session.add(review)
+    session.flush()
+    return review
+
+
+def submit_manual_thesis_review(
+    session: Session, actor: Investor, clock: Clock, thesis_id: int, answer: str, model: str
+) -> Review:
+    """REV-18: a manual review of the thesis draft; counts towards no limit (REV-16)."""
+    draft = _thesis_draft(session, actor, thesis_id)
+    return _submit_manual(session, actor, clock, ReviewKind.THESIS, draft, answer, model)
+
+
+def submit_manual_policy_review(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, answer: str, model: str
+) -> Review:
+    """REV-18: a manual review of the policy draft; counts towards no limit (REV-16)."""
+    draft = _policy_draft(session, actor, policy_id)
+    return _submit_manual(session, actor, clock, ReviewKind.POLICY, draft, answer, model)
 
 
 # --- Run (background job, REV-08) ------------------------------------------------------

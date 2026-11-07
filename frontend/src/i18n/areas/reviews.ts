@@ -34,6 +34,7 @@ export const en = {
     confirmed: "confirmed",
     notConfirmed: "not confirmed yet",
     outdated: "outdated: the draft changed since",
+    manual: "manual review with {{model}}",
     scoring: "scoring v{{version}}",
     news: "news {{from}} – {{to}}",
     notAdvice:
@@ -141,6 +142,7 @@ export const de: Messages<typeof en> = {
     confirmed: "bestätigt",
     notConfirmed: "noch nicht bestätigt",
     outdated: "veraltet: der Entwurf wurde seither geändert",
+    manual: "manuelle Prüfung mit {{model}}",
     scoring: "Bewertung v{{version}}",
     news: "Nachrichten {{from}} – {{to}}",
     notAdvice:
