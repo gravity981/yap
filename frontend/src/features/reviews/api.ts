@@ -95,3 +95,55 @@ export function useStartReview(kind: ReviewKind, ownerId: number) {
     },
   });
 }
+
+/** REV-19: the review prompt of the draft as it is saved now; nothing is stored. */
+export function useReviewPrompt(kind: ReviewKind, ownerId: number) {
+  return useMutation({
+    mutationFn: ({ newsDays }: { newsDays?: number }) =>
+      kind === "thesis"
+        ? unwrap(
+            api.GET("/api/theses/{thesis_id}/draft/review-prompt", {
+              params: {
+                path: { thesis_id: ownerId },
+                query: newsDays ? { news_days: newsDays } : {},
+              },
+            }),
+          )
+        : unwrap(
+            api.GET("/api/policies/{policy_id}/draft/review-prompt", {
+              params: { path: { policy_id: ownerId } },
+            }),
+          ),
+  });
+}
+
+export interface ManualAnswer {
+  answer: string;
+  model: string;
+}
+
+/** REV-18: stores the answer of an AI outside the app as the review of the draft. */
+export function useSubmitManualReview(kind: ReviewKind, ownerId: number) {
+  const client = useQueryClient();
+  const invalidate = useInvalidateOwners();
+  return useMutation({
+    mutationFn: (body: ManualAnswer) =>
+      kind === "thesis"
+        ? unwrap(
+            api.POST("/api/theses/{thesis_id}/draft/review/manual", {
+              params: { path: { thesis_id: ownerId } },
+              body,
+            }),
+          )
+        : unwrap(
+            api.POST("/api/policies/{policy_id}/draft/review/manual", {
+              params: { path: { policy_id: ownerId } },
+              body,
+            }),
+          ),
+    onSuccess: (review) => {
+      client.setQueryData(reviewKey(review.id), review);
+      return invalidate();
+    },
+  });
+}

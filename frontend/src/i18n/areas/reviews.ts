@@ -25,7 +25,7 @@ export const en = {
     again: "Run review again",
     usage: "{{used}} of {{limit}} reviews with {{name}} used this month",
     noReviewers: "There are no AI reviewers yet; ask the admin.",
-    defaultIn: "The default AI reviewer is set in your <link>settings</link>.",
+    defaultIn: "The default AI reviewer is set in your <goto>settings</goto>.",
   },
   result: {
     running:
@@ -43,6 +43,27 @@ export const en = {
   score: {
     totalLabel: "Total score",
     outOf: "{{score}} / 10",
+  },
+  pane: {
+    noReview: "This draft has no review yet; it needs one to be activated.",
+    method: "Review method",
+    manual: "Manual (an AI of your choice)",
+    defaultIn: "The default method is set in your <goto>settings</goto>.",
+    dataThesis:
+      "The prompt contains the review instructions and the thesis text, nothing else: no amounts, portfolios or personal data. You decide where to paste it.",
+    dataPolicy:
+      "The prompt contains the review instructions, the thesis text and the target structure (percentages, thresholds, exit flags, rationales), nothing else: no amounts, portfolios or personal data. You decide where to paste it.",
+    copy: "Copy review prompt",
+    copied: "Copied. Paste it into your AI, then paste its whole answer below.",
+    copyFailed: "Your browser did not allow copying; copy the prompt from here",
+    manualForm: "Manual review",
+    model: "AI model used",
+    modelPlaceholder: "e.g. ChatGPT 5",
+    answer: "Answer of the AI",
+    problems: "The answer cannot be used:",
+    save: "Save review",
+    tab: "Review",
+    inEditor: "Review the draft in the <goto>editor</goto>.",
   },
   legacy: {
     title: "You changed this result when reviews could still be changed:",
@@ -133,7 +154,7 @@ export const de: Messages<typeof en> = {
     again: "Prüfung erneut ausführen",
     usage: "{{used}} von {{limit}} Prüfungen mit {{name}} in diesem Monat verwendet",
     noReviewers: "Es gibt noch keine KI-Reviewer; frag den Admin.",
-    defaultIn: "Den Standard-KI-Reviewer legst du in deinen <link>Einstellungen</link> fest.",
+    defaultIn: "Den Standard-KI-Reviewer legst du in deinen <goto>Einstellungen</goto> fest.",
   },
   result: {
     running:
@@ -151,6 +172,27 @@ export const de: Messages<typeof en> = {
   score: {
     totalLabel: "Gesamtbewertung",
     outOf: "{{score}} / 10",
+  },
+  pane: {
+    noReview: "Dieser Entwurf hat noch keine Prüfung; zum Aktivieren braucht er eine.",
+    method: "Prüfmethode",
+    manual: "Manuell (eine KI deiner Wahl)",
+    defaultIn: "Die Standard-Prüfmethode legst du in deinen <goto>Einstellungen</goto> fest.",
+    dataThesis:
+      "Der Prompt enthält die Prüfanweisungen und den Text der Anlagethese, sonst nichts: keine Beträge, Portfolios oder persönlichen Daten. Du entscheidest, wo du ihn einfügst.",
+    dataPolicy:
+      "Der Prompt enthält die Prüfanweisungen, den Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen), sonst nichts: keine Beträge, Portfolios oder persönlichen Daten. Du entscheidest, wo du ihn einfügst.",
+    copy: "Prüf-Prompt kopieren",
+    copied: "Kopiert. Füge ihn in deine KI ein und füge danach ihre ganze Antwort unten ein.",
+    copyFailed: "Dein Browser hat das Kopieren nicht erlaubt; kopiere den Prompt von hier",
+    manualForm: "Manuelle Prüfung",
+    model: "Verwendetes KI-Modell",
+    modelPlaceholder: "z. B. ChatGPT 5",
+    answer: "Antwort der KI",
+    problems: "Die Antwort kann nicht verwendet werden:",
+    save: "Prüfung speichern",
+    tab: "Prüfung",
+    inEditor: "Prüfe den Entwurf im <goto>Editor</goto>.",
   },
   legacy: {
     title: "Du hast dieses Ergebnis geändert, als Prüfungen noch geändert werden konnten:",

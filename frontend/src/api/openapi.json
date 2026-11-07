@@ -3235,9 +3235,28 @@
       "ReviewBrief": {
         "description": "The review of a revision or version, in short (THS-08, REV-11).",
         "properties": {
+          "ai_reviewer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Reviewer Name"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
           },
           "outdated": {
             "title": "Outdated",
@@ -3280,6 +3299,9 @@
           "total",
           "verdict",
           "scoring_version",
+          "method",
+          "model",
+          "ai_reviewer_name",
           "outdated"
         ],
         "title": "ReviewBrief",

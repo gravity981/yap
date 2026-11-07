@@ -1,6 +1,6 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { Stars } from "@/components/stars";
 import { investor, json, mockApi, renderApp, type Handler } from "@/test/utils";
@@ -24,6 +24,9 @@ const brief = (id: number, total: number, extra: Record<string, unknown> = {}) =
   total,
   verdict: "intact",
   scoring_version: "2",
+  method: "ai",
+  model: "claude-x",
+  ai_reviewer_name: "Standard",
   outdated: false,
   ...extra,
 });
@@ -124,7 +127,7 @@ function thesis(draftReview: unknown = null) {
     visibility: "private",
     created_at: "2026-01-01T10:00:00+00:00",
     revisions: [
-      rev(1, { review: brief(10, 6, { scoring_version: "1" }) }),
+      rev(1, { review: brief(10, 6, { scoring_version: "1", method: "manual", model: "GPT 5" }) }),
       rev(2, { review: brief(20, 7.5, { verdict: "needs_adaptation" }) }),
       rev(3, { is_draft: true, activated_at: null, change_note: null, review: draftReview }),
     ],
@@ -141,8 +144,17 @@ function setup(handlers: Record<string, Handler> = {}, draftReview: unknown = nu
     "GET /api/reviews/usage": usageOf,
     "GET /api/ai-reviewers": () => json(reviewers),
     "GET /api/reviews/30": () => json(review()),
+    "PUT /api/theses/7/draft": () =>
+      json({ ...rev(3, { is_draft: true }), thesis_id: 7, content_md: "# Draft" }),
     ...handlers,
   });
+}
+
+/** REV-01: the review is a tab of the draft editor (narrow layout in jsdom). */
+async function openPane() {
+  renderApp("/theses/7/edit");
+  await userEvent.click(await screen.findByRole("tab", { name: "Review" }));
+  return screen.findByRole("region", { name: "Thesis review" });
 }
 
 describe("reviews", () => {
@@ -156,8 +168,8 @@ describe("reviews", () => {
     const calls = setup({
       "POST /api/theses/7/draft/review": () => json(review({ state: "queued", aspects: [] }), 202),
     });
-    renderApp("/theses/7");
-    const section = await screen.findByRole("region", { name: "Thesis review" });
+    const section = await openPane();
+    expect(within(section).getByText(/has no review yet; it needs one/)).toBeInTheDocument();
     expect(
       await within(section).findByText(/1 of 3 reviews with Standard used this month/),
     ).toBeInTheDocument();
@@ -176,16 +188,21 @@ describe("reviews", () => {
         news_days: 30,
       }),
     );
+    // The draft is saved first, so the review sees what is in the editor
+    const order = calls.map((c) => `${c.method} ${c.path}`);
+    expect(order.indexOf("PUT /api/theses/7/draft")).toBeLessThan(
+      order.indexOf("POST /api/theses/7/draft/review"),
+    );
+    expect(within(section).queryByRole("button", { name: "Copy review prompt" })).toBeNull();
   });
 
   it("[USR-08] [REV-16] chooses another AI reviewer than the default for one review", async () => {
     const calls = setup({
       "POST /api/theses/7/draft/review": () => json(review({ state: "queued", aspects: [] }), 202),
     });
-    renderApp("/theses/7");
-    const section = await screen.findByRole("region", { name: "Thesis review" });
-    const select = await within(section).findByLabelText("AI reviewer");
-    expect(select).toHaveValue("1");
+    const section = await openPane();
+    const select = await within(section).findByLabelText("Review method");
+    await waitFor(() => expect(select).toHaveValue("1"));
     expect(within(select).getByRole("option", { name: "Standard (default)" })).toBeInTheDocument();
     await userEvent.selectOptions(select, "2");
     expect(
@@ -212,8 +229,7 @@ describe("reviews", () => {
           }),
         ),
     });
-    renderApp("/theses/7");
-    const section = await screen.findByRole("region", { name: "Thesis review" });
+    const section = await openPane();
     expect(
       await within(section).findByText("All 3 reviews with Standard of this month are used"),
     ).toBeInTheDocument();
@@ -237,9 +253,9 @@ describe("reviews", () => {
       },
       brief(30, 0, { state: "failed", total: null }),
     );
-    renderApp("/theses/7");
-    expect(await screen.findByText(/OpenAI did not answer in time/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Run review again" })).toBeInTheDocument();
+    const section = await openPane();
+    expect(await within(section).findByText(/OpenAI did not answer in time/)).toBeInTheDocument();
+    expect(within(section).getByRole("button", { name: "Run review again" })).toBeInTheDocument();
   });
 
   it("[REV-02] [REV-03] [REV-04] [REV-07] [REV-17] [NFR-15] shows the result of a draft review", async () => {
@@ -347,9 +363,147 @@ describe("reviews", () => {
       { "GET /api/reviews/30": () => json(review({ outdated: true })) },
       brief(30, 6.5, { outdated: true }),
     );
+    const section = await openPane();
+    expect(
+      await within(section).findByText(/outdated: the draft changed since/),
+    ).toBeInTheDocument();
+    // The result stays visible while the investor works through it
+    expect(within(section).getByText("Add a time horizon.")).toBeInTheDocument();
+    expect(within(section).getByRole("button", { name: "Run review again" })).toBeInTheDocument();
+  });
+
+  it("[REV-18] [REV-19] [NFR-01] reviews manually: copy the prompt, paste the answer", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    const manual = review({ method: "manual", provider: "manual", model: "ChatGPT 5" });
+    let draftReview: unknown = null;
+    const calls = setup({
+      "GET /api/theses/7": () => json(thesis(draftReview)),
+      "GET /api/theses/7/draft/review-prompt": () =>
+        json({ prompt_id: "T103-20260301T100000Z-30-abcdef", text: "THE PROMPT" }),
+      "POST /api/theses/7/draft/review/manual": () => {
+        draftReview = brief(30, 6.5);
+        return json(manual, 201);
+      },
+      "GET /api/reviews/30": () => json(manual),
+    });
+    const section = await openPane();
+    await userEvent.selectOptions(within(section).getByLabelText("Review method"), "manual");
+    // REV-19: what the prompt contains, before it is copied; no AI reviewer is used
+    expect(
+      within(section).getByText(/The prompt contains the review instructions and the thesis text/),
+    ).toBeInTheDocument();
+    expect(within(section).queryByRole("button", { name: "Start review" })).toBeNull();
+    const days = within(section).getByLabelText("News of the last … days");
+    await userEvent.clear(days);
+    await userEvent.type(days, "30");
+    await userEvent.click(within(section).getByRole("button", { name: "Copy review prompt" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("THE PROMPT"));
+    expect(await within(section).findByRole("status")).toHaveTextContent(/Copied/);
+    const order = calls.map((c) => `${c.method} ${c.path}`);
+    expect(order.indexOf("PUT /api/theses/7/draft")).toBeLessThan(
+      order.indexOf("GET /api/theses/7/draft/review-prompt?news_days=30"),
+    );
+    await userEvent.type(within(section).getByLabelText("AI model used"), "ChatGPT 5");
+    fireEvent.change(within(section).getByLabelText("Answer of the AI"), {
+      target: { value: '{"prompt_id": "T103-20260301T100000Z-30-abcdef"}' },
+    });
+    await userEvent.click(within(section).getByRole("button", { name: "Save review" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === "/api/theses/7/draft/review/manual")?.body).toEqual({
+        answer: '{"prompt_id": "T103-20260301T100000Z-30-abcdef"}',
+        model: "ChatGPT 5",
+      }),
+    );
+    expect(
+      await screen.findByText(/manual review with ChatGPT 5 · scoring v2/),
+    ).toBeInTheDocument();
+  });
+
+  it("[REV-18] lists every problem of a pasted answer", async () => {
+    const calls = setup({
+      "POST /api/theses/7/draft/review/manual": () =>
+        json(
+          {
+            detail: "invalid",
+            problems: [
+              {
+                path: "answer",
+                message: "The answer contains no JSON object",
+                code: "answer_no_json",
+              },
+              {
+                path: "answer",
+                message: "Score 11 is not between 0 and 10 in steps of 0.5",
+                code: "score_invalid",
+                params: { score: 11 },
+              },
+            ],
+          },
+          422,
+        ),
+    });
+    const section = await openPane();
+    await userEvent.selectOptions(within(section).getByLabelText("Review method"), "manual");
+    await userEvent.type(within(section).getByLabelText("AI model used"), "GPT");
+    await userEvent.type(within(section).getByLabelText("Answer of the AI"), "nonsense");
+    await userEvent.click(within(section).getByRole("button", { name: "Save review" }));
+    expect(calls.some((c) => c.method === "PUT")).toBe(false); // the editor stays open
+    expect(await within(section).findByText("The answer cannot be used:")).toBeInTheDocument();
+    expect(within(section).getByText("The answer contains no JSON object")).toBeInTheDocument();
+    expect(within(section).getByText(/Score 11 is not between 0 and 10/)).toBeInTheDocument();
+  });
+
+  it("[REV-19] shows the prompt to copy by hand when the browser does not allow copying", async () => {
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      clipboard: { writeText: () => Promise.reject(new Error("not allowed")) },
+    });
+    setup({
+      "GET /api/theses/7/draft/review-prompt": () =>
+        json({ prompt_id: "T1-20260301T100000Z-90-abcdef", text: "THE PROMPT" }),
+    });
+    const section = await openPane();
+    await userEvent.selectOptions(within(section).getByLabelText("Review method"), "manual");
+    await userEvent.click(within(section).getByRole("button", { name: "Copy review prompt" }));
+    expect(
+      await within(section).findByLabelText(/did not allow copying; copy the prompt from here/),
+    ).toHaveValue("THE PROMPT");
+  });
+
+  it("[USR-08] [REV-16] [REV-18] preselects manual as default, and when there is no AI reviewer", async () => {
+    setup({ "GET /api/auth/me": () => json({ ...investor, manual_review_default: true }) });
+    const section = await openPane();
+    const select = within(section).getByLabelText("Review method");
+    await waitFor(() => expect(select).toHaveValue("manual"));
+    expect(
+      within(select).getByRole("option", { name: /^Manual.*\(default\)$/ }),
+    ).toBeInTheDocument();
+    cleanup();
+    setup({ "GET /api/ai-reviewers": () => json([]) });
+    const none = await openPane();
+    await waitFor(() => expect(within(none).getByLabelText("Review method")).toHaveValue("manual"));
+    expect(within(none).getByRole("button", { name: "Copy review prompt" })).toBeEnabled();
+  });
+
+  it("[USR-08] links to the settings for the default method", async () => {
+    setup();
+    const section = await openPane();
+    expect(within(section).getByRole("link", { name: "settings" })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
+  });
+
+  it("[REV-01] points from the thesis page to the editor for reviews", async () => {
+    setup();
     renderApp("/theses/7");
-    expect(await screen.findByText(/outdated: the draft changed since/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Run review again" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "editor" })).toHaveAttribute(
+      "href",
+      "/theses/7/edit",
+    );
+    const section = screen.getByRole("region", { name: "Thesis review" });
+    expect(within(section).queryByRole("button")).toBeNull();
   });
 
   it("[REV-12] [THS-08] shows confirmed reviews read-only in the history, with the score course", async () => {
@@ -367,6 +521,10 @@ describe("reviews", () => {
     const second = screen.getByText("Revision 2").closest("li")!;
     expect(within(second).getByRole("img", { name: "Review: 7.5 of 10" })).toBeInTheDocument();
     expect(within(second).getByText("needs adaptation")).toBeInTheDocument();
+    // REV-17: who made each review
+    expect(within(second).getByText("Standard (claude-x)")).toBeInTheDocument();
+    const first = screen.getByText("Revision 1").closest("li")!;
+    expect(within(first).getByText("manual review with GPT 5")).toBeInTheDocument();
     // An activated revision's review cannot be changed or run again
     await userEvent.click(screen.getByRole("tab", { name: "Content" }));
     await userEvent.selectOptions(screen.getByLabelText("Revision"), "2");

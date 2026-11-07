@@ -308,15 +308,15 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draf
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
   });
-  await test.step("open a new draft of the thesis Growth", async () => {
+  await test.step("open a new draft of the thesis Growth in the editor", async () => {
     await page.goto("/theses");
     await page.getByRole("link", { name: "Growth" }).click();
     await page.getByRole("button", { name: "New draft" }).click();
-    await page.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByText("draft r2")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Edit draft/ })).toBeVisible();
   });
   const review = page.getByRole("region", { name: "Thesis review" });
-  await test.step("start the review and wait for its result", async () => {
+  await test.step("start the review in the editor and wait for its result", async () => {
+    await page.getByRole("tab", { name: "Review", exact: true }).click();
     await expect(review.getByText(/0 of 5 reviews with Standard used this month/)).toBeVisible();
     await review.getByRole("button", { name: "Start review" }).click();
     await expect(review.getByRole("img", { name: "Total score: 6.5 of 10" })).toBeVisible({
@@ -325,6 +325,8 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draf
     await expect(review.getByText("not confirmed yet")).toBeVisible();
     // The result cannot be changed (REV-10 dropped)
     await expect(review.getByRole("button", { name: "Change result" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByText("draft r2")).toBeVisible();
   });
   await test.step("activating the draft confirms the review", async () => {
     await page.getByRole("button", { name: "Activate draft" }).click();

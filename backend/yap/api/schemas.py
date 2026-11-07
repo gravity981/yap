@@ -68,6 +68,9 @@ class ReviewBrief(BaseModel):
     total: float | None
     verdict: str | None
     scoring_version: str  # REV-06: scores of different versions are not comparable
+    method: str  # REV-17: ai | manual, with the model and the AI reviewer's name
+    model: str
+    ai_reviewer_name: str | None
     outdated: bool
 
     @classmethod
@@ -84,6 +87,9 @@ class ReviewBrief(BaseModel):
             total=total / 2 if total is not None else None,
             verdict=review.verdict,
             scoring_version=review.scoring_version,
+            method=review.method,
+            model=review.model,
+            ai_reviewer_name=review.ai_reviewer_name,
             outdated=reviews.outdated(review, draft),
         )
 

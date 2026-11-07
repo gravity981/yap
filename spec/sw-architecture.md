@@ -301,7 +301,6 @@ Define the metrics and signals to monitor to assess whether the thesis remains v
 
 - Metric / signal 1:
 - Metric / signal 2:
-- **Review frequency:**
 ```
 
 ### 3.4 Policy
@@ -403,7 +402,7 @@ There are two kinds of review: a **thesis review** judges whether a thesis is go
 | T2 | Fit and implementation (§2–3) | The investor fit is stated and consistent with the assets; each asset has a role and a rationale, including why it rather than alternatives | Missing or contradictory |
 | T3 | Opportunity (§4) | Concrete, measurable value drivers | None, or only "it will go up" |
 | T4 | Downside (§5) | The main risks are named and realistic, including likelihood and impact | No risks named |
-| T5 | Invalidation, warnings and monitoring (§6–8) | Observable break conditions and warning signals with clear thresholds; metrics to monitor and a review frequency | None, or impossible to observe |
+| T5 | Invalidation, warnings and monitoring (§6–8) | Observable break conditions and warning signals with clear thresholds; metrics to monitor | None, or impossible to observe |
 | T6 | Current evidence | Recent news confirms the drivers; no warning signals observed | The news contradicts the drivers |
 
 **Policy review aspects.** 0 = the target structure does not match the thesis at all, 10 = perfect match.

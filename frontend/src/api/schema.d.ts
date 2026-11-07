@@ -2642,8 +2642,14 @@ export interface components {
          * @description The review of a revision or version, in short (THS-08, REV-11).
          */
         ReviewBrief: {
+            /** Ai Reviewer Name */
+            ai_reviewer_name: string | null;
             /** Id */
             id: number;
+            /** Method */
+            method: string;
+            /** Model */
+            model: string;
             /** Outdated */
             outdated: boolean;
             /** Scoring Version */

@@ -66,8 +66,7 @@ THESIS_ASPECTS = (
         "T5",
         "Invalidation, warnings and monitoring",
         "Sections 6 to 8. 10: observable break conditions and warning signals with clear "
-        "thresholds; metrics to monitor and a review frequency. 0: none, or impossible to "
-        "observe.",
+        "thresholds, and metrics to monitor. 0: none, or impossible to observe.",
     ),
     Aspect(
         "T6",

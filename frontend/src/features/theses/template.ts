@@ -53,7 +53,6 @@ Define the metrics and signals to monitor to assess whether the thesis remains v
 
 - Metric / signal 1:
 - Metric / signal 2:
-- **Review frequency:**
 `,
   de: `# Anlagethese
 
@@ -105,7 +104,6 @@ Lege die Kennzahlen und Signale fest, mit denen du prüfst, ob die Anlagethese n
 
 - Kennzahl / Signal 1:
 - Kennzahl / Signal 2:
-- **Prüfrhythmus:**
 `,
 };
 

@@ -198,6 +198,9 @@ describe("timeline", () => {
           total: 6.5,
           verdict: "intact",
           scoring_version: "2",
+          method: "manual",
+          model: "Gemini 3",
+          ai_reviewer_name: null,
           legacy_modification: null,
           confirmed: true,
         }),
@@ -206,6 +209,7 @@ describe("timeline", () => {
     await userEvent.click(await screen.findByText(/Thesis review of 'Core' revision 2/));
     expect(await screen.findByRole("img", { name: "Total score: 6.5 of 10" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Aspect 1: 7.0 of 10" })).toBeInTheDocument();
+    expect(screen.getByText("manual review with Gemini 3")).toBeInTheDocument(); // REV-17
     expect(await screen.findByRole("link", { name: "Core" })).toHaveAttribute("href", "/theses/7");
   });
 

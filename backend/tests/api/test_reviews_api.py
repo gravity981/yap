@@ -68,6 +68,9 @@ def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
         "total": 6.5,
         "verdict": "needs_adaptation",
         "scoring_version": "2",
+        "method": "ai",
+        "model": "claude-x",
+        "ai_reviewer_name": "Standard",
         "outdated": False,
     }
     usage = ok(alice.get("/api/reviews/usage"))

@@ -204,7 +204,7 @@ function StartReview({
       <p className="text-xs text-muted-foreground">
         <Trans
           i18nKey="reviews.start.defaultIn"
-          components={{ link: <Link to="/settings" className="underline" /> }}
+          components={{ goto: <Link to="/settings" className="underline" /> }}
         />
       </p>
       <FormError error={start.error ?? usage.error} fields={["news_days"]} />
@@ -212,7 +212,7 @@ function StartReview({
   );
 }
 
-function ReviewResult({
+export function ReviewResult({
   kind,
   ownerId,
   review,
@@ -407,6 +407,16 @@ function reviewState(state: string): string {
     : state;
 }
 
+/** REV-17: who made a review, e.g. "Standard (claude-x)" or "manual review with GPT 5". */
+export function reviewerLabel(review: {
+  method: string;
+  model: string;
+  ai_reviewer_name?: string | null;
+}): string {
+  if (review.method === "manual") return i18n.t("reviews.result.manual", { model: review.model });
+  return review.ai_reviewer_name ? `${review.ai_reviewer_name} (${review.model})` : review.model;
+}
+
 /** A review in one line, e.g. in a history list (THS-08). */
 export function ReviewBriefLine({ brief }: { brief: ReviewBrief | null | undefined }) {
   const { t } = useTranslation();
@@ -423,6 +433,7 @@ export function ReviewBriefLine({ brief }: { brief: ReviewBrief | null | undefin
       <Stars score={brief.total} label={t("reviews.brief.label")} />
       <span className="tabular-nums">{formatScore(brief.total)}</span>
       {brief.verdict && <VerdictBadge verdict={brief.verdict} />}
+      <span className="text-muted-foreground">{reviewerLabel(brief)}</span>
     </span>
   );
 }
@@ -446,6 +457,7 @@ export function ReviewDetails({ reviewId }: { reviewId: number }) {
   const r = review.data;
   return (
     <div className="grid gap-2 text-sm">
+      <p className="text-muted-foreground">{reviewerLabel(r)}</p>
       <Total review={r} />
       <ul className="grid gap-1">
         {r.aspects.map((a) => (
