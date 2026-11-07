@@ -267,6 +267,7 @@ describe("policies", () => {
       state: "done",
       total: 7,
       verdict: null,
+      scoring_version: "2",
       outdated: false,
     };
     setup({
@@ -294,6 +295,7 @@ describe("policies", () => {
       state: "done",
       total: 7,
       verdict: null,
+      scoring_version: "2",
       outdated: true,
     };
     setup({

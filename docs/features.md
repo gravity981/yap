@@ -93,9 +93,10 @@ stored. A simulation shows how several rebalancing cycles would play out.
 An AI reviewer judges a thesis draft or a policy draft on six fixed aspects, each scored
 from 0 to 10 in half points, with its reasoning:
 
-- **Thesis review:** core claim, value drivers, risks, break conditions and warning
-  signals, fit and alternatives, and current evidence from a web search for recent news,
-  with sources. It also gives a verdict: intact, needs adaptation or broken.
+- **Thesis review:** the sections of the thesis template (belief, fit and implementation,
+  opportunity, downside, invalidation, warnings and monitoring), and current evidence from
+  a web search for recent news, with sources. It also gives a verdict: intact, needs
+  adaptation or broken.
 - **Policy review:** how well the target structure matches its thesis (coverage,
   weighting, bands, exits, concentration, rationales). It sends no amounts.
 

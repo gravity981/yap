@@ -197,6 +197,7 @@ describe("timeline", () => {
           ],
           total: 6.5,
           verdict: "intact",
+          scoring_version: "2",
           legacy_modification: null,
           confirmed: true,
         }),

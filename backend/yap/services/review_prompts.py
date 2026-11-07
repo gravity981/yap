@@ -180,10 +180,15 @@ def thesis_request(revision: ThesisRevision, news_from: date, news_to: date) -> 
     system = f"""You review an investment thesis written by a private investor.
 Today is {news_to.isoformat()}.
 
-Aspects T1 to T5 judge the text itself. Aspect T6 and the verdict judge it against
-current news: search the web for news from {news_from.isoformat()} to {news_to.isoformat()} on
-the assets the thesis is about (take them from the thesis text), in particular on its
-value drivers, risks, break conditions and warning signals.
+The thesis follows a template with eight sections: 1 Belief, 2 Investor Fit,
+3 Implementation, 4 Opportunity, 5 Downside, 6 Invalidation, 7 Early Warnings,
+8 Monitoring. Aspects T1 to T5 judge the text itself, section by section; if the thesis
+does not use the template, judge the same content wherever it is.
+
+Aspect T6 and the verdict judge the thesis against current news: search the web for news
+from {news_from.isoformat()} to {news_to.isoformat()} on the assets the thesis is about
+(take them from the thesis text), in particular on its value drivers, risks, break
+conditions and warning signals.
 
 Aspects:
 {_aspect_list(ReviewKind.THESIS)}

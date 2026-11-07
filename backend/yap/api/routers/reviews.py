@@ -66,7 +66,7 @@ class ReviewOut(BaseModel):
 
 
 def _out(session: DbSession, review: Review) -> ReviewOut:
-    names = reviews.aspect_names(review.kind)
+    names = reviews.aspect_names(review.kind, review.scoring_version)
     total = reviews.total(review)
     legacy = reviews.legacy_modification(review)
     return ReviewOut(

@@ -44,9 +44,15 @@ function suggestionLabel(kind: string) {
     : kind;
 }
 
-/** The API names the aspects in English; other languages translate them by code. */
-function aspectName(aspect: { code: string; name: string }) {
+const V1_CODES = ["T1", "T2", "T3", "T4", "T5", "T6"];
+
+/** The API names the aspects in English, by the review's scoring version (REV-06); other
+ * languages translate them by version and code. */
+function aspectName(aspect: { code: string; name: string }, version: string) {
   if (currentLanguage() === "en" || !ASPECT_CODES.includes(aspect.code)) return aspect.name;
+  if (version === "1" && V1_CODES.includes(aspect.code)) {
+    return i18n.t(`reviews.aspectsV1.${aspect.code as "T1"}`);
+  }
   return i18n.t(`reviews.aspects.${aspect.code as "T1"}`);
 }
 
@@ -297,7 +303,9 @@ function LegacyModification({ review }: { review: Review }) {
   const { t } = useTranslation();
   const legacy = review.legacy_modification;
   if (!legacy) return null;
-  const names = Object.fromEntries(review.aspects.map((a) => [a.code, aspectName(a)]));
+  const names = Object.fromEntries(
+    review.aspects.map((a) => [a.code, aspectName(a, review.scoring_version)]),
+  );
   return (
     <div className="grid gap-1 rounded-md border border-dashed p-3 text-sm">
       <p className="font-medium">{t("reviews.legacy.title")}</p>
@@ -326,10 +334,10 @@ function Aspects({ review }: { review: Review }) {
         <li key={a.code} className="grid gap-1 rounded-md border p-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-medium">
-              {a.code} {aspectName(a)}
+              {a.code} {aspectName(a, review.scoring_version)}
             </span>
             <span className="flex flex-wrap items-center gap-2 text-sm">
-              <Stars score={a.score} label={aspectName(a)} />
+              <Stars score={a.score} label={aspectName(a, review.scoring_version)} />
               <span className="tabular-nums">{formatScore(a.score)}</span>
             </span>
           </div>
@@ -437,9 +445,9 @@ export function ReviewDetails({ reviewId }: { reviewId: number }) {
         {r.aspects.map((a) => (
           <li key={a.code} className="flex flex-wrap items-center gap-2">
             <span className="w-56">
-              {a.code} {aspectName(a)}
+              {a.code} {aspectName(a, r.scoring_version)}
             </span>
-            <Stars score={a.score} label={aspectName(a)} />
+            <Stars score={a.score} label={aspectName(a, r.scoring_version)} />
             <span className="tabular-nums">{formatScore(a.score)}</span>
           </li>
         ))}

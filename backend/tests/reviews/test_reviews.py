@@ -11,6 +11,7 @@ from tests.fixtures import TEST_SECRET, Factory, FakeLlm
 from tests.reviews.answers import policy_answer, thesis_answer
 from yap.db.engine import make_engine, make_session_factory
 from yap.db.models import AiReviewer, Investor, Review
+from yap.domain.reviews import SCORING_VERSION
 from yap.messages import msg
 from yap.services import ai_reviewers, policies, reviews, theses
 from yap.services.common import ConflictError, NotFoundError, ValidationError
@@ -93,7 +94,7 @@ def test_thesis_review_of_a_draft_runs_and_is_stored(
         ("Undated", None),
     ]
     assert review.suggestions[0].content_md == "Add a time horizon."
-    assert review.scoring_version == "1"
+    assert review.scoring_version == SCORING_VERSION == "2"
     # The verdict is a suggestion only; the thesis status stays as the investor set it
     draft = reviews.draft_of(session, review)
     assert draft.status == "intact"  # type: ignore[union-attr]

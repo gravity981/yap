@@ -46,8 +46,15 @@ def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
         review["provider"],
         review["model"],
         review["scoring_version"],
-    ) == ("Standard", "anthropic", "claude-x", "1")
-    assert [a["name"] for a in review["aspects"]][:2] == ["Core claim", "Value drivers"]
+    ) == ("Standard", "anthropic", "claude-x", "2")
+    assert [a["name"] for a in review["aspects"]] == [
+        "Belief",
+        "Fit and implementation",
+        "Opportunity",
+        "Downside",
+        "Invalidation, warnings and monitoring",
+        "Current evidence",
+    ]
     assert (review["total"], review["verdict"]) == (6.5, "needs_adaptation")
     assert (review["confirmed"], review["outdated"]) == (False, False)
     assert review["legacy_modification"] is None
@@ -60,6 +67,7 @@ def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
         "state": "done",
         "total": 6.5,
         "verdict": "needs_adaptation",
+        "scoring_version": "2",
         "outdated": False,
     }
     usage = ok(alice.get("/api/reviews/usage"))

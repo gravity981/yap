@@ -23,13 +23,24 @@ const brief = (id: number, total: number, extra: Record<string, unknown> = {}) =
   state: "done",
   total,
   verdict: "intact",
+  scoring_version: "2",
   outdated: false,
   ...extra,
 });
 
+const NAMES = [
+  "Belief",
+  "Fit and implementation",
+  "Opportunity",
+  "Downside",
+  "Invalidation, warnings and monitoring",
+  "Current evidence",
+];
+const NAMES_V1 = ["Core claim", "Value drivers", "Risks", "Break conditions", "Fit", "Evidence"];
+
 const aspect = (n: number, score: number, extra: Record<string, unknown> = {}) => ({
   code: `T${n}`,
-  name: ["Core claim", "Value drivers", "Risks", "Break conditions", "Fit", "Evidence"][n - 1],
+  name: NAMES[n - 1],
   score,
   reasoning_md: `Reasoning ${n} [1]`,
   ...extra,
@@ -44,7 +55,7 @@ const review = (extra: Record<string, unknown> = {}) => ({
   policy_version_id: null,
   provider: "anthropic",
   model: "claude-x",
-  scoring_version: "1",
+  scoring_version: "2",
   news_from: "2025-12-01T10:00:00+00:00",
   news_to: "2026-03-01T10:00:00+00:00",
   started_at: "2026-03-01T10:00:00+00:00",
@@ -111,7 +122,7 @@ function thesis(draftReview: unknown = null) {
     visibility: "private",
     created_at: "2026-01-01T10:00:00+00:00",
     revisions: [
-      rev(1, { review: brief(10, 6) }),
+      rev(1, { review: brief(10, 6, { scoring_version: "1" }) }),
       rev(2, { review: brief(20, 7.5, { verdict: "needs_adaptation" }) }),
       rev(3, { is_draft: true, activated_at: null, change_note: null, review: draftReview }),
     ],
@@ -238,8 +249,8 @@ describe("reviews", () => {
     ).toBeInTheDocument();
     expect(within(section).getByText("needs adaptation")).toBeInTheDocument();
     expect(within(section).getByText("not confirmed yet")).toBeInTheDocument();
-    expect(within(section).getByText(/anthropic claude-x · scoring v1/)).toBeInTheDocument();
-    expect(within(section).getByRole("img", { name: "Core claim: 7.0 of 10" })).toBeInTheDocument();
+    expect(within(section).getByText(/anthropic claude-x · scoring v2/)).toBeInTheDocument();
+    expect(within(section).getByRole("img", { name: "Belief: 7.0 of 10" })).toBeInTheDocument();
     expect(within(section).getByRole("link", { name: "ETF inflows rise" })).toHaveAttribute(
       "href",
       "https://news.example/etf",
@@ -258,6 +269,8 @@ describe("reviews", () => {
           json(
             review({
               confirmed: true,
+              scoring_version: "1",
+              aspects: [7, 6, 8, 5, 7, 6.5].map((s, i) => aspect(i + 1, s, { name: NAMES_V1[i] })),
               legacy_modification: { note: "Too strict", verdict: "intact", scores: { T1: 9 } },
             }),
           ),
@@ -281,6 +294,37 @@ describe("reviews", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("[REV-06] [NFR-10] names the aspects by the scoring version of the review", async () => {
+    const german = (version: string) => {
+      setup(
+        {
+          "GET /api/auth/me": () => json({ ...investor, language: "de" }),
+          "GET /api/reviews/30": () =>
+            json(
+              review({
+                scoring_version: version,
+                aspects: [7, 6, 8, 5, 7, 6.5].map((s, i) =>
+                  aspect(i + 1, s, { name: (version === "1" ? NAMES_V1 : NAMES)[i] }),
+                ),
+              }),
+            ),
+        },
+        brief(30, 6.5, { scoring_version: version }),
+      );
+      return renderApp("/theses/7");
+    };
+    const current = german("2");
+    const section = await screen.findByRole("region", { name: "Prüfung der Anlagethese" });
+    expect(await within(section).findByText("T1 Überzeugung")).toBeInTheDocument();
+    expect(
+      within(section).getByText("T5 Widerlegung, Frühwarnungen und Überwachung"),
+    ).toBeInTheDocument();
+    current.unmount();
+    german("1");
+    const old = await screen.findByRole("region", { name: "Prüfung der Anlagethese" });
+    expect(await within(old).findByText("T1 Kernaussage")).toBeInTheDocument();
+  });
+
   it("[REV-09] marks a review as outdated when the draft changed", async () => {
     setup(
       { "GET /api/reviews/30": () => json(review({ outdated: true })) },
@@ -298,6 +342,11 @@ describe("reviews", () => {
     const course = screen.getByRole("figure", { name: "Review score over the revisions" });
     expect(within(course).getByRole("img", { name: "Revision 1: 6.0 of 10" })).toBeInTheDocument();
     expect(within(course).getByRole("img", { name: "Revision 2: 7.5 of 10" })).toBeInTheDocument();
+    // REV-06: revision 1 was scored with version 1, revision 2 with version 2
+    expect(within(course).getByTestId("version-change")).toHaveTextContent("v2");
+    expect(
+      within(course).getByText(/scores before and after are not directly comparable/),
+    ).toBeInTheDocument();
     const second = screen.getByText("Revision 2").closest("li")!;
     expect(within(second).getByRole("img", { name: "Review: 7.5 of 10" })).toBeInTheDocument();
     expect(within(second).getByText("needs adaptation")).toBeInTheDocument();

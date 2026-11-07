@@ -76,6 +76,17 @@ def test_thesis_request_searches_news_of_the_period(session: Session, factory: F
     assert "alice" not in request.system + request.prompt
 
 
+@pytest.mark.req("REV-02", "REV-06", "THS-07")
+def test_thesis_request_judges_the_sections_of_the_template(
+    session: Session, factory: Factory
+) -> None:
+    revision = factory.thesis(factory.investor()).revisions[0]
+    system = review_prompts.thesis_request(revision, date(2026, 1, 1), date(2026, 1, 15)).system
+    assert "1 Belief, 2 Investor Fit" in system and "8 Monitoring" in system
+    assert "- T1 Belief: Section 1 of the template." in system
+    assert "- T5 Invalidation, warnings and monitoring: Sections 6 to 8." in system
+
+
 @pytest.mark.req("REV-05", "NFR-01")
 def test_policy_request_has_thesis_and_structure_but_no_amounts(
     session: Session, factory: Factory

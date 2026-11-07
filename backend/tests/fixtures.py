@@ -23,6 +23,7 @@ from yap.db.models import (
     Thesis,
     ThesisRevision,
 )
+from yap.domain.reviews import SCORING_VERSION
 from yap.domain.types import Visibility
 from yap.llm import LlmConfig, LlmError
 from yap.llm.base import LlmRequest
@@ -179,6 +180,7 @@ class Factory:
         *,
         half_points: tuple[int, ...] = (14, 12, 16, 10, 14, 13),
         verdict: str | None = "intact",
+        scoring_version: str = SCORING_VERSION,
     ) -> Review:
         """A finished review of a draft, stored directly (no provider involved)."""
         thesis = isinstance(draft, ThesisRevision)
@@ -190,7 +192,7 @@ class Factory:
             started_by=owner.id,
             state="done",
             verdict=verdict if thesis else None,
-            scoring_version="1",
+            scoring_version=scoring_version,
             provider="anthropic",
             model="claude-x",
             started_at=self.clock.now(),

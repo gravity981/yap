@@ -67,6 +67,7 @@ class ReviewBrief(BaseModel):
     state: str
     total: float | None
     verdict: str | None
+    scoring_version: str  # REV-06: scores of different versions are not comparable
     outdated: bool
 
     @classmethod
@@ -82,6 +83,7 @@ class ReviewBrief(BaseModel):
             state=review.state,
             total=total / 2 if total is not None else None,
             verdict=review.verdict,
+            scoring_version=review.scoring_version,
             outdated=reviews.outdated(review, draft),
         )
 

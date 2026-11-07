@@ -29,9 +29,9 @@ from yap.db.models import (
     ThesisRevision,
 )
 from yap.domain.reviews import (
-    ASPECTS,
     SCORING_VERSION,
     ReviewKind,
+    aspects_of,
     total_half_points,
 )
 from yap.llm import LlmError
@@ -421,8 +421,8 @@ def legacy_modification(review: Review) -> LegacyModification | None:
     )
 
 
-def aspect_names(kind: str) -> dict[str, str]:
-    return {a.code: a.name for a in ASPECTS[ReviewKind(kind)]}
+def aspect_names(kind: str, scoring_version: str) -> dict[str, str]:
+    return {a.code: a.name for a in aspects_of(ReviewKind(kind), scoring_version)}
 
 
 # --- Draft lifecycle (REV-11) ----------------------------------------------------------

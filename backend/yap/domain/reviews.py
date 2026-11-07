@@ -9,8 +9,9 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 # Version of the aspects, rules and LLM instructions; stored with every review (REV-06).
-# Change it whenever any of them changes, so scores stay comparable.
-SCORING_VERSION = "1"
+# Change it whenever any of them changes, so scores stay comparable, and keep the aspects
+# of every earlier version in ASPECTS_BY_VERSION, so old reviews keep their names.
+SCORING_VERSION = "2"
 
 MAX_HALF_POINTS = 20  # score 10
 
@@ -35,7 +36,49 @@ class Aspect:
     guide: str  # what a high and a low score mean; given to the LLM
 
 
+# Version 2: the aspects follow the sections of the thesis template (THS-07)
 THESIS_ASPECTS = (
+    Aspect(
+        "T1",
+        "Belief",
+        "Section 1 of the template. 10: a clear claim that could be proven wrong, with a "
+        "time horizon. 0: vague, cannot be checked.",
+    ),
+    Aspect(
+        "T2",
+        "Fit and implementation",
+        "Sections 2 and 3. 10: the investor fit is stated and consistent with the assets; "
+        "each asset has a role and a rationale, including why it rather than alternatives. "
+        "0: missing or contradictory.",
+    ),
+    Aspect(
+        "T3",
+        "Opportunity",
+        "Section 4. 10: concrete, measurable value drivers. 0: none, or only 'it will go up'.",
+    ),
+    Aspect(
+        "T4",
+        "Downside",
+        "Section 5. 10: the main risks are named and realistic, including likelihood and "
+        "impact. 0: no risks named.",
+    ),
+    Aspect(
+        "T5",
+        "Invalidation, warnings and monitoring",
+        "Sections 6 to 8. 10: observable break conditions and warning signals with clear "
+        "thresholds; metrics to monitor and a review frequency. 0: none, or impossible to "
+        "observe.",
+    ),
+    Aspect(
+        "T6",
+        "Current evidence",
+        "10: recent news confirms the value drivers and no warning signals are observed. "
+        "0: the news contradicts the value drivers.",
+    ),
+)
+
+# Version 1, before the thesis template of THS-07; kept for the names of old reviews
+THESIS_ASPECTS_V1 = (
     Aspect(
         "T1",
         "Core claim",
@@ -100,6 +143,17 @@ POLICY_ASPECTS = (
 )
 
 ASPECTS = {ReviewKind.THESIS: THESIS_ASPECTS, ReviewKind.POLICY: POLICY_ASPECTS}
+
+# The aspects of every scoring version (REV-06); the policy aspects did not change
+ASPECTS_BY_VERSION = {
+    "1": {ReviewKind.THESIS: THESIS_ASPECTS_V1, ReviewKind.POLICY: POLICY_ASPECTS},
+    SCORING_VERSION: ASPECTS,
+}
+
+
+def aspects_of(kind: ReviewKind, scoring_version: str) -> tuple[Aspect, ...]:
+    """The aspects a review was scored with; unknown versions get the current ones."""
+    return ASPECTS_BY_VERSION.get(scoring_version, ASPECTS)[kind]
 
 
 def to_half_points(score: float) -> int:

@@ -8,6 +8,7 @@ export interface ScorePoint {
   label: string; // e.g. "Revision 3"
   date: string;
   score: number;
+  version: string; // REV-06: the scoring version of the review
 }
 
 const W = 480;
@@ -15,20 +16,27 @@ const H = 160;
 const PAD = { left: 28, right: 16, top: 12, bottom: 24 };
 
 /** THS-08: the total score of the confirmed reviews over the revisions. One series, so
- * no legend; the history list next to it holds the same values as text. */
+ * no legend; the history list next to it holds the same values as text. Where the scoring
+ * version changes, the line breaks and a marker names the new version (REV-06). */
 export function ScoreCourse({ points }: { points: ScorePoint[] }) {
   const { t } = useTranslation();
   const [active, setActive] = useState<number | null>(null);
   if (points.length < 2) return null;
   const x = (i: number) => PAD.left + (i * (W - PAD.left - PAD.right)) / (points.length - 1);
   const y = (score: number) => PAD.top + ((10 - score) * (H - PAD.top - PAD.bottom)) / 10;
-  const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${x(i)},${y(p.score)}`).join(" ");
+  const changes = points.flatMap((p, i) =>
+    i > 0 && p.version !== points[i - 1]?.version ? [i] : [],
+  );
+  const line = points
+    .map((p, i) => `${i === 0 || changes.includes(i) ? "M" : "L"}${x(i)},${y(p.score)}`)
+    .join(" ");
   const shown = active === null ? null : points[active];
 
   return (
     <figure className="grid gap-1" aria-label={t("reviews.course.label")}>
       <figcaption className="text-sm text-muted-foreground">
         {t("reviews.course.caption")}
+        {changes.length > 0 && ` ${t("reviews.course.versionNote")}`}
       </figcaption>
       <div className="relative max-w-xl">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="presentation">
@@ -64,6 +72,26 @@ export function ScoreCourse({ points }: { points: ScorePoint[] }) {
               {/* The axis shows "r3" for "Revision 3" */}
               {t("reviews.course.tick", { no: p.label.match(/\d+$/)?.[0] ?? p.label })}
             </text>
+          ))}
+          {changes.map((i) => (
+            <g key={`v${i}`} data-testid="version-change">
+              <line
+                x1={(x(i - 1) + x(i)) / 2}
+                x2={(x(i - 1) + x(i)) / 2}
+                y1={PAD.top}
+                y2={H - PAD.bottom}
+                stroke="var(--muted-foreground)"
+                strokeWidth={1}
+                strokeDasharray="3 3"
+              />
+              <text
+                x={(x(i - 1) + x(i)) / 2 + 4}
+                y={PAD.top + 8}
+                className="fill-muted-foreground text-[11px]"
+              >
+                {t("reviews.course.version", { version: points[i]?.version })}
+              </text>
+            </g>
           ))}
           <path
             d={line}

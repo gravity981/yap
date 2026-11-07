@@ -150,6 +150,7 @@ export function ThesisPage({ thesisId }: { thesisId: number }) {
                 label: t("theses.detail.revisionTitle", { no: r.revision_no }),
                 date: r.activated_at ?? r.created_at,
                 score: r.review!.total!,
+                version: r.review!.scoring_version,
               }))}
           />
           <ol className="grid gap-3">

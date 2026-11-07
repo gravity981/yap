@@ -2546,6 +2546,8 @@ export interface components {
             id: number;
             /** Outdated */
             outdated: boolean;
+            /** Scoring Version */
+            scoring_version: string;
             /** State */
             state: string;
             /** Total */

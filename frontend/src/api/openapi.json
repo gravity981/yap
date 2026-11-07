@@ -3213,6 +3213,10 @@
             "title": "Outdated",
             "type": "boolean"
           },
+          "scoring_version": {
+            "title": "Scoring Version",
+            "type": "string"
+          },
           "state": {
             "title": "State",
             "type": "string"
@@ -3245,6 +3249,7 @@
           "state",
           "total",
           "verdict",
+          "scoring_version",
           "outdated"
         ],
         "title": "ReviewBrief",

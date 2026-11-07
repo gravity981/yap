@@ -49,12 +49,13 @@ export const en = {
     score: "{{name}}: {{score}}",
     note: "Why: {{note}}",
   },
+  // Scoring version 2: the sections of the thesis template (THS-07)
   aspects: {
-    T1: "Core claim",
-    T2: "Value drivers",
-    T3: "Risks",
-    T4: "Break conditions and warning signals",
-    T5: "Fit and alternatives",
+    T1: "Belief",
+    T2: "Fit and implementation",
+    T3: "Opportunity",
+    T4: "Downside",
+    T5: "Invalidation, warnings and monitoring",
     T6: "Current evidence",
     P1: "Coverage",
     P2: "Weighting",
@@ -62,6 +63,15 @@ export const en = {
     P4: "Exits",
     P5: "Concentration",
     P6: "Rationales",
+  },
+  // Scoring version 1: thesis aspects of reviews before the template of THS-07
+  aspectsV1: {
+    T1: "Core claim",
+    T2: "Value drivers",
+    T3: "Risks",
+    T4: "Break conditions and warning signals",
+    T5: "Fit and alternatives",
+    T6: "Current evidence",
   },
   sources: "Sources",
   suggestions: {
@@ -91,6 +101,9 @@ export const en = {
     point: "{{label}}: {{score}} of 10",
     tooltip: ": {{score}} / 10",
     tick: "r{{no}}",
+    version: "v{{version}}",
+    versionNote:
+      "The scoring changed in between (dashed line); scores before and after are not directly comparable.",
   },
 };
 
@@ -144,11 +157,11 @@ export const de: Messages<typeof en> = {
     note: "Warum: {{note}}",
   },
   aspects: {
-    T1: "Kernaussage",
-    T2: "Werttreiber",
-    T3: "Risiken",
-    T4: "Bruchbedingungen und Warnsignale",
-    T5: "Eignung und Alternativen",
+    T1: "Überzeugung",
+    T2: "Eignung und Umsetzung",
+    T3: "Chancen",
+    T4: "Risiken",
+    T5: "Widerlegung, Frühwarnungen und Überwachung",
     T6: "Aktuelle Belege",
     P1: "Abdeckung",
     P2: "Gewichtung",
@@ -156,6 +169,14 @@ export const de: Messages<typeof en> = {
     P4: "Exits",
     P5: "Konzentration",
     P6: "Begründungen",
+  },
+  aspectsV1: {
+    T1: "Kernaussage",
+    T2: "Werttreiber",
+    T3: "Risiken",
+    T4: "Bruchbedingungen und Warnsignale",
+    T5: "Eignung und Alternativen",
+    T6: "Aktuelle Belege",
   },
   sources: "Quellen",
   suggestions: {
@@ -186,5 +207,8 @@ export const de: Messages<typeof en> = {
     point: "{{label}}: {{score}} von 10",
     tooltip: ": {{score}} / 10",
     tick: "r{{no}}",
+    version: "v{{version}}",
+    versionNote:
+      "Die Bewertung hat sich dazwischen geändert (gestrichelte Linie); Bewertungen davor und danach sind nicht direkt vergleichbar.",
   },
 };
