@@ -51,7 +51,8 @@
 | Entity | Ownership | Visibility |
 |---|---|---|
 | Investor (user account) | – | Own account only; the admin role manages accounts; one account can have both roles (USR-09) |
-| Thesis | Owned by one investor | `private` (owner only) or `shared` (all investors can read it and use it in their policies); only the owner edits it |
+| Thesis | Owned by one investor | `private` (owner only) or `shared` (all investors can read it and use it in their policies, and it is listed in the catalog, THS-11); only the owner edits it |
+| Example thesis | Built into the app, owned by no one | Readable by all investors in the catalog (THS-13); can only be copied, not edited or pinned |
 | Policy (versions) | Owned by one investor; an investor has any number of policies | Owner only; each version pins exactly one thesis revision (own or shared) |
 | Portfolio | Owned by one investor; an investor has any number of portfolios | Owner only; assigned to exactly one of the owner's policies |
 | Snapshots, rebalances | Belong to one portfolio | Owner only |
@@ -68,7 +69,7 @@ An investment policy statement is not kept as a separate document. Its usual par
 3. **One active version per policy at a time, with recorded activation times.** Every portfolio snapshot is compared against the version of the portfolio's policy that was active at the moment the snapshot was taken. Activating a new version never changes the comparison of earlier snapshots. All points in time are exact timestamps in UTC (NFR-14), not calendar days.
 4. **Strategy management, not value tracking.** The investor takes a snapshot when they want a comparison or a rebalance. A snapshot holds units and a price per position: the price comes from a price provider if the asset is available there (section 3.11), otherwise the investor enters it. The app keeps only the latest price of each listing and values portfolios only in snapshots. Each snapshot keeps the units, prices and exchange rates it was taken with (CMP-10); a confirmed rebalance refers to its input snapshot and stores its result as a snapshot at the same prices (RB-17). Later prices never change past snapshots, rebalances or timeline events. Each portfolio has one currency; prices in other currencies are converted into it.
 5. **Rebalancing on demand, per portfolio.** The investor triggers "Rebalance" for a portfolio when they want instructions. Only a confirmed rebalance is stored, as an event in the timeline.
-6. **News review on demand only.** An investor starts a review for one of their policies (its thesis, with news on its positions); there are no scheduled reviews or notifications. The review runs as a background job, and the completed review is stored as an event in the thesis history and the investor's timeline.
+6. **Review in the editor, required for activation.** The investor reviews a thesis or policy draft while editing it, with a configured AI reviewer (a background job) or manually with an external AI (section 3.9). Every activation needs a current review; there are no scheduled reviews or notifications. The confirmed review is stored with the revision or version and as an event in the investor's timeline.
 7. **Accounts created by an admin only.** There is no self-registration. The admin creates accounts (in the web UI or through the CLI) and can reset passwords.
 
 ## 2. Technology Stack
@@ -113,7 +114,7 @@ No server-side rendering (Next.js) is needed: a handful of users in a LAN gain n
 
 **UI decisions**
 
-- Layout: left sidebar (Dashboard, Portfolios, Policies, Theses, Timeline for investors; Accounts, AI reviewers and Price providers for admins, under the heading "Administration" for an account with both roles; Settings in the user menu for every account), collapsing to a menu on phones. The start page is a dashboard: all portfolios with the band status of their latest snapshot, warnings (broken thesis, newer thesis revision available) and recent timeline events.
+- Layout: left sidebar (Dashboard, Portfolios, Policies, Theses (with the tabs "My theses" and "Catalog", THS-11), Timeline for investors; Accounts, AI reviewers and Price providers for admins, under the heading "Administration" for an account with both roles; Settings in the user menu for every account), collapsing to a menu on phones. The start page is a dashboard: all portfolios with the band status of their latest snapshot, warnings (broken thesis, newer thesis revision available) and recent timeline events.
 - Markdown editing: CodeMirror source editor next to a live preview (stacked tabs on phones); the stored markdown is exactly what was typed.
 - PDF report (RB-19): a print-optimised report page, saved via the browser's print dialog ("Save as PDF"); no server-side PDF rendering.
 - Theme: light and dark, following the device setting, with a manual toggle in the user menu.
@@ -201,11 +202,14 @@ Priorities: **M** = must, **S** = should, **C** = could.
 | Midband | Midpoint between target allocation and absolute sell threshold: (target + absolute sell threshold) / 2. Sells after an upper band breach go down to it |
 | Cash buffer | A position of type `cash buffer`; its value is used for dip buying |
 | Rebalance | A calculation of buy and sell instructions for a portfolio from a snapshot and the active version of its policy. Stored only when the investor confirms it |
-| Thesis review | An AI assessment of a thesis draft: a score per aspect of the thesis (section 3.9), a total score, and a verdict whether the thesis is `intact`, `needs adaptation` or `broken` based on current news |
-| Policy review | An AI assessment of a policy draft: a score per aspect of how well its target structure matches the pinned thesis revision, and a total score |
+| Thesis review | An assessment of a thesis draft, by an AI reviewer or entered manually: a score per aspect of the thesis (section 3.9), a total score, and a verdict whether the thesis is `intact`, `needs adaptation` or `broken` based on current news |
+| Policy review | An assessment of a policy draft, by an AI reviewer or entered manually: a score per aspect of how well its target structure matches the pinned thesis revision, and a total score |
 | Score | 0 to 10 in steps of 0.5, shown as 10 stars with half stars. A review's total score is the average of its aspect scores |
 | AI reviewer | An LLM that runs reviews, configured by the admin: name, provider, model, API key and monthly review limit per investor. There can be any number; the investor chooses one per review, with a default from their settings |
-| Modified review | A review whose AI result the investor changed (a score or the verdict); the AI's original values stay visible next to the investor's |
+| Review method | How a review is made: one of the AI reviewers, or `manual` (REV-18) |
+| Manual review | A review the investor gets from an AI outside the app: the app gives them the review prompt (REV-19), they paste the AI's JSON answer back |
+| Review prompt | The complete instructions for a review: the draft's content, the aspects, the scoring rules and the JSON format of the answer. The same for AI reviewers and manual reviews |
+| Not reviewed | A thesis whose latest activated revision, or a policy whose active version, has no confirmed review (activated before reviews were required, REV-20) |
 | Exit flag | Per-position flag in a target structure: the investor wants to leave this asset; the rebalancing sells it completely |
 | Timeline | The chronological list of an investor's strategy decisions across all policies and portfolios: policy activations, portfolio assignments, confirmed rebalances, confirmed reviews |
 | Revision | A version of a thesis. Like a policy version, it is a draft until activated and immutable afterwards |
@@ -223,7 +227,7 @@ Priorities: **M** = must, **S** = should, **C** = could.
 | USR-09 | An account has the investor role, the admin role or both. The admin sets the roles when creating an account and can change them later, also on their own account. Giving the investor role needs a base currency (USR-06); the investor role can only be removed while the account owns no theses, policies or portfolios. The last active admin keeps the admin role. The CLI can create the first admin with the investor role too (e.g. for a single person running the app for themselves). | M |
 | USR-10 | Every account chooses its UI language in its settings: English, German, or like the browser (the default). The choice is stored with the account, so it applies on every device. Before login, and for accounts without a choice, the app is German if the browser prefers German, otherwise English. | S |
 | USR-11 | Every account chooses its time zone in its settings: like the browser (the default) or a named time zone (e.g. `Europe/Zurich`). The choice is stored with the account. All points in time are shown in it, and times entered in the UI (e.g. the time of day of the price update, PRC-07) are read in it (NFR-14). | S |
-| USR-08 | An investor chooses the AI reviewer (REV-13) for each review when starting it, among the enabled ones. A default AI reviewer, set in the investor's settings and changeable at any time, is preselected; if it is not available, the first enabled one is. A new investor has no default until they choose one. The settings show each reviewer's name, description, provider, model and monthly limit, and the reviews used this month with the default one; starting a review shows the usage of the reviewer chosen for it. | M |
+| USR-08 | An investor chooses the review method for each review when starting it: one of the enabled AI reviewers (REV-13) or `manual` (REV-18). A default method, set in the investor's settings and changeable at any time, is preselected; if it is an AI reviewer that is not available, the first enabled one is, and `manual` if there is none. A new investor has no default until they choose one. The settings show each reviewer's name, description, provider, model and monthly limit, and the reviews used this month with the default one; starting a review shows the usage of the reviewer chosen for it. | M |
 | USR-07 | Passwords have at least 12 characters. A session ends after 30 days, or after 8 hours without activity. | M |
 
 ### 3.3 Theses
@@ -231,13 +235,73 @@ Priorities: **M** = must, **S** = should, **C** = could.
 | ID | Requirement | Prio |
 |---|---|---|
 | THS-01 | An investor creates and edits theses in markdown, with live preview. | M |
-| THS-02 | Theses are edited in drafts, like policy versions (POL-06): a new revision starts as a draft copy of the latest revision; a thesis has at most one draft at a time; a draft can be saved and edited freely and deleted (except the first revision of a new thesis). Activating the draft makes it an immutable revision. Activation is possible even if only a review was added (REV-01). Earlier revisions are kept and can be viewed; the investor can compare any two revisions, including the draft (diff). Only activated revisions can be pinned by a policy version (POL-02) and count as a newer revision (POL-10). | M |
+| THS-02 | Theses are edited in drafts, like policy versions (POL-06): a new revision starts as a draft copy of the latest revision; a thesis has at most one draft at a time; a draft can be saved and edited freely and deleted (except the first revision of a new thesis). Activating the draft makes it an immutable revision. Activation requires a current review (REV-11) and is possible even if only a review was added (REV-01). Earlier revisions are kept and can be viewed; the investor can compare any two revisions, including the draft (diff). Only activated revisions can be pinned by a policy version (POL-02) and count as a newer revision (POL-10). | M |
 | THS-03 | Every revision after the first needs a change note (why it changed) when it is activated. | M |
 | THS-04 | A thesis has a status: `intact`, `needs adaptation` or `broken`. Only the owner changes it, in a draft, never the system. There is no "soft break" status beyond these; weakening of a thesis is also expressed by the scores of its reviews (REV-03). `needs adaptation` and `broken` have no automatic effect on rebalancing; they are shown as a warning on every policy and portfolio that uses the thesis, and the investor acts on them with a new thesis revision or with exit flags (POL-11). | M |
-| THS-05 | A thesis is `private` or `shared`. Shared theses are readable by all investors; only the owner edits them. If the owner makes a shared thesis private again, investors whose policy versions reference one of its revisions keep read access to exactly those revisions (and their reviews). | M |
-| THS-07 | New theses can be created from a template. The template covers: role in portfolio, expected holding period, core thesis, why this asset vs. alternatives, value drivers, risks, break conditions (when met, the investor sets the thesis to `broken` and/or sets exit flags), warning signals (when observed, the thesis needs adaptation; no automatic action), review checklist. A thesis may contain such sections for several assets. | S |
+| THS-05 | A thesis is `private` or `shared`. Only a thesis whose latest activated revision has a confirmed review can be shared (REV-20). Shared theses are readable by all investors; only the owner edits them. If the owner makes a shared thesis private again, investors whose policy versions reference one of its revisions keep read access to exactly those revisions (and their reviews). | M |
+| THS-07 | New theses can be created from the template below, in English or German (the account's UI language). It is plain markdown, so it can also be copied into other tools and back. Its sections match the thesis review aspects (section 3.9). A thesis may list several assets in its Implementation section. | S |
 | THS-08 | Each thesis has a history view listing its activated revisions with their confirmed reviews (REV-11) in chronological order, including the course of the total review score over time. | M |
-| THS-10 | An investor can copy a shared thesis into a private thesis of their own and edit it. | C |
+| THS-10 | An investor can copy a catalog entry (an example thesis or a shared thesis, THS-11) into a new private thesis of their own: its first revision is a draft with the title, markdown content and status of the source (the latest activated revision of a shared thesis). The copy is independent: later changes to the source do not affect it, and it has none of the source's revisions or reviews. | M |
+| THS-11 | **Catalog.** The theses area has two tabs: "My theses" lists the investor's own theses (private and shared); "Catalog" lists the example theses (THS-13) and the shared theses of all other investors, each with its latest activated revision. A thesis appears in the catalog as soon as its owner shares it and disappears when it is made private again (THS-05 still applies to policies that pin it). Shared theses without an activated revision are not listed. Policies can still pin shared theses directly (POL-01), without copying them. | M |
+| THS-12 | Each catalog entry shows its title, its source (`Example`, or the owner's username), its status, the date of its latest activated revision and the total score of its latest confirmed thesis review, if any. The catalog can be searched by title and text and filtered by source (examples / shared). Opening an entry shows its rendered markdown, with the actions "Copy to my theses" (THS-10) and, for shared theses, "Open" (the existing read-only thesis page with its history). | S |
+| THS-13 | **Example theses** are part of the app: written in English and German, shipped and versioned with each release, and shown in the account's UI language (USR-10). They follow the thesis template (THS-07), have the status `intact`, and start with a note that they are examples, not investment advice. They are read-only, have no revisions and no reviews, and cannot be pinned by a policy version; they are used only by copying them. The first set covers at least: a broad global equity ETF as core holding, a cash buffer, a single stock and a crypto position. | M |
+| THS-14 | A copied thesis records its origin (the example and the app version, or the source thesis and revision number) and shows "Copied from …" on its page; for a shared source the link works as long as the investor can read it. The catalog marks entries the investor has already copied. | S |
+| THS-15 | When an investor has no theses yet, the "My theses" tab and the dashboard point to the catalog and to creating a thesis from the template (THS-07). | S |
+
+**Thesis template** (THS-07; the German version has the same structure):
+
+```markdown
+# Investment Thesis
+
+## 1. Belief — What do I think?
+Describe the investment idea in 2–5 sentences. What do I believe, and why is this opportunity attractive?
+
+## 2. Investor Fit — Is this appropriate for me?
+- **Investor type:** Conservative / Balanced / Growth / Aggressive
+- **Investment horizon:** Short-term / Medium-term / Long-term
+- **Risk tolerance:** Low / Moderate / High
+- **Risk capacity:** Low / Moderate / High
+- **Liquidity needs:** Low / Moderate / High
+
+## 3. Implementation — Which assets express my thesis?
+List the selected assets and explain why they are suitable for expressing the investment thesis.
+
+- **Asset name (TICKER):**
+- **Role in portfolio:**
+- **Selection rationale:**
+
+## 4. Opportunity — What creates value?
+Describe the factors that could create value and generate investment returns.
+
+- Value driver 1:
+- Value driver 2:
+
+## 5. Downside — What can go wrong?
+Identify the risks that could negatively affect the investment thesis.
+
+- Risk 1:
+- Risk 2:
+
+## 6. Invalidation — When am I wrong?
+Define the conditions that invalidate the investment thesis.
+
+When one of these conditions is met, mark the thesis as *broken* and/or set exit flags in the policy.
+
+- Break condition 1:
+- Break condition 2:
+
+## 7. Early Warnings — What should make me reconsider?
+Identify signals that weaken the thesis and require attention or adaptation. They trigger nothing by themselves.
+
+- Warning signal 1:
+- Warning signal 2:
+
+## 8. Monitoring — Is the thesis still valid?
+Define the metrics and signals to monitor to assess whether the thesis remains valid.
+
+- Metric / signal 1:
+- Metric / signal 2:
+```
 
 ### 3.4 Policy
 
@@ -248,7 +312,7 @@ Priorities: **M** = must, **S** = should, **C** = could.
 | POL-03 | A policy version has no rebalancing settings: the rebalancing rules are hardcoded and the same for all policies (section 3.7), and sell proceeds always stay in the portfolio. Cash that leaves the portfolio is the withdrawal of a rebalance (RB-01). Settings that depend on the actual holdings (contribution, brokers, rounding) belong to the portfolio (PTF-03). | M |
 | POL-04 | Buy and sell thresholds are relative to the target: absolute threshold = target × (1 + threshold / 100). Example: target 40 %, sell threshold +25 % → sell above 50 %. Buy thresholds range from −100 to 0, sell thresholds are 0 or more. The UI shows the resulting absolute band next to each row. | M |
 | POL-05 | A policy version can only be activated if the target allocations sum to 100 % (tolerance 0.01) and it contains at most one cash buffer position. | M |
-| POL-06 | A new version starts as a draft copy of the latest version. A policy has at most one draft at a time. Drafts can be edited freely and deleted. Activating a draft makes it immutable; from v2 on it needs a change note. | M |
+| POL-06 | A new version starts as a draft copy of the latest version. A policy has at most one draft at a time. Drafts can be edited freely and deleted. Activating a draft requires a current review (REV-11) and makes it immutable; from v2 on it needs a change note. | M |
 | POL-07 | Each policy has at most one active version at any time; a policy without an active version has only drafts. Activation takes effect at the moment it is done; it cannot be set to a time in the past or the future. The previously active version stays valid up to that moment. | M |
 | POL-08 | Activating a new version applies to all portfolios assigned to the policy. Before activation, the system lists these portfolios. | M |
 | POL-09 | The investor can compare any two policy versions: changed positions, targets, thresholds, exit flags, setting and thesis revision. | M |
@@ -321,24 +385,24 @@ The calculation rules (RB-04 to RB-12, RB-22) are hardcoded and apply to all pol
 | ID | Requirement | Prio |
 |---|---|---|
 | TL-01 | Each investor has a timeline listing these events in chronological order: policy version activated (with the affected portfolios), portfolio created or reassigned to a policy, rebalance confirmed (with its portfolio), thesis review confirmed (reviews of the investor's own theses), policy review confirmed, and new revision of a thesis referenced by an active policy version. Reviews of drafts and changes to drafts create no events (REV-11). | M |
-| TL-02 | Each event shows its date, type and a summary (e.g. "`core-v2` activated: BTC 8 % → 6 %", "Main: rebalanced, sold 1,200, bought 3,200", "Thesis review of revision 3: needs adaptation, 6.5 / 10, modified"). Opening an event shows its details (policy diff, rebalance instructions and executed amounts, review result). | M |
+| TL-02 | Each event shows its date, type and a summary (e.g. "`core-v2` activated: BTC 8 % → 6 %", "Main: rebalanced, sold 1,200, bought 3,200", "Thesis review of revision 3 (manual): needs adaptation, 6.5 / 10"). Opening an event shows its details (policy diff, rebalance instructions and executed amounts, review result). | M |
 | TL-03 | The timeline can be filtered by portfolio, policy, event type and period. Filtering by a portfolio shows the events of that portfolio and of the policies it was assigned to while they applied to it. | S |
 
 ### 3.9 Reviews
 
-There are two kinds of AI review: a **thesis review** judges whether a thesis is good and still holds; a **policy review** judges whether a policy's target structure matches its thesis. Both are run on drafts, can be modified by the investor, and are confirmed by activating the draft.
+There are two kinds of review: a **thesis review** judges whether a thesis is good and still holds; a **policy review** judges whether a policy's target structure matches its thesis. Both are part of the draft editor: the investor reviews the text while editing it, either with an AI reviewer configured by the admin or manually with an AI of their choice outside the app (REV-18). Both methods use the same review prompt and produce the same result. A draft can only be activated with a current review, which is confirmed by the activation.
 
 **Scoring.** A review scores each of its aspects from 0 to 10 in steps of 0.5. All aspects weigh the same; the **total score** is their average, rounded to the nearest 0.5 (halves round up). Scores are shown as 10 stars with half stars (7.5 → seven and a half of ten stars).
 
-**Thesis review aspects.** Aspects 1–5 judge the text the investor wrote; aspect 6 judges it against current news.
+**Thesis review aspects.** Aspects 1–5 judge the text the investor wrote, section by section of the template (THS-07); aspect 6 judges it against current news.
 
 | # | Aspect | 10 means | 0 means |
 |---|---|---|---|
-| T1 | Core claim | A clear claim that could be proven wrong, with a time horizon | Vague, cannot be checked |
-| T2 | Value drivers | Concrete, measurable drivers | None, or only "it will go up" |
-| T3 | Risks | The main risks are named and realistic, including likelihood and impact | No risks named |
-| T4 | Break conditions and warning signals | Observable triggers with clear thresholds | None, or impossible to observe |
-| T5 | Fit and alternatives | Role in the portfolio, holding period and why this asset rather than alternatives are explained and consistent | Missing or contradictory |
+| T1 | Belief (§1) | A clear claim that could be proven wrong, with a time horizon | Vague, cannot be checked |
+| T2 | Fit and implementation (§2–3) | The investor fit is stated and consistent with the assets; each asset has a role and a rationale, including why it rather than alternatives | Missing or contradictory |
+| T3 | Opportunity (§4) | Concrete, measurable value drivers | None, or only "it will go up" |
+| T4 | Downside (§5) | The main risks are named and realistic, including likelihood and impact | No risks named |
+| T5 | Invalidation, warnings and monitoring (§6–8) | Observable break conditions and warning signals with clear thresholds; metrics to monitor | None, or impossible to observe |
 | T6 | Current evidence | Recent news confirms the drivers; no warning signals observed | The news contradicts the drivers |
 
 **Policy review aspects.** 0 = the target structure does not match the thesis at all, 10 = perfect match.
@@ -354,17 +418,16 @@ There are two kinds of AI review: a **thesis review** judges whether a thesis is
 
 | ID | Requirement | Prio |
 |---|---|---|
-| REV-01 | Reviews run only on drafts: a thesis review on a thesis draft (THS-02), a policy review on a policy draft (POL-06). Only the owner of the draft starts them. There are no scheduled reviews. To review an active thesis or policy, the investor creates a draft, reviews it, adapts it if needed and activates it; this creates a new revision or version even if nothing but the review was added. | M |
+| REV-01 | Reviews run only on drafts, in the draft editor: a thesis review on a thesis draft (THS-02), a policy review on a policy draft (POL-06). The editor shows the review next to the markdown editor and the preview (a tab on phones); starting a review saves the draft first and reviews its saved content. Only the owner of the draft starts them. There are no scheduled reviews. To review an active thesis or policy, the investor creates a draft, reviews it, adapts it if needed and activates it; this creates a new revision or version even if nothing but the review was added. | M |
 | REV-02 | Scores follow the scoring rules above. A thesis review scores aspects T1–T6, a policy review P1–P6; each aspect gets its score and a short reasoning. | M |
 | REV-03 | A **thesis review** also gives a **verdict**, independent of the score: `broken` if news shows that a break condition is met; `needs adaptation` if warning signals are observed or parts of the thesis are outdated; otherwise `intact`. | M |
-| REV-04 | The thesis review searches the internet for recent news on the assets the thesis is about (taken from the thesis text; default period: last 90 days, adjustable). The AI reviewer chosen for the review (USR-08), using the provider's built-in web search, assesses the news for aspect T6 and the verdict. Every statement based on news points to its source (title, date, link). The thesis review does not depend on any policy. | M |
+| REV-04 | The thesis review searches the internet for recent news on the assets the thesis is about (taken from the thesis text; default period: last 90 days, adjustable). The AI reviewer chosen for the review (USR-08), using the provider's built-in web search, or the external AI of a manual review (REV-19), assesses the news for aspect T6 and the verdict. Every statement based on news points to its source (title, date, link). The thesis review does not depend on any policy. | M |
 | REV-05 | The **policy review** uses only the thesis revision pinned by the draft and the draft's target structure (positions, targets, thresholds, exit flags, rationales). It does not search the internet. | M |
-| REV-06 | Scores are comparable over time: the aspects, the scoring rules and the instructions given to the LLM are fixed and versioned, and each review stores the version it used. | S |
+| REV-06 | Scores are comparable over time: the aspects, the scoring rules and the review prompt (REV-19) are fixed and versioned, and each review stores the version it used. Reviews with an older version (e.g. the aspects before the template of THS-07) stay as they were and show their version; the score course (THS-08) marks where the version changes. | S |
 | REV-07 | The result may contain suggestions: changes to the thesis text or status, or to the target allocation, thresholds or exit flags of positions. Suggestions are never applied automatically, and a review never changes the thesis status by itself. If the verdict differs from the draft's status, the draft shows a hint; the investor decides. | M |
-| REV-08 | Reviews run in the background. The investor sees progress and can leave the page. A failed review can be started again. | M |
-| REV-09 | A draft has at most one review. Running the review again replaces the previous one, including the investor's modifications. A review is marked as outdated when the draft was changed after the review was started. | M |
-| REV-10 | **Modify.** While the draft is not activated, the investor can change any aspect score and the verdict, with a note why. The AI's original values are kept: the UI shows the AI's stars and the investor's stars side by side, and the total of both. A review is flagged `modified` only if at least one value differs from the AI's. | M |
-| REV-11 | **Confirm.** Activating a draft confirms its review: the review is stored with the activated revision or version and cannot be changed afterwards. Activating a draft without a review, or with an outdated one (REV-09), asks the investor to confirm first. While a review is running, its draft can be neither activated nor deleted; a failed review is dropped when the draft is activated. Deleting a draft deletes its review. Reviews of drafts appear neither in the thesis history nor in the timeline. | M |
+| REV-08 | A review by an AI reviewer runs in the background. While it runs, the editor shows its progress; the investor can keep editing, save the draft and leave the page. When the result is ready, it appears in the editor's review pane, also when the investor comes back later. A failed review can be started again. | M |
+| REV-09 | A draft has at most one review. Running the review again, with any method, replaces the previous one. A review is marked as outdated when the draft was changed after the review was started (for a manual review: after its prompt was copied, REV-19); the editor keeps showing it, so the investor can work through its points. | M |
+| REV-11 | **Review required, confirmed by activation.** A thesis or policy draft can only be activated with a review that is done and not outdated (REV-09); without one, the activate button is disabled and says why. Activating confirms the review: it is stored with the activated revision or version and cannot be changed afterwards. While a review is running, its draft can be neither activated nor deleted. Deleting a draft deletes its review. Reviews of drafts appear neither in the thesis history nor in the timeline. | M |
 | REV-12 | A confirmed thesis review appears in the thesis history (THS-08), visible to everyone who can read the revision, and in the owner's timeline (TL-01). A confirmed policy review appears with its policy version and in the owner's timeline. | M |
 
 **LLM access and AI reviewers.** Each review is run by the AI reviewer the investor chose for it (USR-08). Supported providers: Anthropic (Claude), OpenAI and Google (Gemini), each with its built-in web search. Each provider is connected through its own adapter behind one internal interface, so the aspects, scoring rules and instructions are the same for all providers.
@@ -374,8 +437,16 @@ There are two kinds of AI review: a **thesis review** judges whether a thesis is
 | REV-13 | The admin creates any number of AI reviewers. Each has a unique name, an optional description shown to investors, a provider, a model, an API key and a monthly review limit per investor (0 = no reviews). A reviewer can be disabled: investors cannot choose it or run reviews with it until it is enabled again. Deleting a reviewer archives it: it disappears from all lists and runs no more reviews, past reviews keep its name, provider and model, and investors who chose it must choose another one. | M |
 | REV-14 | The admin configures the AI reviewers on an admin page: provider (Anthropic, OpenAI, Google), model, API key, monthly review limit, description and whether it is enabled. A "Test connection" button sends a minimal request with the reviewer's settings and shows the result. Changes apply to reviews started afterwards, without a restart. | M |
 | REV-15 | API keys are stored encrypted in the database with a secret from the server environment (`APP_SECRET_KEY`); without it, keys cannot be saved. The API never returns a stored key; the admin page shows only its last 4 characters, and changing it means entering a new key. | M |
-| REV-16 | Every started review run counts towards the limit of the AI reviewer it runs on, per investor, including failed runs and re-runs on the same draft; each reviewer has its own count. The limit applies per calendar month (UTC). A review beyond the limit is refused before anything is sent to the provider. The investor sees how many reviews are used and left this month with the reviewer chosen for the review. If there is no enabled reviewer, or the chosen one is disabled or archived, the review cannot be started and the investor sees why. A review runs on the reviewer it was started with. | M |
-| REV-17 | Each review stores the AI reviewer's name, provider and model it was run with, next to the scoring version (REV-06), and the UI shows them with the result. | S |
+| REV-16 | Every started review run counts towards the limit of the AI reviewer it runs on, per investor, including failed runs and re-runs on the same draft; each reviewer has its own count. The limit applies per calendar month (UTC). A review beyond the limit is refused before anything is sent to the provider. The investor sees how many reviews are used and left this month with the reviewer chosen for the review. If there is no enabled reviewer, or the chosen one is disabled or archived, a review by an AI reviewer cannot be started and the investor sees why; a manual review (REV-18) is always possible and counts towards no limit. A review runs on the reviewer it was started with. | M |
+| REV-17 | Each review stores the reviewer it was made with, as soon as its result is filled in: for an AI reviewer its name, provider and model; for a manual review `manual` and the AI model the investor names (required, free text, e.g. "ChatGPT 5"). It is stored next to the scoring version (REV-06), stays with the revision or version when the review is confirmed by activation, and the UI shows it with the result, in the thesis history (THS-08), with the policy version and in the timeline. | M |
+
+**Manual review and required reviews.**
+
+| ID | Requirement | Prio |
+|---|---|---|
+| REV-18 | **Method in the editor.** The review pane offers the enabled AI reviewers and `manual` (USR-08). With an AI reviewer, the investor starts the review and the result fills in when it is ready (REV-08); the investor does not enter anything. With `manual`, the pane shows the button "Copy review prompt" (REV-19), a text field for the answer and a required field for the AI model used (REV-17). The investor pastes the external AI's JSON answer; the app checks it against the answer format (aspects, scores 0–10 in steps of 0.5, reasoning, verdict for a thesis review, sources, suggestions) and either shows the review like one from an AI reviewer or lists exactly what is wrong. Leading or trailing text around the JSON (e.g. a code fence) is ignored. | M |
+| REV-19 | **Review prompt.** "Copy review prompt" saves the draft and copies one text to the clipboard: the review instructions, the aspects and scoring rules, the JSON format of the answer, today's date and the news period (thesis review), and the content to review (thesis review: the draft's markdown; policy review: the pinned thesis revision and the draft's target structure, REV-05). The thesis review prompt asks the AI to search the web for news and to state in its answer if it could not. The prompt contains a prompt ID that the answer must repeat; it ties the answer to the draft state it was copied from (REV-09). The prompt is the same one the AI reviewers receive (REV-06) and contains nothing else (NFR-01). Before copying, the app says what the prompt contains. | M |
+| REV-20 | **Not reviewed.** A thesis whose latest activated revision has no confirmed review, or a policy whose active version has none (activated before reviews were required), is marked "Not reviewed" in the lists of theses and policies, in the catalog (THS-11) and on its page. Such a thesis cannot be shared until a reviewed revision is activated; a thesis that was already shared stays shared, with the mark. | M |
 
 ### 3.10 JSON import
 
@@ -530,6 +601,7 @@ erDiagram
         bool is_investor "at least one of both"
         string base_currency "ISO 4217, e.g. CHF; preset for new portfolios; null without investor role"
         int ai_reviewer_id FK "default, USR-08; null until chosen"
+        bool manual_review_default "USR-08: the default method is manual"
         string language "en or de; null = the browser's, USR-10"
         string time_zone "IANA name; null = the browser's, USR-11"
         bool active
@@ -575,6 +647,8 @@ erDiagram
         int id PK
         int owner_id FK
         string visibility "private or shared"
+        int copied_from_revision_id FK "null unless copied from a shared thesis, THS-14"
+        string copied_from_example "example key and app version, null unless copied from an example"
         datetime created_at
     }
     THESIS_REVISION {
@@ -764,15 +838,15 @@ erDiagram
         string state "queued, running, done, failed"
         date news_from "thesis review only"
         date news_to "thesis review only"
-        string ai_verdict "thesis review: intact, needs_adaptation, broken"
-        string verdict "investor's value, null = AI's"
-        text modification_note "REV-10"
-        bool modified "a value differs from the AI's"
+        string verdict "thesis review: intact, needs_adaptation, broken"
+        string method "ai or manual, REV-18"
+        string prompt_id "REV-19"
+        text legacy_modification "reviews before the rework: investor changes and note (REV-10, dropped), read-only"
         string scoring_version "REV-06"
-        int ai_reviewer_id FK "runs on it"
+        int ai_reviewer_id FK "runs on it, null for manual"
         string ai_reviewer_name "REV-17, at the start"
-        string provider "REV-17"
-        string model "REV-17"
+        string provider "REV-17; manual for a manual review"
+        string model "REV-17; for a manual review the model the investor named, required"
         text error "if failed"
         datetime started_at
         datetime completed_at
@@ -780,8 +854,7 @@ erDiagram
     REVIEW_ASPECT {
         int review_id PK,FK
         string aspect PK "T1-T6 or P1-P6"
-        int ai_half_points "0-20, score x 2"
-        int half_points "investor's value, null = AI's"
+        int half_points "0-20, score x 2"
         text reasoning_md
     }
     REVIEW_SOURCE {
@@ -823,8 +896,9 @@ erDiagram
 - **Rebalance:** settings that can change later on the portfolio (rounding, broker, whole units) are copied into the rebalance at confirmation, so the stored result stays reproducible. The snapshot after the rebalance (RB-17) is linked via `result_snapshot_id`.
 - **Timeline:** `TIMELINE_EVENT` rows are written in the same transaction as the event they describe, which keeps filtering by portfolio, policy, type and period (TL-03) a simple query.
 - **Asset catalog:** `ASSET` is shared by all investors; it contains only public data (ticker, name, type). Which listing prices an asset is not stored on `ASSET` but per investor in `PRICE_SOURCE`, so investors can choose different listings of the same ticker.
+- **Example theses:** not stored in the database. They are markdown files in the backend package, one per example and language, read at startup and served by the catalog API (THS-13); a copy stores only the example's key and the app version (THS-14).
 - **Visibility:** activated revisions of a shared thesis and their confirmed thesis reviews are readable by all investors; drafts and their reviews only by the owner. Policy reviews belong to the policy and are filtered by owner like it. All other tables are filtered by owner in the repository layer (section 2.2).
-- **Reviews:** a review belongs to exactly one draft (`thesis_revision_id` or `policy_version_id`, by `kind`); a draft has at most one review (REV-09). Scores are stored as half points (0–20) so they stay exact; the total is calculated, not stored. A review is outdated when its draft's `updated_at` is later than its `started_at`.
+- **Reviews:** a review belongs to exactly one draft (`thesis_revision_id` or `policy_version_id`, by `kind`); a draft has at most one review (REV-09). Scores are stored as half points (0–20) so they stay exact; the total is calculated, not stored. A review is outdated when its draft's `updated_at` is later than its `started_at`; for a manual review, `started_at` is when its prompt was copied, and a pasted answer must repeat that prompt's `prompt_id`. Reviews made before the review rework keep the AI's values in `half_points` and `verdict`; their investor changes move to `legacy_modification` and are still shown, read-only. New reviews have no changes.
 - **Review limit:** a draft's review is replaced when it is run again (REV-09), so the runs are counted in the separate append-only `REVIEW_RUN` log, one row per started run (REV-16). The count is per investor and `AI_REVIEWER`. Reviewers are archived, never deleted, so runs and reviews keep referring to them (REV-13).
 
 ## 5. Build, Release and Deployment

@@ -195,10 +195,14 @@ def test_connection(
     return ConnectionResult(True, message)
 
 
-def choose_reviewer(session: Session, actor: Investor, reviewer_id: int | None) -> Investor:
-    """USR-08: the investor's own choice; None clears it."""
+def choose_reviewer(
+    session: Session, actor: Investor, reviewer_id: int | None, manual: bool = False
+) -> Investor:
+    """USR-08: the investor's default review method: an AI reviewer, or manual (REV-18);
+    neither clears it."""
     require_investor(actor)
-    if reviewer_id is None:
+    actor.manual_review_default = manual
+    if manual or reviewer_id is None:
         actor.ai_reviewer_id = None
         return actor
     reviewer = get_reviewer(session, reviewer_id)

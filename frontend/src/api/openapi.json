@@ -369,17 +369,9 @@
       },
       "AspectOut": {
         "properties": {
-          "ai_score": {
-            "title": "Ai Score",
-            "type": "number"
-          },
           "code": {
             "title": "Code",
             "type": "string"
-          },
-          "modified": {
-            "title": "Modified",
-            "type": "boolean"
           },
           "name": {
             "title": "Name",
@@ -397,9 +389,7 @@
         "required": [
           "code",
           "name",
-          "ai_score",
           "score",
-          "modified",
           "reasoning_md"
         ],
         "title": "AspectOut",
@@ -515,6 +505,7 @@
         "type": "object"
       },
       "Choice": {
+        "description": "USR-08: the default review method; `manual` wins over an AI reviewer.",
         "properties": {
           "ai_reviewer_id": {
             "anyOf": [
@@ -526,6 +517,11 @@
               }
             ],
             "title": "Ai Reviewer Id"
+          },
+          "manual": {
+            "default": false,
+            "title": "Manual",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1107,6 +1103,47 @@
         "title": "LanguageChoice",
         "type": "object"
       },
+      "LegacyModificationOut": {
+        "description": "Investor changes of a review from before REV-10 was dropped; read-only.",
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "scores": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Scores",
+            "type": "object"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "note",
+          "verdict",
+          "scores"
+        ],
+        "title": "LegacyModificationOut",
+        "type": "object"
+      },
       "ListingOut": {
         "properties": {
           "available": {
@@ -1273,6 +1310,25 @@
         "title": "LookupOut",
         "type": "object"
       },
+      "ManualAnswer": {
+        "description": "REV-18: the answer of an AI outside the app, and which model wrote it (REV-17).",
+        "properties": {
+          "answer": {
+            "title": "Answer",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "answer",
+          "model"
+        ],
+        "title": "ManualAnswer",
+        "type": "object"
+      },
       "Me": {
         "properties": {
           "ai_reviewer_id": {
@@ -1320,6 +1376,10 @@
             ],
             "title": "Language"
           },
+          "manual_review_default": {
+            "title": "Manual Review Default",
+            "type": "boolean"
+          },
           "must_change_password": {
             "title": "Must Change Password",
             "type": "boolean"
@@ -1347,6 +1407,7 @@
           "is_investor",
           "base_currency",
           "ai_reviewer_id",
+          "manual_review_default",
           "language",
           "time_zone",
           "must_change_password"
@@ -3174,17 +3235,36 @@
       "ReviewBrief": {
         "description": "The review of a revision or version, in short (THS-08, REV-11).",
         "properties": {
+          "ai_reviewer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Reviewer Name"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
           },
-          "modified": {
-            "title": "Modified",
-            "type": "boolean"
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
           },
           "outdated": {
             "title": "Outdated",
             "type": "boolean"
+          },
+          "scoring_version": {
+            "title": "Scoring Version",
+            "type": "string"
           },
           "state": {
             "title": "State",
@@ -3218,56 +3298,13 @@
           "state",
           "total",
           "verdict",
-          "modified",
+          "scoring_version",
+          "method",
+          "model",
+          "ai_reviewer_name",
           "outdated"
         ],
         "title": "ReviewBrief",
-        "type": "object"
-      },
-      "ReviewChange": {
-        "description": "REV-10: scores per aspect code (null = the AI's) and the verdict (null = the AI's).",
-        "properties": {
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "scores": {
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "title": "Scores",
-            "type": "object"
-          },
-          "verdict": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Verdict"
-          }
-        },
-        "required": [
-          "scores"
-        ],
-        "title": "ReviewChange",
         "type": "object"
       },
       "ReviewOut": {
@@ -3282,28 +3319,6 @@
               }
             ],
             "title": "Ai Reviewer Name"
-          },
-          "ai_total": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ai Total"
-          },
-          "ai_verdict": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ai Verdict"
           },
           "aspects": {
             "items": {
@@ -3347,24 +3362,23 @@
             "title": "Kind",
             "type": "string"
           },
-          "model": {
-            "title": "Model",
-            "type": "string"
-          },
-          "modification_note": {
+          "legacy_modification": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/LegacyModificationOut"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Modification Note"
+            ]
           },
-          "modified": {
-            "title": "Modified",
-            "type": "boolean"
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
           },
           "news_from": {
             "anyOf": [
@@ -3404,6 +3418,17 @@
               }
             ],
             "title": "Policy Version Id"
+          },
+          "prompt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Id"
           },
           "provider": {
             "title": "Provider",
@@ -3477,27 +3502,45 @@
           "error",
           "thesis_revision_id",
           "policy_version_id",
+          "method",
           "ai_reviewer_name",
           "provider",
           "model",
+          "prompt_id",
           "scoring_version",
           "news_from",
           "news_to",
           "started_at",
           "completed_at",
           "aspects",
-          "ai_total",
           "total",
-          "ai_verdict",
           "verdict",
-          "modified",
-          "modification_note",
+          "legacy_modification",
           "outdated",
           "confirmed",
           "sources",
           "suggestions"
         ],
         "title": "ReviewOut",
+        "type": "object"
+      },
+      "ReviewPromptOut": {
+        "description": "REV-19: the review prompt to copy into an AI outside the app.",
+        "properties": {
+          "prompt_id": {
+            "title": "Prompt Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt_id",
+          "text"
+        ],
+        "title": "ReviewPromptOut",
         "type": "object"
       },
       "RevisionDiff": {
@@ -7063,6 +7106,134 @@
         ]
       }
     },
+    "/api/policies/{policy_id}/draft/review-prompt": {
+      "get": {
+        "description": "REV-19: the prompt of the policy draft as it is saved now; changes nothing.",
+        "operationId": "get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPromptOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Policy Review Prompt",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/policies/{policy_id}/draft/review/manual": {
+      "post": {
+        "description": "REV-18: stores the pasted answer as the review of the policy draft.",
+        "operationId": "submit_manual_policy_review_api_policies__policy_id__draft_review_manual_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Manual Policy Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/api/policies/{policy_id}/draft/thesis-revision": {
       "put": {
         "operationId": "set_draft_thesis_revision_api_policies__policy_id__draft_thesis_revision_put",
@@ -8979,72 +9150,6 @@
         "tags": [
           "reviews"
         ]
-      },
-      "put": {
-        "operationId": "modify_review_api_reviews__review_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "review_id",
-            "required": true,
-            "schema": {
-              "title": "Review Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "itk_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Itk Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewChange"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Modify Review",
-        "tags": [
-          "reviews"
-        ]
       }
     },
     "/api/schemas/{import_type}": {
@@ -9930,6 +10035,144 @@
           }
         },
         "summary": "Start Thesis Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/theses/{thesis_id}/draft/review-prompt": {
+      "get": {
+        "description": "REV-19: the prompt of the thesis draft as it is saved now; changes nothing.",
+        "operationId": "get_thesis_review_prompt_api_theses__thesis_id__draft_review_prompt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "thesis_id",
+            "required": true,
+            "schema": {
+              "title": "Thesis Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "news_days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "title": "News Days",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPromptOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Thesis Review Prompt",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/theses/{thesis_id}/draft/review/manual": {
+      "post": {
+        "description": "REV-18: stores the pasted answer as the review of the thesis draft.",
+        "operationId": "submit_manual_thesis_review_api_theses__thesis_id__draft_review_manual_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "thesis_id",
+            "required": true,
+            "schema": {
+              "title": "Thesis Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Manual Thesis Review",
         "tags": [
           "reviews"
         ]

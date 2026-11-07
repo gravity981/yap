@@ -89,12 +89,15 @@ export const de: Messages<typeof en> = {
       browser: "Wie der Browser ({{zone}})",
     },
     reviewer: {
-      title: "Standard-KI-Reviewer",
+      title: "Standard-Prüfmethode",
       description:
-        "Die KI, die beim Start einer Prüfung einer Anlagethese oder Anlagestrategie vorausgewählt ist; für jede Prüfung kannst du einen anderen KI-Reviewer wählen. Jeder KI-Reviewer hat sein eigenes Monatslimit, das der Admin festlegt.",
+        "Was vorausgewählt ist, wenn du den Entwurf einer Anlagethese oder Anlagestrategie prüfst; für jede Prüfung kannst du eine andere wählen. Jeder KI-Reviewer hat sein eigenes Monatslimit, das der Admin festlegt.",
       usage: "{{used}} von {{limit}} Prüfungen mit {{name}} in diesem Monat verwendet.",
       gone: "Dein Standard-KI-Reviewer ist nicht mehr verfügbar; wähle einen anderen.",
-      none: "Es gibt noch keine KI-Reviewer, daher sind keine Prüfungen möglich. Frag den Admin.",
+      none: "Es gibt noch keine KI-Reviewer; du kannst trotzdem manuell prüfen.",
+      manual: "Manuell",
+      manualDescription:
+        "Du kopierst den Prüf-Prompt in eine KI deiner Wahl und fügst ihre Antwort wieder ein. Zählt für kein Limit.",
       perMonth: "{{provider}} {{model}} · {{limit}} Prüfungen pro Monat",
     },
   },

@@ -92,7 +92,8 @@ def test_investor_chooses_a_reviewer_and_sees_its_usage(
     assert usage["unavailable_reason"] == "Choose an AI reviewer"
 
     assert ok(alice.put("/api/ai-reviewers/choice", json={"ai_reviewer_id": deep["id"]})) == {
-        "ai_reviewer_id": deep["id"]
+        "ai_reviewer_id": deep["id"],
+        "manual": False,
     }
     assert ok(alice.get("/api/auth/me"))["ai_reviewer_id"] == deep["id"]
     usage = ok(alice.get("/api/reviews/usage"))

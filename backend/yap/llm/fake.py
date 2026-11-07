@@ -11,11 +11,11 @@ SCORES = (7, 6, 8, 5, 7, 6.5)  # total 6.5
 
 # Plausible but generic texts, so that screenshots of the app look real (docs/features.md)
 REASONING = {
-    "T1": "The core claim is stated clearly and can be checked against later developments.",
-    "T2": "The main value drivers are named, but their expected size and timing stay vague.",
-    "T3": "Key risks are listed with their likely impact; currency risk is covered as well.",
-    "T4": "Break conditions exist, but two warning signals are not measurable as written.",
-    "T5": "The thesis explains why this asset was chosen over the obvious alternatives.",
+    "T1": "The belief is stated clearly, with a time horizon, and can be checked later.",
+    "T2": "The investor fit matches the assets; each one has a role and a rationale.",
+    "T3": "The main value drivers are named, but their expected size and timing stay vague.",
+    "T4": "Key risks are listed with their likely impact; currency risk is covered as well.",
+    "T5": "Break conditions exist, but two warning signals are not measurable as written.",
     "T6": "Recent news supports the thesis; no break condition is met at the moment.",
     "P1": "Every asset the thesis relies on has a position; nothing important is missing.",
     "P2": "Target weights follow the conviction the thesis describes for each asset.",
@@ -38,6 +38,7 @@ class FakeAdapter:
         codes = properties["aspects"]["items"]["properties"]["code"]["enum"]
         thesis = "verdict" in properties
         answer: dict[str, Any] = {
+            "prompt_id": properties["prompt_id"]["enum"][0],
             "aspects": [
                 {"code": code, "score": score, "reasoning": REASONING[code]}
                 for code, score in zip(codes, SCORES, strict=True)

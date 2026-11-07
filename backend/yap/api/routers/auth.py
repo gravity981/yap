@@ -22,6 +22,7 @@ class Me(BaseModel):
     is_investor: bool
     base_currency: str | None
     ai_reviewer_id: int | None  # USR-08
+    manual_review_default: bool  # USR-08: the default method is manual (REV-18)
     language: str | None  # USR-10: en | de; null = the browser's
     time_zone: str | None  # USR-11: IANA name; null = the browser's
     must_change_password: bool
@@ -35,6 +36,7 @@ class Me(BaseModel):
             is_investor=investor.is_investor,
             base_currency=investor.base_currency,
             ai_reviewer_id=investor.ai_reviewer_id,
+            manual_review_default=investor.manual_review_default,
             language=investor.language,
             time_zone=investor.time_zone,
             must_change_password=investor.must_change_password,

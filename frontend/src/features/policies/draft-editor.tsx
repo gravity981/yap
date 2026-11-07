@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/select";
 import { PriceSourceControl } from "@/features/prices/price-source";
+import type { ReviewBrief } from "@/features/reviews/api";
+import { ReviewPane } from "@/features/reviews/pane";
 import { useThesis } from "@/features/theses/api";
 import { statusLabel } from "@/features/theses/status";
 import { api, unwrap } from "@/api/client";
@@ -89,6 +91,7 @@ export function DraftEditorPage({ policyId }: { policyId: number }) {
       policyName={policy.data.name}
       thesisId={policy.data.thesis_id}
       version={version.data}
+      brief={draft?.review}
     />
   );
 }
@@ -98,11 +101,13 @@ function DraftForm({
   policyName,
   thesisId,
   version,
+  brief,
 }: {
   policyId: number;
   policyName: string;
   thesisId: number;
   version: Version;
+  brief: ReviewBrief | null | undefined;
 }) {
   const { t } = useTranslation();
   const { saveDraft } = usePolicyActions(policyId);
@@ -146,9 +151,8 @@ function DraftForm({
     }
   };
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const positions: PositionIn[] = rows.map((r) => {
+  const positions = (): PositionIn[] =>
+    rows.map((r) => {
       const asset = known.get(r.ticker.trim().toUpperCase());
       return {
         ticker: r.ticker,
@@ -161,11 +165,11 @@ function DraftForm({
         rationale_md: r.rationale_md,
       };
     });
-    saveDraft.mutate({ positions }, { onSuccess: back });
-  };
+  const submit = () => saveDraft.mutate({ positions: positions() }, { onSuccess: back });
 
+  // Not a <form>: the review pane below has forms of its own (REV-18)
   return (
-    <form className="grid gap-4" onSubmit={submit}>
+    <div className="grid gap-4">
       <div className="grid gap-1">
         <h1 className="text-2xl font-semibold">
           {t("policies.editor.title", { name: policyName, no: version.version_no })}
@@ -337,11 +341,21 @@ function DraftForm({
         <Button type="button" variant="outline" onClick={back}>
           {t("common.cancel")}
         </Button>
-        <Button type="submit" disabled={saveDraft.isPending}>
+        <Button type="button" onClick={submit} disabled={saveDraft.isPending}>
           {t("policies.editor.saveDraft")}
         </Button>
       </div>
-    </form>
+      {/* REV-01: a review saves the draft first, so it sees what is in the editor */}
+      <div className="grid gap-3 border-t pt-4">
+        <h2 className="text-lg font-semibold">{t("reviews.section.policy")}</h2>
+        <ReviewPane
+          kind="policy"
+          ownerId={policyId}
+          brief={brief}
+          save={() => saveDraft.mutateAsync({ positions: positions() })}
+        />
+      </div>
+    </div>
   );
 }
 

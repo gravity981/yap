@@ -136,10 +136,25 @@ export function ThesisPage({ thesisId }: { thesisId: number }) {
             <ReviewSection
               key={shownRevision.revision_no}
               kind="thesis"
-              ownerId={th.id}
               brief={shownRevision.review}
-              canStart={th.is_own && shownRevision.is_draft}
             />
+          )}
+          {/* REV-01: reviews are made in the draft editor */}
+          {shownRevision?.is_draft && th.is_own && (
+            <p className="text-sm text-muted-foreground">
+              <Trans
+                i18nKey="reviews.pane.inEditor"
+                components={{
+                  goto: (
+                    <Link
+                      to="/theses/$thesisId/edit"
+                      params={{ thesisId: String(th.id) }}
+                      className="underline"
+                    />
+                  ),
+                }}
+              />
+            </p>
           )}
         </TabsContent>
         <TabsContent value="history" className="grid gap-4">
@@ -150,6 +165,7 @@ export function ThesisPage({ thesisId }: { thesisId: number }) {
                 label: t("theses.detail.revisionTitle", { no: r.revision_no }),
                 date: r.activated_at ?? r.created_at,
                 score: r.review!.total!,
+                version: r.review!.scoring_version,
               }))}
           />
           <ol className="grid gap-3">

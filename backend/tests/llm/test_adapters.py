@@ -424,5 +424,6 @@ def test_fake_provider_answers_in_the_expected_format() -> None:
 
     fake = FakeAdapter(LlmConfig(Provider.ANTHROPIC, "m", KEY))
     for kind in ReviewKind:
-        request = LlmRequest("s", "p", _schema(kind), web_search=kind == ReviewKind.THESIS)
-        assert len(parse_answer(kind, fake.generate(request)).aspects) == 6
+        schema = _schema(kind, "ID-1")
+        request = LlmRequest("s", "p", schema, web_search=kind == ReviewKind.THESIS)
+        assert len(parse_answer(kind, fake.generate(request), "ID-1").aspects) == 6

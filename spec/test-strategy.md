@@ -37,20 +37,20 @@ Status: **agreed**.
 
 - **Manual tests:** each checklist item (section 9) lists the requirement IDs it verifies.
 - **Report:** a script reads all requirement IDs from the tables in `sw-architecture.md`, collects the IDs from pytest, Vitest and Playwright results and from the manual checklist, and produces a coverage table: requirement → tests → result. CI publishes it as a job summary.
-- **Failing rule:** CI fails if a requirement has no passing automated or manual test, unless it is listed in section 8 ("not yet implemented"). That list shrinks with each delivery stage and is empty at the first release.
+- **Failing rule:** CI fails if a requirement has no passing automated or manual test, unless it is listed in section 8 ("not yet implemented"). Requirements of a planned stage (spec/README.md) are on that list until the stage is delivered; it is empty at the first release.
 
 ## 4. Verification method per requirement group
 
 | Group | Method |
 |---|---|
 | USR (users, access) | Integration; USR-07 session timeouts with controlled time |
-| THS (theses) | Unit for revision and status rules, integration for API, Vitest for editor/preview/diff |
+| THS (theses) | Unit for revision and status rules, integration for API, Vitest for editor/preview/diff; catalog: integration for listing and visibility (shared, made private, other investors), copy origin, examples in both languages; Playwright for copy from the catalog |
 | POL (policies) | Unit for version resolution and validation, integration for activation and immutability |
 | PTF (portfolios) | Integration (assignment history, reassignment, archive rules) |
 | CMP (comparison) | Unit for allocation, deviation and band status; integration for snapshot ↔ policy version linkage |
 | RB (rebalancing) | Unit with reference cases (section 5), including the conversion into units (RB-24); integration for the fresh snapshot, confirmation with executed units and resulting snapshot; Vitest for display and rounding |
 | TL (timeline) | Integration: each event type is written in the same transaction as its source |
-| REV (reviews) | Unit for scoring (averaging, rounding to 0.5, `modified` flag, outdated check); integration with a mocked LLM (section 6) for both review kinds, modification and confirmation by activation; Vitest for star display (AI and investor side by side); integration for AI reviewers (choice, disabled and archived ones, limit per reviewer), key encryption (key never returned), and the monthly limit with controlled time; manual live review on staging |
+| REV (reviews) | Unit for scoring (averaging, rounding to 0.5, outdated check incl. prompt ID), prompt building (content per review kind, nothing else sent, NFR-01) and answer validation (valid, malformed JSON, missing aspect, score outside 0–10 or not in 0.5 steps, wrong prompt ID, code fence around the JSON); integration with a mocked LLM (section 6) for both review kinds and both methods, activation blocked without a current review, sharing blocked for not reviewed theses, reviewer stored with the review, migration of modified reviews; Vitest for the review pane (method choice, copy button only for manual, result filling in, outdated mark) and star display; Playwright for a manual thesis review from copy to activation; integration for AI reviewers (choice, disabled and archived ones, limit per reviewer), key encryption (key never returned), and the monthly limit with controlled time; manual live review on staging |
 | PRC (prices) | Unit for lookup selection, cache expiry, call counting and the order of the update (oldest first), schedule calculation across daylight saving changes, unit conversion with exchange rates; integration with a fake price provider (section 6) for lookup in policy drafts, import previews and snapshots, `unresolved` and "try auto", unavailable listings, provider disabled/archived, key encryption; Vitest for the price sources settings, candidate choice and stale-price marker; manual live update on staging |
 | IMP (import) | Unit for each schema and business rule (valid and invalid files, error paths); integration for all-or-nothing behaviour |
 | NFR-01 privacy | Integration: the requests sent to the mocked LLM and the fake price provider are inspected; no amounts, units, names or IDs |
@@ -89,7 +89,7 @@ Status: **agreed**.
 - Each test gets a fresh SQLite database (temporary file, all Alembic migrations applied). The dev and prod volumes are never used.
 - Test data is created with factory functions in code, not shared fixture files (except the reference cases and import examples).
 - Time is controlled with a fixed clock; tests run with `TZ` set to a non-UTC zone.
-- **Not yet implemented** (excluded from the failing rule in section 3; must be empty at the first release): none
+- **Not yet implemented** (excluded from the failing rule in section 3; must be empty at the first release): THS-02, THS-05, POL-06, REV-11, REV-20, THS-10, THS-11, THS-12, THS-13, THS-14, THS-15
 
 ## 9. Manual acceptance checklist (staging, per release candidate)
 
@@ -103,7 +103,7 @@ in the candidate's GitHub pre-release.
 | 3 | Use it on a phone: dashboard, enter units of a portfolio with 10 positions, rebalance | Usable without zooming; entering the snapshot takes under 2 minutes | NFR-06 |
 | 4 | Open the main pages and a rebalance | Each loads in under 1 s | NFR-07 |
 | 5 | `docker compose exec -T app python -m yap.cli backup /backups/check.db`, then `./deploy.sh staging <same tag> --restore check.db` | Backup file exists; after the restore the app runs with the same data | NFR-08 |
-| 6 | Per configured provider: set the AI reviewer's API key (staging has its own secret), choose it in the investor's settings, Test connection, run a thesis and a policy review on a draft | Connection ok; both reviews finish with six scored aspects, the thesis review with sources | REV-04, REV-05, REV-14 |
+| 6 | Per configured provider: set the AI reviewer's API key (staging has its own secret), choose it in the investor's settings, Test connection, run a thesis and a policy review on a draft. Once: copy a manual review prompt into an external AI, paste its answer | Connection ok; both reviews finish with six scored aspects, the thesis review with sources; the external AI's answer is accepted | REV-04, REV-05, REV-14, REV-18, REV-19 |
 | 7 | GitHub settings: branch protection on `main` requires the CI workflow; tag ruleset protects `v*` | Both active | NFR-13, spec 5.4 |
 | 8 | Per configured price provider and for the built-in exchange rate source: Test connection; look up a ticker; run `update-prices` | Connection ok; listings found; prices, exchange rates and update times shown in the price sources settings and on the admin page, the exchange rate source marked as built-in | PRC-01, PRC-02, PRC-07, PRC-10, PRC-11 |
 

@@ -163,12 +163,10 @@ describe("timeline", () => {
   });
 
   it("[TL-02] [REV-12] opens the result of a confirmed review", async () => {
-    const aspect = (n: number, score: number, ai = score) => ({
+    const aspect = (n: number, score: number) => ({
       code: `T${n}`,
       name: `Aspect ${n}`,
-      ai_score: ai,
       score,
-      modified: score !== ai,
       reasoning_md: "",
     });
     setup({
@@ -190,28 +188,28 @@ describe("timeline", () => {
           kind: "thesis",
           state: "done",
           aspects: [
-            aspect(1, 9, 7),
+            aspect(1, 7),
             aspect(2, 6),
             aspect(3, 8),
             aspect(4, 5),
             aspect(5, 7),
             aspect(6, 7),
           ],
-          ai_total: 6.5,
-          total: 7,
-          ai_verdict: "intact",
+          total: 6.5,
           verdict: "intact",
-          modified: true,
-          modification_note: "Too strict",
+          scoring_version: "2",
+          method: "manual",
+          model: "Gemini 3",
+          ai_reviewer_name: null,
+          legacy_modification: null,
           confirmed: true,
         }),
     });
     renderApp("/timeline");
     await userEvent.click(await screen.findByText(/Thesis review of 'Core' revision 2/));
-    expect(await screen.findByRole("img", { name: "Total, Yours: 7.0 of 10" })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Total, AI: 6.5 of 10" })).toBeInTheDocument();
-    expect(screen.getByText("(AI 7.0)")).toBeInTheDocument();
-    expect(screen.getByText("Changed because: Too strict")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Total score: 6.5 of 10" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Aspect 1: 7.0 of 10" })).toBeInTheDocument();
+    expect(screen.getByText("manual review with Gemini 3")).toBeInTheDocument(); // REV-17
     expect(await screen.findByRole("link", { name: "Core" })).toHaveAttribute("href", "/theses/7");
   });
 

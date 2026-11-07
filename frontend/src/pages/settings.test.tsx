@@ -26,9 +26,11 @@ const options = [
 
 function setup(me: object = investor, extra: Parameters<typeof mockApi>[0] = {}) {
   let chosen = (me as { ai_reviewer_id: number | null }).ai_reviewer_id;
+  let manual = false;
   const calls = mockApi({
     "GET /api/version": () => json({ version: "1.2.0", commit: "abc" }),
-    "GET /api/auth/me": () => json({ ...me, ai_reviewer_id: chosen }),
+    "GET /api/auth/me": () =>
+      json({ ...me, ai_reviewer_id: chosen, manual_review_default: manual }),
     "GET /api/ai-reviewers": () => json(options),
     "GET /api/reviews/usage": () => {
       const option = options.find((o) => o.id === chosen);
@@ -42,7 +44,7 @@ function setup(me: object = investor, extra: Parameters<typeof mockApi>[0] = {})
       });
     },
     "PUT /api/ai-reviewers/choice": (_, body) => {
-      chosen = (body as { ai_reviewer_id: number }).ai_reviewer_id;
+      ({ ai_reviewer_id: chosen, manual } = body as { ai_reviewer_id: number; manual: boolean });
       return json(body);
     },
     "GET /api/portfolios": () => json([]),
@@ -56,7 +58,7 @@ function setup(me: object = investor, extra: Parameters<typeof mockApi>[0] = {})
 describe("settings", () => {
   it("[USR-08] shows the enabled reviewers with the current choice and its usage", async () => {
     setup();
-    const form = await screen.findByRole("form", { name: "Default AI reviewer" });
+    const form = await screen.findByRole("form", { name: "Default review method" });
     expect(await within(form).findByRole("radio", { name: /^Deep/ })).toBeChecked();
     expect(within(form).getByRole("radio", { name: /^Quick/ })).not.toBeChecked();
     expect(within(form).getByText("Thorough, slower")).toBeInTheDocument();
@@ -68,16 +70,38 @@ describe("settings", () => {
 
   it("[USR-08] [REV-16] chooses another reviewer", async () => {
     const calls = setup();
-    const form = await screen.findByRole("form", { name: "Default AI reviewer" });
+    const form = await screen.findByRole("form", { name: "Default review method" });
     await userEvent.click(await within(form).findByRole("radio", { name: /^Quick/ }));
     await userEvent.click(within(form).getByRole("button", { name: "Save" }));
     expect(await within(form).findByText("Saved.")).toBeInTheDocument();
-    expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ ai_reviewer_id: 2 });
+    expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
+      ai_reviewer_id: 2,
+      manual: false,
+    });
     await waitFor(() =>
       expect(
         within(form).getByText("2 of 50 reviews with Quick used this month."),
       ).toBeInTheDocument(),
     );
+  });
+
+  it("[USR-08] [REV-18] chooses manual reviews as the default", async () => {
+    const calls = setup();
+    const form = await screen.findByRole("form", { name: "Default review method" });
+    const manual = within(form).getByRole("radio", { name: /^Manual/ });
+    expect(manual).not.toBeChecked();
+    expect(
+      within(form).getByText(/paste its answer back. Counts towards no limit/),
+    ).toBeInTheDocument();
+    await userEvent.click(manual);
+    await userEvent.click(within(form).getByRole("button", { name: "Save" }));
+    expect(await within(form).findByText("Saved.")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
+      ai_reviewer_id: null,
+      manual: true,
+    });
+    await waitFor(() => expect(within(form).getByRole("radio", { name: /^Manual/ })).toBeChecked());
+    expect(within(form).getByRole("button", { name: "Save" })).toBeDisabled();
   });
 
   it("[USR-08] asks to choose again when the reviewer is gone", async () => {
@@ -88,7 +112,7 @@ describe("settings", () => {
   it("[USR-10] [USR-05] gives admin-only accounts the language but no AI reviewer", async () => {
     setup(admin);
     expect(await screen.findByLabelText("Language")).toBeInTheDocument();
-    expect(screen.queryByRole("form", { name: "Default AI reviewer" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Default review method" })).not.toBeInTheDocument();
   });
 
   it("[USR-10] switches the language of the account", async () => {

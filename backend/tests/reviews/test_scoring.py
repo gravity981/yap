@@ -2,7 +2,10 @@ import pytest
 
 from yap.domain.reviews import (
     POLICY_ASPECTS,
+    SCORING_VERSION,
     THESIS_ASPECTS,
+    ReviewKind,
+    aspects_of,
     score,
     to_half_points,
     total_half_points,
@@ -45,3 +48,22 @@ def test_total_is_the_rounded_average_of_equally_weighted_aspects(
 def test_six_aspects_per_review_kind() -> None:
     assert [a.code for a in THESIS_ASPECTS] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert [a.code for a in POLICY_ASPECTS] == ["P1", "P2", "P3", "P4", "P5", "P6"]
+
+
+@pytest.mark.req("REV-06", "THS-07")
+def test_thesis_aspects_follow_the_template_and_old_versions_keep_their_names() -> None:
+    assert SCORING_VERSION == "2"
+    assert [a.name for a in THESIS_ASPECTS] == [
+        "Belief",
+        "Fit and implementation",
+        "Opportunity",
+        "Downside",
+        "Invalidation, warnings and monitoring",
+        "Current evidence",
+    ]
+    assert aspects_of(ReviewKind.THESIS, SCORING_VERSION) == THESIS_ASPECTS
+    old = aspects_of(ReviewKind.THESIS, "1")
+    assert [a.name for a in old][:2] == ["Core claim", "Value drivers"]
+    # The policy aspects did not change
+    assert aspects_of(ReviewKind.POLICY, "1") == POLICY_ASPECTS
+    assert aspects_of(ReviewKind.THESIS, "unknown") == THESIS_ASPECTS

@@ -7,10 +7,13 @@ import { MarkdownEditor } from "@/components/lazy-markdown-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/select";
+import { ReviewPane } from "@/features/reviews/pane";
+
+import type { ReviewBrief } from "@/features/reviews/api";
 
 import { useCreateThesis, useRevision, useThesis, useThesisDraft } from "./api";
 import { statusLabel, THESIS_STATUSES } from "./status";
-import { THESIS_TEMPLATE } from "./template";
+import { thesisTemplate } from "./template";
 
 const FIELDS = ["title", "content_md", "status", "change_note", "visibility"];
 
@@ -20,7 +23,7 @@ export function NewThesisPage() {
   const create = useCreateThesis();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState(THESIS_TEMPLATE);
+  const [content, setContent] = useState(thesisTemplate);
   const [visibility, setVisibility] = useState("private");
 
   const submit = (event: FormEvent) => {
@@ -88,14 +91,16 @@ export function EditThesisPage({ thesisId }: { thesisId: number }) {
     );
   }
   if (!revision.data) return <p className="text-muted-foreground">{t("common.loading")}</p>;
-  return <DraftForm thesisId={thesisId} initial={revision.data} />;
+  return <DraftForm thesisId={thesisId} initial={revision.data} brief={draft?.review} />;
 }
 
 function DraftForm({
   thesisId,
   initial,
+  brief,
 }: {
   thesisId: number;
+  brief: ReviewBrief | null | undefined;
   initial: {
     title: string;
     content_md: string;
@@ -113,16 +118,12 @@ function DraftForm({
   const [note, setNote] = useState(initial.change_note ?? "");
   const back = () => navigate({ to: "/theses/$thesisId", params: { thesisId: String(thesisId) } });
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    save.mutate(
-      { title, content_md: content, status, change_note: note.trim() || null },
-      { onSuccess: back },
-    );
-  };
+  const body = () => ({ title, content_md: content, status, change_note: note.trim() || null });
+  const submit = () => save.mutate(body(), { onSuccess: back });
 
+  // Not a <form>: the review pane in the editor has forms of its own (REV-18)
   return (
-    <form className="grid gap-4" onSubmit={submit}>
+    <div className="grid gap-4">
       <h1 className="text-2xl font-semibold">
         {t("theses.editor.editTitle", { no: initial.revision_no })}
       </h1>
@@ -150,7 +151,22 @@ function DraftForm({
       {status !== "intact" && status !== initial.status && (
         <p className="text-sm text-muted-foreground">{t("theses.editor.statusHint")}</p>
       )}
-      <MarkdownEditor value={content} onChange={setContent} />
+      <MarkdownEditor
+        value={content}
+        onChange={setContent}
+        aside={{
+          label: t("reviews.pane.tab"),
+          // REV-01: a review saves the draft first, so it sees what is in the editor
+          content: (
+            <ReviewPane
+              kind="thesis"
+              ownerId={thesisId}
+              brief={brief}
+              save={() => save.mutateAsync(body())}
+            />
+          ),
+        }}
+      />
       {initial.revision_no > 1 && (
         <Field
           id="change-note"
@@ -170,10 +186,10 @@ function DraftForm({
         <Button type="button" variant="outline" onClick={back}>
           {t("common.cancel")}
         </Button>
-        <Button type="submit" disabled={save.isPending}>
+        <Button type="button" onClick={submit} disabled={save.isPending}>
           {t("theses.editor.saveDraft")}
         </Button>
       </div>
-    </form>
+    </div>
   );
 }

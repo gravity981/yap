@@ -1,4 +1,4 @@
-"""Thesis and policy reviews (REV-01 to REV-17)."""
+"""Thesis and policy reviews (REV-01 to REV-19)."""
 
 from datetime import datetime
 
@@ -17,9 +17,7 @@ router = APIRouter(tags=["reviews"])
 class AspectOut(BaseModel):
     code: str
     name: str
-    ai_score: float
-    score: float  # the investor's value if changed, otherwise the AI's (REV-10)
-    modified: bool
+    score: float
     reasoning_md: str
 
 
@@ -34,6 +32,14 @@ class SuggestionOut(BaseModel):
     content_md: str
 
 
+class LegacyModificationOut(BaseModel):
+    """Investor changes of a review from before REV-10 was dropped; read-only."""
+
+    note: str | None
+    verdict: str | None
+    scores: dict[str, float]
+
+
 class ReviewOut(BaseModel):
     id: int
     kind: str
@@ -41,21 +47,20 @@ class ReviewOut(BaseModel):
     error: str | None
     thesis_revision_id: int | None
     policy_version_id: int | None
-    ai_reviewer_name: str | None  # REV-17; null for reviews from before AI reviewers
-    provider: str
-    model: str
+    method: str  # ai | manual (REV-18)
+    ai_reviewer_name: str | None  # REV-17; null for manual reviews and those before reviewers
+    provider: str  # "manual" for a manual review
+    model: str  # for a manual review: the model the investor named (REV-17)
+    prompt_id: str | None  # REV-19; null for reviews before it
     scoring_version: str  # REV-06
     news_from: datetime | None
     news_to: datetime | None
     started_at: datetime
     completed_at: datetime | None
     aspects: list[AspectOut]
-    ai_total: float | None
     total: float | None
-    ai_verdict: str | None
-    verdict: str | None  # the investor's value if changed, otherwise the AI's
-    modified: bool
-    modification_note: str | None
+    verdict: str | None  # thesis reviews only
+    legacy_modification: LegacyModificationOut | None
     outdated: bool  # REV-09: the draft changed after the review was started
     confirmed: bool  # REV-11: the draft was activated
     sources: list[SourceOut]
@@ -63,8 +68,9 @@ class ReviewOut(BaseModel):
 
 
 def _out(session: DbSession, review: Review) -> ReviewOut:
-    names = reviews.aspect_names(review.kind)
-    total = reviews.totals(review)
+    names = reviews.aspect_names(review.kind, review.scoring_version)
+    total = reviews.total(review)
+    legacy = reviews.legacy_modification(review)
     return ReviewOut(
         id=review.id,
         kind=review.kind,
@@ -72,7 +78,9 @@ def _out(session: DbSession, review: Review) -> ReviewOut:
         error=review.error,
         thesis_revision_id=review.thesis_revision_id,
         policy_version_id=review.policy_version_id,
+        method=review.method,
         ai_reviewer_name=review.ai_reviewer_name,
+        prompt_id=review.prompt_id,
         provider=review.provider,
         model=review.model,
         scoring_version=review.scoring_version,
@@ -84,19 +92,18 @@ def _out(session: DbSession, review: Review) -> ReviewOut:
             AspectOut(
                 code=a.aspect,
                 name=names[a.aspect],
-                ai_score=a.ai_half_points / 2,
-                score=(a.half_points if a.half_points is not None else a.ai_half_points) / 2,
-                modified=a.half_points is not None,
+                score=a.half_points / 2,
                 reasoning_md=a.reasoning_md,
             )
             for a in review.aspects
         ],
-        ai_total=total.ai / 2 if total else None,
-        total=total.effective / 2 if total else None,
-        ai_verdict=review.ai_verdict,
-        verdict=reviews.effective_verdict(review),
-        modified=review.modified,
-        modification_note=review.modification_note,
+        total=total / 2 if total is not None else None,
+        verdict=review.verdict,
+        legacy_modification=(
+            LegacyModificationOut(note=legacy.note, verdict=legacy.verdict, scores=legacy.scores)
+            if legacy
+            else None
+        ),
         outdated=reviews.is_outdated(session, review),
         confirmed=reviews.is_confirmed(session, review),
         sources=[
@@ -130,14 +137,6 @@ class StartThesisReview(BaseModel):
 
 class StartPolicyReview(BaseModel):
     ai_reviewer_id: int | None = None  # USR-08: null = the investor's default
-
-
-class ReviewChange(BaseModel):
-    """REV-10: scores per aspect code (null = the AI's) and the verdict (null = the AI's)."""
-
-    scores: dict[str, float | None]
-    verdict: str | None = None
-    note: str | None = None
 
 
 def _schedule(
@@ -217,19 +216,67 @@ def start_policy_review(
     return _out(session, review)
 
 
+class ManualAnswer(BaseModel):
+    """REV-18: the answer of an AI outside the app, and which model wrote it (REV-17)."""
+
+    answer: str
+    model: str
+
+
+class ReviewPromptOut(BaseModel):
+    """REV-19: the review prompt to copy into an AI outside the app."""
+
+    prompt_id: str
+    text: str
+
+
+@router.get("/theses/{thesis_id}/draft/review-prompt")
+def get_thesis_review_prompt(
+    thesis_id: int,
+    session: DbSession,
+    clock: AppClock,
+    user: CurrentUser,
+    news_days: int = reviews.NEWS_DAYS_DEFAULT,
+) -> ReviewPromptOut:
+    """REV-19: the prompt of the thesis draft as it is saved now; changes nothing."""
+    prompt = reviews.thesis_review_prompt(session, user, clock, thesis_id, news_days)
+    return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
+
+
+@router.get("/policies/{policy_id}/draft/review-prompt")
+def get_policy_review_prompt(
+    policy_id: int, session: DbSession, clock: AppClock, user: CurrentUser
+) -> ReviewPromptOut:
+    """REV-19: the prompt of the policy draft as it is saved now; changes nothing."""
+    prompt = reviews.policy_review_prompt(session, user, clock, policy_id)
+    return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
+
+
+@router.post("/theses/{thesis_id}/draft/review/manual", status_code=201)
+def submit_manual_thesis_review(
+    thesis_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
+) -> ReviewOut:
+    """REV-18: stores the pasted answer as the review of the thesis draft."""
+    review = reviews.submit_manual_thesis_review(
+        session, user, clock, thesis_id, body.answer, body.model
+    )
+    return _out(session, review)
+
+
+@router.post("/policies/{policy_id}/draft/review/manual", status_code=201)
+def submit_manual_policy_review(
+    policy_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
+) -> ReviewOut:
+    """REV-18: stores the pasted answer as the review of the policy draft."""
+    review = reviews.submit_manual_policy_review(
+        session, user, clock, policy_id, body.answer, body.model
+    )
+    return _out(session, review)
+
+
 @router.get("/reviews/{review_id}")
 def get_review(review_id: int, session: DbSession, user: CurrentUser) -> ReviewOut:
     return _out(session, reviews.get_review(session, user, review_id))
-
-
-@router.put("/reviews/{review_id}")
-def modify_review(
-    review_id: int, body: ReviewChange, session: DbSession, user: CurrentUser
-) -> ReviewOut:
-    review = reviews.modify_review(
-        session, user, review_id, scores=body.scores, verdict=body.verdict, note=body.note
-    )
-    return _out(session, review)
 
 
 def _found(review: Review | None, missing: Message) -> Review:

@@ -1,10 +1,11 @@
 """Thesis and policy reviews of drafts (REV-01 to REV-17).
 
-A review is started on a draft, runs in the background (REV-08), can be modified by
-the investor while the draft is open (REV-10) and is confirmed by activating the draft
-(REV-11). Every started run counts towards the monthly limit of its AI reviewer (REV-16).
+A review is started on a draft, runs in the background (REV-08) and is confirmed by
+activating the draft (REV-11). Every started run counts towards the monthly limit of its
+AI reviewer (REV-16).
 """
 
+import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -28,11 +29,9 @@ from yap.db.models import (
     ThesisRevision,
 )
 from yap.domain.reviews import (
-    ASPECTS,
     SCORING_VERSION,
     ReviewKind,
-    Verdict,
-    to_half_points,
+    aspects_of,
     total_half_points,
 )
 from yap.llm import LlmError
@@ -196,8 +195,8 @@ def _start(
         state="queued",
         news_from=now - timedelta(days=news_days) if news_days else None,
         news_to=now if news_days else None,
-        modified=False,
         scoring_version=SCORING_VERSION,
+        method="ai",
         ai_reviewer_id=reviewer.id,
         ai_reviewer_name=reviewer.name,
         provider=reviewer.provider,
@@ -207,6 +206,13 @@ def _start(
     session.add(review)
     session.flush()
     return review
+
+
+def _check_news_days(news_days: int) -> None:
+    if not 1 <= news_days <= NEWS_DAYS_MAX:
+        raise ValidationError.single(
+            msg("review_news_days_invalid", max=NEWS_DAYS_MAX), "news_days"
+        )
 
 
 def start_thesis_review(
@@ -220,10 +226,7 @@ def start_thesis_review(
 ) -> Review:
     """REV-01, REV-04: a review of the thesis draft, with news of the last `news_days`,
     by the given AI reviewer or the investor's default (USR-08)."""
-    if not 1 <= news_days <= NEWS_DAYS_MAX:
-        raise ValidationError.single(
-            msg("review_news_days_invalid", max=NEWS_DAYS_MAX), "news_days"
-        )
+    _check_news_days(news_days)
     draft = _thesis_draft(session, actor, thesis_id)
     return _start(session, actor, clock, keys, ReviewKind.THESIS, draft, news_days, reviewer_id)
 
@@ -239,6 +242,119 @@ def start_policy_review(
     """REV-01, REV-05: a review of the policy draft against its pinned thesis revision."""
     draft = _policy_draft(session, actor, policy_id)
     return _start(session, actor, clock, keys, ReviewKind.POLICY, draft, None, reviewer_id)
+
+
+# --- Prompt for a manual review (REV-19) -----------------------------------------------
+
+
+def thesis_review_prompt(
+    session: Session,
+    actor: Investor,
+    clock: Clock,
+    thesis_id: int,
+    news_days: int = NEWS_DAYS_DEFAULT,
+) -> review_prompts.ReviewPrompt:
+    """The review prompt of the thesis draft as it is saved now, the same an AI reviewer
+    would receive. Making it changes nothing; it counts towards no limit (REV-16)."""
+    _check_news_days(news_days)
+    draft = _thesis_draft(session, actor, thesis_id)
+    ref = review_prompts.PromptRef(ReviewKind.THESIS, draft.id, clock.now(), news_days)
+    return _prompt(session, ref)
+
+
+def policy_review_prompt(
+    session: Session, actor: Investor, clock: Clock, policy_id: int
+) -> review_prompts.ReviewPrompt:
+    """The review prompt of the policy draft as it is saved now (REV-05, REV-19)."""
+    draft = _policy_draft(session, actor, policy_id)
+    ref = review_prompts.PromptRef(ReviewKind.POLICY, draft.id, clock.now(), 0)
+    return _prompt(session, ref)
+
+
+# --- Manual review (REV-18) ------------------------------------------------------------
+
+MODEL_MAX = 100
+
+
+def _submit_manual(
+    session: Session,
+    actor: Investor,
+    clock: Clock,
+    kind: ReviewKind,
+    draft: ThesisRevision | PolicyVersion,
+    answer: str,
+    model: str,
+) -> Review:
+    """Stores the answer of an AI outside the app as the review of the draft. It is made
+    when its prompt was copied, so a later change of the draft makes it outdated (REV-09).
+    Every problem of the answer is reported at once."""
+    problems: list[tuple[str, Message]] = []
+    model = " ".join(model.split())
+    if not model:
+        problems.append(("model", msg("review_model_required")))
+    elif len(model) > MODEL_MAX:
+        problems.append(("model", msg("review_model_too_long", max=MODEL_MAX)))
+    prompt_id = review_prompts.answer_prompt_id(answer)
+    ref = review_prompts.parse_prompt_id(prompt_id) if prompt_id else None
+    parsed = None
+    if ref is None:
+        _, format_problems = review_prompts.check_answer(kind, answer, "")
+        id_problem = msg("answer_prompt_id_unknown")
+        answer_problems = [
+            id_problem,
+            *(p for p in format_problems if p.code != "answer_prompt_id_wrong"),
+        ]
+        problems.extend(("answer", p) for p in answer_problems)
+    elif ref.kind != kind or ref.draft_id != draft.id:
+        problems.append(("answer", msg("answer_prompt_id_other_draft")))
+    else:
+        parsed, answer_problems = review_prompts.check_answer(kind, answer, ref.prompt_id)
+        problems.extend(("answer", p) for p in answer_problems)
+    if problems:
+        raise ValidationError(problems)
+    assert ref is not None and parsed is not None
+    previous = draft_review(session, draft)
+    if previous is not None:
+        if previous.state in UNFINISHED:
+            raise ConflictError(msg("review_running"))
+        session.delete(previous)  # replaces the previous review (REV-09)
+        session.flush()
+    review = Review(
+        kind=kind.value,
+        thesis_revision_id=draft.id if isinstance(draft, ThesisRevision) else None,
+        policy_version_id=draft.id if isinstance(draft, PolicyVersion) else None,
+        started_by=actor.id,
+        state="done",
+        news_from=ref.issued_at - timedelta(days=ref.news_days) if ref.news_days else None,
+        news_to=ref.issued_at if ref.news_days else None,
+        scoring_version=SCORING_VERSION,
+        method="manual",
+        prompt_id=ref.prompt_id,
+        provider="manual",
+        model=model,
+        started_at=ref.issued_at,
+        completed_at=clock.now(),
+    )
+    _store(review, parsed)
+    session.add(review)
+    session.flush()
+    return review
+
+
+def submit_manual_thesis_review(
+    session: Session, actor: Investor, clock: Clock, thesis_id: int, answer: str, model: str
+) -> Review:
+    """REV-18: a manual review of the thesis draft; counts towards no limit (REV-16)."""
+    draft = _thesis_draft(session, actor, thesis_id)
+    return _submit_manual(session, actor, clock, ReviewKind.THESIS, draft, answer, model)
+
+
+def submit_manual_policy_review(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, answer: str, model: str
+) -> Review:
+    """REV-18: a manual review of the policy draft; counts towards no limit (REV-16)."""
+    draft = _policy_draft(session, actor, policy_id)
+    return _submit_manual(session, actor, clock, ReviewKind.POLICY, draft, answer, model)
 
 
 # --- Run (background job, REV-08) ------------------------------------------------------
@@ -267,7 +383,7 @@ def run_review(
             if reason is not None:
                 raise ConflictError(reason)
             config = llm_config(reviewer, keys)
-            request = _request(session, review)
+            request, prompt_id = _request(session, review)
         except ConflictError as e:
             _fail(review, clock, str(e))
             session.commit()
@@ -276,7 +392,7 @@ def run_review(
 
     try:
         answer = adapters(config).generate(request)
-        parsed = review_prompts.parse_answer(ReviewKind(review.kind), answer)
+        parsed = review_prompts.parse_answer(ReviewKind(review.kind), answer, prompt_id)
         error = None
     except LlmError as e:
         error = str(e)
@@ -298,16 +414,35 @@ def run_review(
         session.commit()
 
 
-def _request(session: Session, review: Review) -> LlmRequest:
+def _prompt_ref(review: Review) -> review_prompts.PromptRef:
+    """The prompt of an AI review is made when the review starts."""
     if review.kind == ReviewKind.THESIS:
-        revision = session.get(ThesisRevision, review.thesis_revision_id)
-        assert revision is not None and review.news_from and review.news_to
-        return review_prompts.thesis_request(
-            revision, review.news_from.date(), review.news_to.date()
+        assert review.thesis_revision_id and review.news_from and review.news_to
+        return review_prompts.PromptRef(
+            ReviewKind.THESIS,
+            review.thesis_revision_id,
+            review.started_at,
+            (review.news_to - review.news_from).days,
         )
-    version = session.get(PolicyVersion, review.policy_version_id)
+    assert review.policy_version_id
+    return review_prompts.PromptRef(
+        ReviewKind.POLICY, review.policy_version_id, review.started_at, 0
+    )
+
+
+def _prompt(session: Session, ref: review_prompts.PromptRef) -> review_prompts.ReviewPrompt:
+    if ref.kind == ReviewKind.THESIS:
+        revision = session.get(ThesisRevision, ref.draft_id)
+        assert revision is not None
+        return review_prompts.thesis_prompt(revision, ref)
+    version = session.get(PolicyVersion, ref.draft_id)
     assert version is not None
-    return review_prompts.policy_request(version)
+    return review_prompts.policy_prompt(version, ref)
+
+
+def _request(session: Session, review: Review) -> tuple[LlmRequest, str]:
+    prompt = _prompt(session, _prompt_ref(review))
+    return prompt.llm_request(), prompt.prompt_id
 
 
 def _fail(review: Review, clock: Clock, error: str) -> None:
@@ -317,9 +452,9 @@ def _fail(review: Review, clock: Clock, error: str) -> None:
 
 
 def _store(review: Review, parsed: review_prompts.ParsedReview) -> None:
-    review.ai_verdict = parsed.verdict.value if parsed.verdict else None
+    review.verdict = parsed.verdict.value if parsed.verdict else None
     review.aspects = [
-        ReviewAspect(aspect=a.code, ai_half_points=a.half_points, reasoning_md=a.reasoning)
+        ReviewAspect(aspect=a.code, half_points=a.half_points, reasoning_md=a.reasoning)
         for a in parsed.aspects
     ]
     review.sources = [
@@ -349,7 +484,7 @@ def fail_interrupted(session: Session, clock: Clock) -> int:
     return len(unfinished)
 
 
-# --- Read, modify ----------------------------------------------------------------------
+# --- Read ----------------------------------------------------------------------
 
 
 def draft_of(session: Session, review: Review) -> ThesisRevision | PolicyVersion:
@@ -396,86 +531,35 @@ def get_review(session: Session, actor: Investor, review_id: int) -> Review:
     raise NotFoundError(msg("review_not_found", id=review_id))
 
 
-def modify_review(
-    session: Session,
-    actor: Investor,
-    review_id: int,
-    *,
-    scores: dict[str, float | None],
-    verdict: str | None,
-    note: str | None,
-) -> Review:
-    """REV-10: the investor's scores and verdict next to the AI's; `None` means the
-    AI's value. The review counts as modified only if a value differs from the AI's."""
-    review = get_review(session, actor, review_id)
-    if review.started_by != actor.id or is_confirmed(session, review):
-        raise ConflictError(msg("review_not_changeable"))
-    if review.state != "done":
-        raise ConflictError(msg("review_not_finished"))
-    problems: list[tuple[str, Message]] = []
-    aspects = {a.aspect: a for a in review.aspects}
-    values: dict[str, int | None] = {}
-    for code, value in scores.items():
-        if code not in aspects:
-            problems.append((f"scores.{code}", msg("review_unknown_aspect", aspect=code)))
-        elif value is not None:
-            try:
-                values[code] = to_half_points(value)
-            except ValueError:
-                problems.append((f"scores.{code}", msg("score_invalid", score=value)))
-        else:
-            values[code] = None
-    parsed_verdict: str | None = None
-    if verdict is not None:
-        if review.kind != ReviewKind.THESIS:
-            problems.append(("verdict", msg("review_no_verdict")))
-        elif verdict not in {v.value for v in Verdict}:
-            problems.append(("verdict", msg("review_unknown_verdict", verdict=verdict)))
-        else:
-            parsed_verdict = verdict
-    if problems:
-        raise ValidationError(problems)
-    for code, half in values.items():
-        aspect = aspects[code]
-        aspect.half_points = half if half != aspect.ai_half_points else None
-    review.verdict = parsed_verdict if parsed_verdict != review.ai_verdict else None
-    review.modified = review.verdict is not None or any(
-        a.half_points is not None for a in review.aspects
-    )
-    note = (note or "").strip() or None
-    if review.modified and note is None:
-        raise ValidationError.single(msg("review_note_required"), "note")
-    review.modification_note = note if review.modified else None
-    session.flush()
-    return review
+def total(review: Review) -> int | None:
+    """The total score in half points (REV-02), None without aspects."""
+    if not review.aspects:
+        return None
+    return total_half_points([a.half_points for a in review.aspects])
 
 
 @dataclass(frozen=True)
-class Totals:
-    ai: int  # half points
-    effective: int
+class LegacyModification:
+    """Investor changes of a review from before REV-10 was dropped; shown read-only."""
+
+    note: str | None
+    verdict: str | None
+    scores: dict[str, float]
 
 
-def totals(review: Review) -> Totals | None:
-    if not review.aspects:
+def legacy_modification(review: Review) -> LegacyModification | None:
+    if review.legacy_modification is None:
         return None
-    return Totals(
-        total_half_points([a.ai_half_points for a in review.aspects]),
-        total_half_points(
-            [
-                a.half_points if a.half_points is not None else a.ai_half_points
-                for a in review.aspects
-            ]
-        ),
+    data = json.loads(review.legacy_modification)
+    return LegacyModification(
+        note=data.get("note"),
+        verdict=data.get("verdict"),
+        scores={code: float(score) for code, score in (data.get("scores") or {}).items()},
     )
 
 
-def effective_verdict(review: Review) -> str | None:
-    return review.verdict or review.ai_verdict
-
-
-def aspect_names(kind: str) -> dict[str, str]:
-    return {a.code: a.name for a in ASPECTS[ReviewKind(kind)]}
+def aspect_names(kind: str, scoring_version: str) -> dict[str, str]:
+    return {a.code: a.name for a in aspects_of(ReviewKind(kind), scoring_version)}
 
 
 # --- Draft lifecycle (REV-11) ----------------------------------------------------------
@@ -543,23 +627,19 @@ def confirm_with_draft(
 
 def _summary_params(review: Review) -> dict[str, Any]:
     """The values of _summary for the timeline in the UI's language (TL-02, NFR-10)."""
-    total = totals(review)
+    half_points = total(review)
     return {
-        "verdict": effective_verdict(review),
-        "total": total.effective / 2 if total else None,
-        "modified": review.modified,
+        "verdict": review.verdict,
+        "total": half_points / 2 if half_points is not None else None,
     }
 
 
 def _summary(review: Review) -> str:
-    """TL-02, e.g. 'needs adaptation, 6.5 / 10, modified'."""
+    """TL-02, e.g. 'needs adaptation, 6.5 / 10'."""
     parts = []
-    verdict = effective_verdict(review)
-    if verdict:
-        parts.append(verdict.replace("_", " "))
-    total = totals(review)
-    if total:
-        parts.append(f"{total.effective / 2:g} / 10")
-    if review.modified:
-        parts.append("modified")
+    if review.verdict:
+        parts.append(review.verdict.replace("_", " "))
+    half_points = total(review)
+    if half_points is not None:
+        parts.append(f"{half_points / 2:g} / 10")
     return ", ".join(parts)

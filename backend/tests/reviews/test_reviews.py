@@ -1,4 +1,4 @@
-"""Review lifecycle: start, run, limit, modify, confirm (REV-01 to REV-17)."""
+"""Review lifecycle: start, run, limit, confirm (REV-01 to REV-17)."""
 
 from collections.abc import Callable
 
@@ -11,6 +11,7 @@ from tests.fixtures import TEST_SECRET, Factory, FakeLlm
 from tests.reviews.answers import policy_answer, thesis_answer
 from yap.db.engine import make_engine, make_session_factory
 from yap.db.models import AiReviewer, Investor, Review
+from yap.domain.reviews import SCORING_VERSION
 from yap.messages import msg
 from yap.services import ai_reviewers, policies, reviews, theses
 from yap.services.common import ConflictError, NotFoundError, ValidationError
@@ -84,16 +85,16 @@ def test_thesis_review_of_a_draft_runs_and_is_stored(
     assert (review.news_to - review.news_from).days == 30  # type: ignore[operator]
     run(review)
     assert review.state == "done" and review.completed_at is not None
-    assert [a.ai_half_points for a in review.aspects] == [14, 12, 16, 10, 14, 13]
-    assert review.ai_verdict == "needs_adaptation"
-    assert reviews.totals(review) == reviews.Totals(13, 13)
+    assert [a.half_points for a in review.aspects] == [14, 12, 16, 10, 14, 13]
+    assert review.verdict == "needs_adaptation"
+    assert reviews.total(review) == 13
     # The undated source keeps its link; its unreadable date is dropped
     assert [(s.title, s.published_on) for s in review.sources] == [
         ("ETF inflows rise", "2026-01-10"),
         ("Undated", None),
     ]
     assert review.suggestions[0].content_md == "Add a time horizon."
-    assert review.scoring_version == "1"
+    assert review.scoring_version == SCORING_VERSION == "2"
     # The verdict is a suggestion only; the thesis status stays as the investor set it
     draft = reviews.draft_of(session, review)
     assert draft.status == "intact"  # type: ignore[union-attr]
@@ -112,7 +113,7 @@ def test_policy_review_of_a_draft_runs_without_web_search(
     fake.answers = [policy_answer()]
     review = run(_start_policy(session, factory, owner, policy.id))
     assert review.state == "done" and review.news_from is None
-    assert reviews.totals(review) == reviews.Totals(15, 15)
+    assert reviews.total(review) == 15
     assert fake.requests[0].web_search is False
 
 
@@ -140,7 +141,7 @@ def test_only_drafts_of_own_theses_and_policies_are_reviewed(
     ("error", "answer", "message"),
     [
         ("OpenAI did not answer in time", None, "OpenAI did not answer in time"),
-        (None, "not json", "expected format"),
+        (None, "not json", "no JSON object"),
     ],
 )
 def test_a_failed_run_keeps_its_reason(
@@ -312,11 +313,10 @@ def test_a_new_run_replaces_the_previous_review_of_the_draft(
     with pytest.raises(ConflictError, match="still running"):
         _start(session, factory, owner, thesis_id)
     run(first)
-    reviews.modify_review(session, owner, first.id, scores={"T1": 3}, verdict=None, note="x")
     fake.answers = [thesis_answer(verdict="intact")]
     second = run(_start(session, factory, owner, thesis_id))
     assert session.scalars(select(Review)).all() == [second]
-    assert second.ai_verdict == "intact" and second.modified is False
+    assert second.verdict == "intact"
 
 
 @pytest.mark.req("REV-09")
@@ -345,39 +345,6 @@ def test_a_review_is_outdated_when_the_draft_changes(
     assert reviews.is_outdated(session, policy_review) is True
 
 
-@pytest.mark.req("REV-10")
-def test_the_investor_modifies_scores_and_verdict(
-    session: Session, factory: Factory, run: Run
-) -> None:
-    _configure(session, factory)
-    owner = factory.investor()
-    review = run(_start(session, factory, owner, _thesis_with_draft(factory, owner)))
-    # Setting the AI's own values is no modification
-    reviews.modify_review(
-        session, owner, review.id, scores={"T1": 7}, verdict="needs_adaptation", note=None
-    )
-    assert review.modified is False
-    with pytest.raises(ValidationError, match="Say why"):
-        reviews.modify_review(session, owner, review.id, scores={"T1": 9}, verdict=None, note="")
-    reviews.modify_review(
-        session, owner, review.id, scores={"T1": 9, "T4": 6.5}, verdict="intact", note="Too strict"
-    )
-    assert review.modified is True and review.modification_note == "Too strict"
-    aspects = {a.aspect: a for a in review.aspects}
-    assert (aspects["T1"].ai_half_points, aspects["T1"].half_points) == (14, 18)
-    assert (review.ai_verdict, reviews.effective_verdict(review)) == ("needs_adaptation", "intact")
-    assert reviews.totals(review) == reviews.Totals(ai=13, effective=14)  # 6.5 -> 7
-    with pytest.raises(ValidationError):
-        reviews.modify_review(session, owner, review.id, scores={"T9": 1}, verdict=None, note="x")
-    with pytest.raises(ValidationError):
-        reviews.modify_review(session, owner, review.id, scores={"T1": 9.3}, verdict=None, note="x")
-    # Back to the AI's values: no longer modified
-    reviews.modify_review(
-        session, owner, review.id, scores={"T1": None, "T4": None}, verdict=None, note=None
-    )
-    assert review.modified is False and review.modification_note is None
-
-
 @pytest.mark.req("REV-11", "REV-12", "TL-01", "TL-02", "NFR-05")
 def test_activating_the_draft_confirms_the_review(
     session: Session, factory: Factory, run: Run
@@ -390,24 +357,18 @@ def test_activating_the_draft_confirms_the_review(
     with pytest.raises(NotFoundError):
         reviews.get_review(session, reader, review.id)
     assert EventType.THESIS_REVIEW_CONFIRMED not in [e.type for e in list_events(session, owner)]
-    reviews.modify_review(session, owner, review.id, scores={"T1": 9}, verdict=None, note="x")
     theses.activate_draft(session, owner, factory.clock, thesis_id, "Reviewed")
     assert reviews.is_confirmed(session, review)
     event = list_events(session, owner)[-1]
     assert event.type == EventType.THESIS_REVIEW_CONFIRMED and event.review_id == review.id
-    assert event.summary == (
-        "Thesis review of 'Core thesis' revision 2: needs adaptation, 7 / 10, modified"
-    )
+    assert event.summary == "Thesis review of 'Core thesis' revision 2: needs adaptation, 6.5 / 10"
     assert event.params == {
         "title": "Core thesis",
         "revision": 2,
         "verdict": "needs_adaptation",
-        "total": 7,
-        "modified": True,
+        "total": 6.5,
     }
     assert reviews.get_review(session, reader, review.id) == review
-    with pytest.raises(ConflictError):
-        reviews.modify_review(session, owner, review.id, scores={"T1": 1}, verdict=None, note="x")
     review.aspects[0].half_points = 1
     with pytest.raises(DatabaseError, match="confirmed review is immutable"):
         session.flush()
@@ -431,7 +392,6 @@ def test_activating_a_policy_draft_confirms_its_review(
         "version": f"{policy.name}-v2",
         "verdict": None,
         "total": 7.5,
-        "modified": False,
     }
     with pytest.raises(NotFoundError):
         reviews.get_review(session, other, review.id)
@@ -467,3 +427,26 @@ def test_deleting_the_draft_deletes_its_review(
     review_id = run(_start(session, factory, owner, thesis_id)).id
     theses.delete_draft(session, owner, thesis_id)
     assert session.get(Review, review_id) is None
+
+
+@pytest.mark.req("REV-18", "REV-09")
+def test_no_manual_answer_while_an_ai_review_runs(session: Session, factory: Factory) -> None:
+    from tests.reviews.answers import thesis_answer
+    from yap.services import review_prompts
+
+    _configure(session, factory)
+    owner = factory.investor()
+    thesis_id = _thesis_with_draft(factory, owner)
+    queued = _start(session, factory, owner, thesis_id)
+    prompt = reviews.thesis_review_prompt(session, owner, factory.clock, thesis_id)
+    assert review_prompts.parse_prompt_id(prompt.prompt_id) is not None
+    with pytest.raises(ConflictError, match="still running"):
+        reviews.submit_manual_thesis_review(
+            session,
+            owner,
+            factory.clock,
+            thesis_id,
+            thesis_answer(prompt_id=prompt.prompt_id),
+            "GPT",
+        )
+    assert reviews.draft_review(session, reviews.draft_of(session, queued)) == queued

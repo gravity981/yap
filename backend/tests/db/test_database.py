@@ -7,13 +7,13 @@ from decimal import Decimal
 import pytest
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from tests.fixtures import Factory
 from yap.db.engine import make_engine
-from yap.db.models import Base, Investor
+from yap.db.models import Base, Investor, Review
 from yap.db.types import DecimalText, UTCDateTime
 from yap.services import snapshots
 from yap.services.snapshots import ValueSpec
@@ -282,6 +282,91 @@ def test_set_aside_rebalances_become_withdrawals_and_back(
     result = rebalances.recalculate(session, owner, record.id)
     assert abs(result.total_value_after - old_final) < Decimal("0.000001")
     assert result.available_cash == 0 and result.total_withdrawal_sells == 0
+
+
+@pytest.mark.req("NFR-09", "NFR-05", "REV-02")
+def test_modified_reviews_keep_the_ai_values_and_their_changes_read_only(
+    db_url: str, engine: Engine, session: Session, factory: Factory
+) -> None:
+    """0016: a review keeps the AI's scores and verdict; the investor's changes from before
+    REV-10 was dropped move to legacy_modification, also for confirmed reviews."""
+    from alembic import command
+
+    from yap.db.migrate import upgrade
+    from yap.services import reviews
+
+    owner = factory.investor()
+    modified = factory.thesis(owner, title="Modified", activate=False)
+    plain = factory.thesis(owner, title="Plain", activate=False)
+    factory.review(owner, modified.revisions[0], verdict="needs_adaptation")  # T1 = 14
+    factory.review(owner, plain.revisions[0])
+    session.commit()
+    session.close()
+    at_head = _triggers(engine)
+
+    command.downgrade(_alembic(db_url), "0015")
+    with engine.begin() as connection:
+        rid = connection.execute(
+            text("SELECT id FROM review WHERE thesis_revision_id = :r"),
+            {"r": modified.revisions[0].id},
+        ).scalar()
+        connection.execute(
+            text(
+                "UPDATE review SET modified = 1, verdict = 'intact',"
+                " modification_note = 'Too strict' WHERE id = :id"
+            ),
+            {"id": rid},
+        )
+        connection.execute(
+            text(
+                "UPDATE review_aspect SET half_points = 19 WHERE review_id = :id AND aspect = 'T1'"
+            ),
+            {"id": rid},
+        )
+        # Confirmed: the draft is activated
+        connection.execute(
+            text("UPDATE thesis_revision SET activated_at = '2026-01-02T00:00:00+00:00'")
+        )
+    upgrade(db_url)
+    assert _triggers(engine) == at_head
+    with Session(engine) as fresh:
+        rows = {r.thesis_revision_id: r for r in fresh.scalars(select(Review))}
+        review = rows[modified.revisions[0].id]
+        assert review.verdict == "needs_adaptation"
+        assert [a.half_points for a in review.aspects] == [14, 12, 16, 10, 14, 13]
+        assert reviews.legacy_modification(review) == reviews.LegacyModification(
+            note="Too strict", verdict="intact", scores={"T1": 9.5}
+        )
+        assert reviews.legacy_modification(rows[plain.revisions[0].id]) is None
+    with (
+        pytest.raises(IntegrityError, match="confirmed review is immutable"),
+        engine.begin() as connection,
+    ):
+        connection.execute(text("UPDATE review SET legacy_modification = NULL"))
+
+    command.downgrade(_alembic(db_url), "0015")
+    with engine.connect() as connection:
+        restored = connection.execute(
+            text(
+                "SELECT ai_verdict, verdict, modification_note, modified FROM review WHERE id = :id"
+            ),
+            {"id": rid},
+        ).one()
+        assert tuple(restored) == ("needs_adaptation", "intact", "Too strict", 1)
+        t1 = connection.execute(
+            text(
+                "SELECT ai_half_points, half_points FROM review_aspect"
+                " WHERE review_id = :id AND aspect = 'T1'"
+            ),
+            {"id": rid},
+        ).one()
+        assert tuple(t1) == (14, 19)
+        others = connection.execute(
+            text("SELECT count(*) FROM review_aspect WHERE half_points IS NOT NULL")
+        ).scalar()
+        assert others == 1
+    upgrade(db_url)
+    assert _triggers(engine) == at_head
 
 
 @pytest.mark.req("NFR-09", "NFR-05", "PTF-03", "CMP-10")

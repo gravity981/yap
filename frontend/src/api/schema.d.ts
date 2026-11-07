@@ -622,6 +622,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/policies/{policy_id}/draft/review-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Policy Review Prompt
+         * @description REV-19: the prompt of the policy draft as it is saved now; changes nothing.
+         */
+        get: operations["get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/review/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Manual Policy Review
+         * @description REV-18: stores the pasted answer as the review of the policy draft.
+         */
+        post: operations["submit_manual_policy_review_api_policies__policy_id__draft_review_manual_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/policies/{policy_id}/draft/thesis-revision": {
         parameters: {
             query?: never;
@@ -1094,8 +1134,7 @@ export interface paths {
         };
         /** Get Review */
         get: operations["get_review_api_reviews__review_id__get"];
-        /** Modify Review */
-        put: operations["modify_review_api_reviews__review_id__put"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1319,6 +1358,46 @@ export interface paths {
          * @description REV-01, REV-04: starts a review of the thesis draft; it runs in the background.
          */
         post: operations["start_thesis_review_api_theses__thesis_id__draft_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/theses/{thesis_id}/draft/review-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Thesis Review Prompt
+         * @description REV-19: the prompt of the thesis draft as it is saved now; changes nothing.
+         */
+        get: operations["get_thesis_review_prompt_api_theses__thesis_id__draft_review_prompt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/theses/{thesis_id}/draft/review/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Manual Thesis Review
+         * @description REV-18: stores the pasted answer as the review of the thesis draft.
+         */
+        post: operations["submit_manual_thesis_review_api_theses__thesis_id__draft_review_manual_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1621,12 +1700,8 @@ export interface components {
         };
         /** AspectOut */
         AspectOut: {
-            /** Ai Score */
-            ai_score: number;
             /** Code */
             code: string;
-            /** Modified */
-            modified: boolean;
             /** Name */
             name: string;
             /** Reasoning Md */
@@ -1683,10 +1758,18 @@ export interface components {
             /** Base Currency */
             base_currency: string;
         };
-        /** Choice */
+        /**
+         * Choice
+         * @description USR-08: the default review method; `manual` wins over an AI reviewer.
+         */
         Choice: {
             /** Ai Reviewer Id */
             ai_reviewer_id: number | null;
+            /**
+             * Manual
+             * @default false
+             */
+            manual?: boolean;
         };
         /** ComparisonRowOut */
         ComparisonRowOut: {
@@ -1853,6 +1936,20 @@ export interface components {
             /** Language */
             language: string | null;
         };
+        /**
+         * LegacyModificationOut
+         * @description Investor changes of a review from before REV-10 was dropped; read-only.
+         */
+        LegacyModificationOut: {
+            /** Note */
+            note: string | null;
+            /** Scores */
+            scores: {
+                [key: string]: number;
+            };
+            /** Verdict */
+            verdict: string | null;
+        };
         /** ListingOut */
         ListingOut: {
             /** Available */
@@ -1907,6 +2004,16 @@ export interface components {
             /** Ticker */
             ticker: string;
         };
+        /**
+         * ManualAnswer
+         * @description REV-18: the answer of an AI outside the app, and which model wrote it (REV-17).
+         */
+        ManualAnswer: {
+            /** Answer */
+            answer: string;
+            /** Model */
+            model: string;
+        };
         /** Me */
         Me: {
             /** Ai Reviewer Id */
@@ -1921,6 +2028,8 @@ export interface components {
             is_investor: boolean;
             /** Language */
             language: string | null;
+            /** Manual Review Default */
+            manual_review_default: boolean;
             /** Must Change Password */
             must_change_password: boolean;
             /** Time Zone */
@@ -2533,12 +2642,18 @@ export interface components {
          * @description The review of a revision or version, in short (THS-08, REV-11).
          */
         ReviewBrief: {
+            /** Ai Reviewer Name */
+            ai_reviewer_name: string | null;
             /** Id */
             id: number;
-            /** Modified */
-            modified: boolean;
+            /** Method */
+            method: string;
+            /** Model */
+            model: string;
             /** Outdated */
             outdated: boolean;
+            /** Scoring Version */
+            scoring_version: string;
             /** State */
             state: string;
             /** Total */
@@ -2546,28 +2661,10 @@ export interface components {
             /** Verdict */
             verdict: string | null;
         };
-        /**
-         * ReviewChange
-         * @description REV-10: scores per aspect code (null = the AI's) and the verdict (null = the AI's).
-         */
-        ReviewChange: {
-            /** Note */
-            note?: string | null;
-            /** Scores */
-            scores: {
-                [key: string]: number | null;
-            };
-            /** Verdict */
-            verdict?: string | null;
-        };
         /** ReviewOut */
         ReviewOut: {
             /** Ai Reviewer Name */
             ai_reviewer_name: string | null;
-            /** Ai Total */
-            ai_total: number | null;
-            /** Ai Verdict */
-            ai_verdict: string | null;
             /** Aspects */
             aspects: components["schemas"]["AspectOut"][];
             /** Completed At */
@@ -2580,12 +2677,11 @@ export interface components {
             id: number;
             /** Kind */
             kind: string;
+            legacy_modification: components["schemas"]["LegacyModificationOut"] | null;
+            /** Method */
+            method: string;
             /** Model */
             model: string;
-            /** Modification Note */
-            modification_note: string | null;
-            /** Modified */
-            modified: boolean;
             /** News From */
             news_from: string | null;
             /** News To */
@@ -2594,6 +2690,8 @@ export interface components {
             outdated: boolean;
             /** Policy Version Id */
             policy_version_id: number | null;
+            /** Prompt Id */
+            prompt_id: string | null;
             /** Provider */
             provider: string;
             /** Scoring Version */
@@ -2615,6 +2713,16 @@ export interface components {
             total: number | null;
             /** Verdict */
             verdict: string | null;
+        };
+        /**
+         * ReviewPromptOut
+         * @description REV-19: the review prompt to copy into an AI outside the app.
+         */
+        ReviewPromptOut: {
+            /** Prompt Id */
+            prompt_id: string;
+            /** Text */
+            text: string;
         };
         /** RevisionDiff */
         RevisionDiff: {
@@ -4368,6 +4476,76 @@ export interface operations {
             };
         };
     };
+    get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPromptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_manual_policy_review_api_policies__policy_id__draft_review_manual_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_draft_thesis_revision_api_policies__policy_id__draft_thesis_revision_put: {
         parameters: {
             query?: never;
@@ -5399,43 +5577,6 @@ export interface operations {
             };
         };
     };
-    modify_review_api_reviews__review_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                review_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewChange"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_schema_api_schemas__import_type__get: {
         parameters: {
             query?: never;
@@ -5924,6 +6065,78 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_thesis_review_prompt_api_theses__thesis_id__draft_review_prompt_get: {
+        parameters: {
+            query?: {
+                news_days?: number;
+            };
+            header?: never;
+            path: {
+                thesis_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPromptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_manual_thesis_review_api_theses__thesis_id__draft_review_manual_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                thesis_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

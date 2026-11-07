@@ -46,6 +46,8 @@ class Investor(Base):
     base_currency: Mapped[str | None] = mapped_column(String(3))  # null without investor role
     # The investor's choice (USR-08); null until chosen and without the investor role
     ai_reviewer_id: Mapped[int | None] = mapped_column(ForeignKey("ai_reviewer.id"))
+    # USR-08: the default review method is manual instead of an AI reviewer
+    manual_review_default: Mapped[bool] = mapped_column(Boolean, default=False)
     language: Mapped[str | None] = mapped_column(String(5))  # en | de; null = browser's (USR-10)
     time_zone: Mapped[str | None] = mapped_column(String(64))  # IANA; null = browser's (USR-11)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -464,12 +466,15 @@ class Review(Base):
     state: Mapped[str] = mapped_column(String(10))  # queued | running | done | failed
     news_from: Mapped[datetime | None]  # thesis reviews only
     news_to: Mapped[datetime | None]
-    ai_verdict: Mapped[str | None] = mapped_column(String(20))  # thesis reviews only
-    verdict: Mapped[str | None] = mapped_column(String(20))  # investor's value (REV-10)
-    modification_note: Mapped[str | None] = mapped_column(Text)
-    modified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verdict: Mapped[str | None] = mapped_column(String(20))  # thesis reviews only
+    # Investor changes of reviews from before REV-10 was dropped, read-only (JSON: note,
+    # verdict, scores per aspect); null for all newer reviews
+    legacy_modification: Mapped[str | None] = mapped_column(Text)
     scoring_version: Mapped[str] = mapped_column(String(20))  # REV-06
-    # REV-17: the AI reviewer it runs on, its name at the start, provider and model
+    method: Mapped[str] = mapped_column(String(10), default="ai")  # ai | manual (REV-18)
+    prompt_id: Mapped[str | None] = mapped_column(String(60))  # REV-19; null before it
+    # REV-17: the AI reviewer it runs on, its name at the start, provider and model; a
+    # manual review has the provider "manual" and the model the investor named
     ai_reviewer_id: Mapped[int | None] = mapped_column(ForeignKey("ai_reviewer.id"))
     ai_reviewer_name: Mapped[str | None] = mapped_column(String(100))  # null before 0007
     provider: Mapped[str] = mapped_column(String(20))
@@ -490,8 +495,7 @@ class Review(Base):
 
 
 class ReviewAspect(Base):
-    """Score of one aspect, as half points (0 to 20): the AI's and, if changed, the
-    investor's (REV-02, REV-10)."""
+    """Score of one aspect, as half points (0 to 20) (REV-02)."""
 
     __tablename__ = "review_aspect"
 
@@ -499,8 +503,7 @@ class ReviewAspect(Base):
         ForeignKey("review.id", ondelete="CASCADE"), primary_key=True
     )
     aspect: Mapped[str] = mapped_column(String(5), primary_key=True)  # T1-T6 | P1-P6
-    ai_half_points: Mapped[int] = mapped_column(Integer)
-    half_points: Mapped[int | None] = mapped_column(Integer)  # null = the AI's value
+    half_points: Mapped[int] = mapped_column(Integer)
     reasoning_md: Mapped[str] = mapped_column(Text)
 
 

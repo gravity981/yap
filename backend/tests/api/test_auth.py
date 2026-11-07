@@ -29,6 +29,7 @@ def test_login_sets_session_and_me_returns_account(
         "is_investor": True,
         "base_currency": "CHF",
         "ai_reviewer_id": None,
+        "manual_review_default": False,
         "language": None,
         "time_zone": None,
         "must_change_password": False,
