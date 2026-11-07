@@ -95,23 +95,3 @@ export function useStartReview(kind: ReviewKind, ownerId: number) {
     },
   });
 }
-
-export interface ReviewChange {
-  scores: Record<string, number | null>;
-  verdict: string | null;
-  note: string | null;
-}
-
-/** REV-10 */
-export function useModifyReview(id: number) {
-  const client = useQueryClient();
-  const invalidate = useInvalidateOwners();
-  return useMutation({
-    mutationFn: (body: ReviewChange) =>
-      unwrap(api.PUT("/api/reviews/{review_id}", { params: { path: { review_id: id } }, body })),
-    onSuccess: (review) => {
-      client.setQueryData(reviewKey(id), review);
-      return invalidate();
-    },
-  });
-}

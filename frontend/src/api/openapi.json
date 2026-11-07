@@ -369,17 +369,9 @@
       },
       "AspectOut": {
         "properties": {
-          "ai_score": {
-            "title": "Ai Score",
-            "type": "number"
-          },
           "code": {
             "title": "Code",
             "type": "string"
-          },
-          "modified": {
-            "title": "Modified",
-            "type": "boolean"
           },
           "name": {
             "title": "Name",
@@ -397,9 +389,7 @@
         "required": [
           "code",
           "name",
-          "ai_score",
           "score",
-          "modified",
           "reasoning_md"
         ],
         "title": "AspectOut",
@@ -1105,6 +1095,47 @@
           "language"
         ],
         "title": "LanguageChoice",
+        "type": "object"
+      },
+      "LegacyModificationOut": {
+        "description": "Investor changes of a review from before REV-10 was dropped; read-only.",
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "scores": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Scores",
+            "type": "object"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "note",
+          "verdict",
+          "scores"
+        ],
+        "title": "LegacyModificationOut",
         "type": "object"
       },
       "ListingOut": {
@@ -3178,10 +3209,6 @@
             "title": "Id",
             "type": "integer"
           },
-          "modified": {
-            "title": "Modified",
-            "type": "boolean"
-          },
           "outdated": {
             "title": "Outdated",
             "type": "boolean"
@@ -3218,56 +3245,9 @@
           "state",
           "total",
           "verdict",
-          "modified",
           "outdated"
         ],
         "title": "ReviewBrief",
-        "type": "object"
-      },
-      "ReviewChange": {
-        "description": "REV-10: scores per aspect code (null = the AI's) and the verdict (null = the AI's).",
-        "properties": {
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "scores": {
-            "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "title": "Scores",
-            "type": "object"
-          },
-          "verdict": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Verdict"
-          }
-        },
-        "required": [
-          "scores"
-        ],
-        "title": "ReviewChange",
         "type": "object"
       },
       "ReviewOut": {
@@ -3282,28 +3262,6 @@
               }
             ],
             "title": "Ai Reviewer Name"
-          },
-          "ai_total": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ai Total"
-          },
-          "ai_verdict": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ai Verdict"
           },
           "aspects": {
             "items": {
@@ -3347,24 +3305,19 @@
             "title": "Kind",
             "type": "string"
           },
-          "model": {
-            "title": "Model",
-            "type": "string"
-          },
-          "modification_note": {
+          "legacy_modification": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/LegacyModificationOut"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Modification Note"
+            ]
           },
-          "modified": {
-            "title": "Modified",
-            "type": "boolean"
+          "model": {
+            "title": "Model",
+            "type": "string"
           },
           "news_from": {
             "anyOf": [
@@ -3486,12 +3439,9 @@
           "started_at",
           "completed_at",
           "aspects",
-          "ai_total",
           "total",
-          "ai_verdict",
           "verdict",
-          "modified",
-          "modification_note",
+          "legacy_modification",
           "outdated",
           "confirmed",
           "sources",
@@ -8976,72 +8926,6 @@
           }
         },
         "summary": "Get Review",
-        "tags": [
-          "reviews"
-        ]
-      },
-      "put": {
-        "operationId": "modify_review_api_reviews__review_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "review_id",
-            "required": true,
-            "schema": {
-              "title": "Review Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "itk_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Itk Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewChange"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Modify Review",
         "tags": [
           "reviews"
         ]

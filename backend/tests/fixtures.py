@@ -189,15 +189,14 @@ class Factory:
             policy_version_id=None if thesis else draft.id,
             started_by=owner.id,
             state="done",
-            ai_verdict=verdict if thesis else None,
-            modified=False,
+            verdict=verdict if thesis else None,
             scoring_version="1",
             provider="anthropic",
             model="claude-x",
             started_at=self.clock.now(),
             completed_at=self.clock.now(),
             aspects=[
-                ReviewAspect(aspect=code, ai_half_points=half, reasoning_md=f"About {code}")
+                ReviewAspect(aspect=code, half_points=half, reasoning_md=f"About {code}")
                 for code, half in zip(codes, half_points, strict=True)
             ],
         )

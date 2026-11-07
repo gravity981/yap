@@ -1094,8 +1094,7 @@ export interface paths {
         };
         /** Get Review */
         get: operations["get_review_api_reviews__review_id__get"];
-        /** Modify Review */
-        put: operations["modify_review_api_reviews__review_id__put"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1621,12 +1620,8 @@ export interface components {
         };
         /** AspectOut */
         AspectOut: {
-            /** Ai Score */
-            ai_score: number;
             /** Code */
             code: string;
-            /** Modified */
-            modified: boolean;
             /** Name */
             name: string;
             /** Reasoning Md */
@@ -1852,6 +1847,20 @@ export interface components {
         LanguageChoice: {
             /** Language */
             language: string | null;
+        };
+        /**
+         * LegacyModificationOut
+         * @description Investor changes of a review from before REV-10 was dropped; read-only.
+         */
+        LegacyModificationOut: {
+            /** Note */
+            note: string | null;
+            /** Scores */
+            scores: {
+                [key: string]: number;
+            };
+            /** Verdict */
+            verdict: string | null;
         };
         /** ListingOut */
         ListingOut: {
@@ -2535,8 +2544,6 @@ export interface components {
         ReviewBrief: {
             /** Id */
             id: number;
-            /** Modified */
-            modified: boolean;
             /** Outdated */
             outdated: boolean;
             /** State */
@@ -2546,28 +2553,10 @@ export interface components {
             /** Verdict */
             verdict: string | null;
         };
-        /**
-         * ReviewChange
-         * @description REV-10: scores per aspect code (null = the AI's) and the verdict (null = the AI's).
-         */
-        ReviewChange: {
-            /** Note */
-            note?: string | null;
-            /** Scores */
-            scores: {
-                [key: string]: number | null;
-            };
-            /** Verdict */
-            verdict?: string | null;
-        };
         /** ReviewOut */
         ReviewOut: {
             /** Ai Reviewer Name */
             ai_reviewer_name: string | null;
-            /** Ai Total */
-            ai_total: number | null;
-            /** Ai Verdict */
-            ai_verdict: string | null;
             /** Aspects */
             aspects: components["schemas"]["AspectOut"][];
             /** Completed At */
@@ -2580,12 +2569,9 @@ export interface components {
             id: number;
             /** Kind */
             kind: string;
+            legacy_modification: components["schemas"]["LegacyModificationOut"] | null;
             /** Model */
             model: string;
-            /** Modification Note */
-            modification_note: string | null;
-            /** Modified */
-            modified: boolean;
             /** News From */
             news_from: string | null;
             /** News To */
@@ -5378,43 +5364,6 @@ export interface operations {
             };
         };
         requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    modify_review_api_reviews__review_id__put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                review_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewChange"];
-            };
-        };
         responses: {
             /** @description Successful Response */
             200: {

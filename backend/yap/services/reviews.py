@@ -1,10 +1,11 @@
 """Thesis and policy reviews of drafts (REV-01 to REV-17).
 
-A review is started on a draft, runs in the background (REV-08), can be modified by
-the investor while the draft is open (REV-10) and is confirmed by activating the draft
-(REV-11). Every started run counts towards the monthly limit of its AI reviewer (REV-16).
+A review is started on a draft, runs in the background (REV-08) and is confirmed by
+activating the draft (REV-11). Every started run counts towards the monthly limit of its
+AI reviewer (REV-16).
 """
 
+import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -31,8 +32,6 @@ from yap.domain.reviews import (
     ASPECTS,
     SCORING_VERSION,
     ReviewKind,
-    Verdict,
-    to_half_points,
     total_half_points,
 )
 from yap.llm import LlmError
@@ -196,7 +195,6 @@ def _start(
         state="queued",
         news_from=now - timedelta(days=news_days) if news_days else None,
         news_to=now if news_days else None,
-        modified=False,
         scoring_version=SCORING_VERSION,
         ai_reviewer_id=reviewer.id,
         ai_reviewer_name=reviewer.name,
@@ -317,9 +315,9 @@ def _fail(review: Review, clock: Clock, error: str) -> None:
 
 
 def _store(review: Review, parsed: review_prompts.ParsedReview) -> None:
-    review.ai_verdict = parsed.verdict.value if parsed.verdict else None
+    review.verdict = parsed.verdict.value if parsed.verdict else None
     review.aspects = [
-        ReviewAspect(aspect=a.code, ai_half_points=a.half_points, reasoning_md=a.reasoning)
+        ReviewAspect(aspect=a.code, half_points=a.half_points, reasoning_md=a.reasoning)
         for a in parsed.aspects
     ]
     review.sources = [
@@ -349,7 +347,7 @@ def fail_interrupted(session: Session, clock: Clock) -> int:
     return len(unfinished)
 
 
-# --- Read, modify ----------------------------------------------------------------------
+# --- Read ----------------------------------------------------------------------
 
 
 def draft_of(session: Session, review: Review) -> ThesisRevision | PolicyVersion:
@@ -396,82 +394,31 @@ def get_review(session: Session, actor: Investor, review_id: int) -> Review:
     raise NotFoundError(msg("review_not_found", id=review_id))
 
 
-def modify_review(
-    session: Session,
-    actor: Investor,
-    review_id: int,
-    *,
-    scores: dict[str, float | None],
-    verdict: str | None,
-    note: str | None,
-) -> Review:
-    """REV-10: the investor's scores and verdict next to the AI's; `None` means the
-    AI's value. The review counts as modified only if a value differs from the AI's."""
-    review = get_review(session, actor, review_id)
-    if review.started_by != actor.id or is_confirmed(session, review):
-        raise ConflictError(msg("review_not_changeable"))
-    if review.state != "done":
-        raise ConflictError(msg("review_not_finished"))
-    problems: list[tuple[str, Message]] = []
-    aspects = {a.aspect: a for a in review.aspects}
-    values: dict[str, int | None] = {}
-    for code, value in scores.items():
-        if code not in aspects:
-            problems.append((f"scores.{code}", msg("review_unknown_aspect", aspect=code)))
-        elif value is not None:
-            try:
-                values[code] = to_half_points(value)
-            except ValueError:
-                problems.append((f"scores.{code}", msg("score_invalid", score=value)))
-        else:
-            values[code] = None
-    parsed_verdict: str | None = None
-    if verdict is not None:
-        if review.kind != ReviewKind.THESIS:
-            problems.append(("verdict", msg("review_no_verdict")))
-        elif verdict not in {v.value for v in Verdict}:
-            problems.append(("verdict", msg("review_unknown_verdict", verdict=verdict)))
-        else:
-            parsed_verdict = verdict
-    if problems:
-        raise ValidationError(problems)
-    for code, half in values.items():
-        aspect = aspects[code]
-        aspect.half_points = half if half != aspect.ai_half_points else None
-    review.verdict = parsed_verdict if parsed_verdict != review.ai_verdict else None
-    review.modified = review.verdict is not None or any(
-        a.half_points is not None for a in review.aspects
-    )
-    note = (note or "").strip() or None
-    if review.modified and note is None:
-        raise ValidationError.single(msg("review_note_required"), "note")
-    review.modification_note = note if review.modified else None
-    session.flush()
-    return review
+def total(review: Review) -> int | None:
+    """The total score in half points (REV-02), None without aspects."""
+    if not review.aspects:
+        return None
+    return total_half_points([a.half_points for a in review.aspects])
 
 
 @dataclass(frozen=True)
-class Totals:
-    ai: int  # half points
-    effective: int
+class LegacyModification:
+    """Investor changes of a review from before REV-10 was dropped; shown read-only."""
+
+    note: str | None
+    verdict: str | None
+    scores: dict[str, float]
 
 
-def totals(review: Review) -> Totals | None:
-    if not review.aspects:
+def legacy_modification(review: Review) -> LegacyModification | None:
+    if review.legacy_modification is None:
         return None
-    return Totals(
-        total_half_points([a.ai_half_points for a in review.aspects]),
-        total_half_points(
-            [
-                a.half_points if a.half_points is not None else a.ai_half_points
-                for a in review.aspects
-            ]
-        ),
+    data = json.loads(review.legacy_modification)
+    return LegacyModification(
+        note=data.get("note"),
+        verdict=data.get("verdict"),
+        scores={code: float(score) for code, score in (data.get("scores") or {}).items()},
     )
-
-
-def effective_verdict(review: Review) -> str | None:
-    return review.verdict or review.ai_verdict
 
 
 def aspect_names(kind: str) -> dict[str, str]:
@@ -543,23 +490,19 @@ def confirm_with_draft(
 
 def _summary_params(review: Review) -> dict[str, Any]:
     """The values of _summary for the timeline in the UI's language (TL-02, NFR-10)."""
-    total = totals(review)
+    half_points = total(review)
     return {
-        "verdict": effective_verdict(review),
-        "total": total.effective / 2 if total else None,
-        "modified": review.modified,
+        "verdict": review.verdict,
+        "total": half_points / 2 if half_points is not None else None,
     }
 
 
 def _summary(review: Review) -> str:
-    """TL-02, e.g. 'needs adaptation, 6.5 / 10, modified'."""
+    """TL-02, e.g. 'needs adaptation, 6.5 / 10'."""
     parts = []
-    verdict = effective_verdict(review)
-    if verdict:
-        parts.append(verdict.replace("_", " "))
-    total = totals(review)
-    if total:
-        parts.append(f"{total.effective / 2:g} / 10")
-    if review.modified:
-        parts.append("modified")
+    if review.verdict:
+        parts.append(review.verdict.replace("_", " "))
+    half_points = total(review)
+    if half_points is not None:
+        parts.append(f"{half_points / 2:g} / 10")
     return ", ".join(parts)

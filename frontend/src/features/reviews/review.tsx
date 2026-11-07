@@ -21,7 +21,6 @@ import { formatDate, formatDateTime } from "@/lib/format";
 
 import {
   isRunning,
-  useModifyReview,
   useReview,
   useReviewerOptions,
   useStartReview,
@@ -31,8 +30,6 @@ import {
   type ReviewKind,
 } from "./api";
 
-const VERDICTS = ["intact", "needs_adaptation", "broken"] as const;
-const SCORES = Array.from({ length: 21 }, (_, i) => i / 2);
 const SUGGESTION_KINDS = ["thesis_text", "thesis_status", "policy_position"] as const;
 const ASPECT_CODES = ["T1", "T2", "T3", "T4", "T5", "T6", "P1", "P2", "P3", "P4", "P5", "P6"];
 
@@ -60,7 +57,7 @@ function VerdictBadge({ verdict }: { verdict: string }) {
 }
 
 /** The review of one revision or version: start it on an own draft (REV-01), follow its
- * progress (REV-08), show and modify the result (REV-10); read-only once confirmed. */
+ * progress (REV-08) and show the result. */
 export function ReviewSection({
   kind,
   ownerId,
@@ -221,7 +218,6 @@ function ReviewResult({
   editable: boolean;
 }) {
   const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
   const open = editable && !review.confirmed;
 
   if (isRunning(review.state)) {
@@ -248,7 +244,6 @@ function ReviewResult({
           ) : (
             <Badge variant="outline">{t("reviews.result.notConfirmed")}</Badge>
           )}
-          {review.modified && <Badge variant="warning">{t("reviews.result.modified")}</Badge>}
           {review.outdated && <Badge variant="warning">{t("reviews.result.outdated")}</Badge>}
           <span className="text-muted-foreground">
             {review.ai_reviewer_name && `${review.ai_reviewer_name}: `}
@@ -266,33 +261,14 @@ function ReviewResult({
           </span>
         </div>
 
-        <Totals review={review} />
-
-        {editing ? (
-          <ModifyForm review={review} onDone={() => setEditing(false)} />
-        ) : (
-          <>
-            <Aspects review={review} />
-            {review.modification_note && (
-              <p className="text-sm">
-                <span className="font-medium">{t("reviews.result.whyChanged")}</span>{" "}
-                {review.modification_note}
-              </p>
-            )}
-            <Sources review={review} />
-            <Suggestions review={review} />
-          </>
-        )}
+        <Total review={review} />
+        <Aspects review={review} />
+        <LegacyModification review={review} />
+        <Sources review={review} />
+        <Suggestions review={review} />
 
         <NotAdvice short={t("reviews.result.notAdvice")} />
-        {open && !editing && (
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditing(true)}>
-              {t("reviews.result.change")}
-            </Button>
-          </div>
-        )}
-        {open && !editing && (
+        {open && (
           <div className="border-t pt-4">
             <StartReview kind={kind} ownerId={ownerId} again />
           </div>
@@ -302,56 +278,48 @@ function ReviewResult({
   );
 }
 
-/** REV-10: the AI's stars and the investor's side by side. */
-function Totals({ review }: { review: Review }) {
+function Total({ review }: { review: Review }) {
   const { t } = useTranslation();
-  if (review.total === null || review.ai_total === null) return null;
+  if (review.total === null) return null;
   return (
-    <div className="grid gap-2" aria-label={t("reviews.score.totalLabel")}>
-      <ScoreLine
-        label={t("reviews.score.ai")}
-        score={review.ai_total}
-        verdict={review.ai_verdict}
-        strong={!review.modified}
-      />
-      {review.modified && (
-        <ScoreLine
-          label={t("reviews.score.yours")}
-          score={review.total}
-          verdict={review.verdict}
-          strong
-        />
-      )}
+    <div className="flex flex-wrap items-center gap-3" aria-label={t("reviews.score.totalLabel")}>
+      <Stars score={review.total} label={t("reviews.score.totalLabel")} />
+      <span className="text-lg font-semibold tabular-nums">
+        {t("reviews.score.outOf", { score: formatScore(review.total) })}
+      </span>
+      {review.verdict && <VerdictBadge verdict={review.verdict} />}
     </div>
   );
 }
 
-function ScoreLine({
-  label,
-  score,
-  verdict,
-  strong,
-}: {
-  label: string;
-  score: number;
-  verdict: string | null;
-  strong: boolean;
-}) {
+/** Changes the investor made before reviews became read-only (REV-10 dropped). */
+function LegacyModification({ review }: { review: Review }) {
   const { t } = useTranslation();
+  const legacy = review.legacy_modification;
+  if (!legacy) return null;
+  const names = Object.fromEntries(review.aspects.map((a) => [a.code, aspectName(a)]));
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="w-12 text-sm text-muted-foreground">{label}</span>
-      <Stars score={score} label={t("reviews.score.total", { who: label })} />
-      <span className={strong ? "text-lg font-semibold tabular-nums" : "tabular-nums"}>
-        {t("reviews.score.outOf", { score: formatScore(score) })}
-      </span>
-      {verdict && <VerdictBadge verdict={verdict} />}
+    <div className="grid gap-1 rounded-md border border-dashed p-3 text-sm">
+      <p className="font-medium">{t("reviews.legacy.title")}</p>
+      <ul className="grid gap-0.5">
+        {legacy.verdict && (
+          <li>{t("reviews.legacy.verdict", { verdict: verdictLabel(legacy.verdict) })}</li>
+        )}
+        {Object.entries(legacy.scores).map(([code, score]) => (
+          <li key={code}>
+            {t("reviews.legacy.score", {
+              name: `${code} ${names[code] ?? ""}`.trim(),
+              score: formatScore(score),
+            })}
+          </li>
+        ))}
+        {legacy.note && <li>{t("reviews.legacy.note", { note: legacy.note })}</li>}
+      </ul>
     </div>
   );
 }
 
 function Aspects({ review }: { review: Review }) {
-  const { t } = useTranslation();
   return (
     <ol className="grid gap-3">
       {review.aspects.map((a) => (
@@ -361,21 +329,8 @@ function Aspects({ review }: { review: Review }) {
               {a.code} {aspectName(a)}
             </span>
             <span className="flex flex-wrap items-center gap-2 text-sm">
-              <Stars
-                score={a.ai_score}
-                label={t("reviews.score.aspectAi", { name: aspectName(a) })}
-              />
-              <span className="tabular-nums">{formatScore(a.ai_score)}</span>
-              {a.modified && (
-                <>
-                  <span className="text-muted-foreground">{t("reviews.score.yoursShort")}</span>
-                  <Stars
-                    score={a.score}
-                    label={t("reviews.score.aspectYours", { name: aspectName(a) })}
-                  />
-                  <span className="tabular-nums font-medium">{formatScore(a.score)}</span>
-                </>
-              )}
+              <Stars score={a.score} label={aspectName(a)} />
+              <span className="tabular-nums">{formatScore(a.score)}</span>
             </span>
           </div>
           <div className="text-sm">
@@ -429,90 +384,6 @@ function Suggestions({ review }: { review: Review }) {
   );
 }
 
-/** REV-10: the investor's values next to the AI's; "AI" keeps the AI's value. */
-function ModifyForm({ review, onDone }: { review: Review; onDone: () => void }) {
-  const { t } = useTranslation();
-  const modify = useModifyReview(review.id);
-  const [scores, setScores] = useState<Record<string, string>>(() =>
-    Object.fromEntries(review.aspects.map((a) => [a.code, a.modified ? String(a.score) : ""])),
-  );
-  const [verdict, setVerdict] = useState(
-    review.verdict !== review.ai_verdict ? (review.verdict ?? "") : "",
-  );
-  const [note, setNote] = useState(review.modification_note ?? "");
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    modify.mutate(
-      {
-        scores: Object.fromEntries(
-          Object.entries(scores).map(([code, value]) => [
-            code,
-            value === "" ? null : Number(value),
-          ]),
-        ),
-        verdict: verdict || null,
-        note: note.trim() || null,
-      },
-      { onSuccess: onDone },
-    );
-  };
-  return (
-    <form className="grid gap-3" onSubmit={submit} aria-label={t("reviews.modify.form")}>
-      <p className="text-sm text-muted-foreground">{t("reviews.modify.intro")}</p>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {review.aspects.map((a) => (
-          <Field key={a.code} id={`score-${a.code}`} label={`${a.code} ${aspectName(a)}`}>
-            <NativeSelect
-              id={`score-${a.code}`}
-              value={scores[a.code]}
-              onChange={(e) => setScores({ ...scores, [a.code]: e.target.value })}
-            >
-              <option value="">
-                {t("reviews.modify.keepAi", { value: formatScore(a.ai_score) })}
-              </option>
-              {SCORES.map((s) => (
-                <option key={s} value={String(s)}>
-                  {formatScore(s)}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-        ))}
-        {review.kind === "thesis" && review.ai_verdict && (
-          <Field id="verdict" label={t("reviews.modify.verdict")}>
-            <NativeSelect id="verdict" value={verdict} onChange={(e) => setVerdict(e.target.value)}>
-              <option value="">
-                {t("reviews.modify.keepAi", { value: verdictLabel(review.ai_verdict) })}
-              </option>
-              {VERDICTS.map((v) => (
-                <option key={v} value={v}>
-                  {verdictLabel(v)}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-        )}
-      </div>
-      <Field
-        id="modification-note"
-        label={t("reviews.modify.note")}
-        error={fieldError(modify.error, "note")}
-      >
-        <Input id="modification-note" value={note} onChange={(e) => setNote(e.target.value)} />
-      </Field>
-      <FormError error={modify.error} fields={["note"]} />
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onDone}>
-          {t("common.cancel")}
-        </Button>
-        <Button type="submit" disabled={modify.isPending}>
-          {t("common.save")}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
 const STATES = ["queued", "running", "done", "failed"] as const;
 
 /** queued, running, done or failed in the current language; unknown values as they are. */
@@ -538,7 +409,6 @@ export function ReviewBriefLine({ brief }: { brief: ReviewBrief | null | undefin
       <Stars score={brief.total} label={t("reviews.brief.label")} />
       <span className="tabular-nums">{formatScore(brief.total)}</span>
       {brief.verdict && <VerdictBadge verdict={brief.verdict} />}
-      {brief.modified && <Badge variant="warning">{t("reviews.result.modified")}</Badge>}
     </span>
   );
 }
@@ -557,13 +427,12 @@ export function activationWarning(brief: ReviewBrief | null | undefined): string
 
 /** TL-02: the result of a confirmed review, e.g. in a timeline event. */
 export function ReviewDetails({ reviewId }: { reviewId: number }) {
-  const { t } = useTranslation();
   const review = useReview(reviewId);
   if (!review.data) return null;
   const r = review.data;
   return (
     <div className="grid gap-2 text-sm">
-      <Totals review={r} />
+      <Total review={r} />
       <ul className="grid gap-1">
         {r.aspects.map((a) => (
           <li key={a.code} className="flex flex-wrap items-center gap-2">
@@ -572,17 +441,10 @@ export function ReviewDetails({ reviewId }: { reviewId: number }) {
             </span>
             <Stars score={a.score} label={aspectName(a)} />
             <span className="tabular-nums">{formatScore(a.score)}</span>
-            {a.modified && (
-              <span className="text-muted-foreground">
-                {t("reviews.score.aiValue", { score: formatScore(a.ai_score) })}
-              </span>
-            )}
           </li>
         ))}
       </ul>
-      {r.modification_note && (
-        <p>{t("reviews.details.changedBecause", { note: r.modification_note })}</p>
-      )}
+      <LegacyModification review={r} />
     </div>
   );
 }

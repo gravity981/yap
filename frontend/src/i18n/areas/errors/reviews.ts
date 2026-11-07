@@ -33,13 +33,7 @@ export const de = {
   review_running_wait: "Eine Prüfung dieses Entwurfs läuft noch; warte, bis sie fertig ist",
   review_no_reviewer: "Die Prüfung hat keinen KI-Reviewer",
   review_not_found: "Prüfung {{id}} nicht gefunden",
-  review_not_changeable: "Nur Prüfungen deiner eigenen offenen Entwürfe können geändert werden",
-  review_not_finished: "Nur eine abgeschlossene Prüfung kann geändert werden",
   review_news_days_invalid: "Der Nachrichtenzeitraum muss zwischen 1 und {{max}} Tagen liegen",
-  review_unknown_aspect: "Unbekannter Aspekt {{aspect}}",
-  review_no_verdict: "Nur Prüfungen von Anlagethesen haben ein Urteil",
-  review_unknown_verdict: "Unbekanntes Urteil {{verdict}}",
-  review_note_required: "Begründe, warum du das Ergebnis der KI geändert hast",
   review_interrupted: "Durch einen Neustart der App unterbrochen; starte die Prüfung neu",
   review_failed_unexpectedly: "Die Prüfung ist unerwartet fehlgeschlagen ({{detail}})",
   review_revision_not_found:

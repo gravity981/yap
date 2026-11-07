@@ -67,7 +67,6 @@ class ReviewBrief(BaseModel):
     state: str
     total: float | None
     verdict: str | None
-    modified: bool
     outdated: bool
 
     @classmethod
@@ -77,13 +76,12 @@ class ReviewBrief(BaseModel):
         review = draft.review
         if review is None:
             return None
-        totals = reviews.totals(review)
+        total = reviews.total(review)
         return cls(
             id=review.id,
             state=review.state,
-            total=totals.effective / 2 if totals else None,
-            verdict=reviews.effective_verdict(review),
-            modified=review.modified,
+            total=total / 2 if total is not None else None,
+            verdict=review.verdict,
             outdated=reviews.outdated(review, draft),
         )
 

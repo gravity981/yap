@@ -99,8 +99,8 @@ from 0 to 10 in half points, with its reasoning:
 - **Policy review:** how well the target structure matches its thesis (coverage,
   weighting, bands, exits, concentration, rationales). It sends no amounts.
 
-Suggestions are never applied automatically. You can change any score with a note; the
-AI's and your stars are shown side by side. Activating the draft confirms the review, and
+Suggestions are never applied automatically, and the result itself cannot be changed: run
+the review again instead. Activating the draft confirms the review, and
 it stays with that revision. For each review you choose which AI reviewer to use; your
 default is set in your settings.
 

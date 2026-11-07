@@ -276,7 +276,7 @@ test("[NFR-06] works on a phone-sized screen", async ({ page }) => {
   });
 });
 
-test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-10] [REV-11] [TL-01] reviews a thesis draft and confirms it", async ({
+test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draft and confirms it", async ({
   page,
 }) => {
   await login(page, "admin", ADMIN_PASSWORD);
@@ -319,18 +319,12 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-10] [REV-11] [TL-01] reviews a th
   await test.step("start the review and wait for its result", async () => {
     await expect(review.getByText(/0 of 5 reviews with Standard used this month/)).toBeVisible();
     await review.getByRole("button", { name: "Start review" }).click();
-    await expect(review.getByRole("img", { name: "Total, AI: 6.5 of 10" })).toBeVisible({
+    await expect(review.getByRole("img", { name: "Total score: 6.5 of 10" })).toBeVisible({
       timeout: 15_000,
     });
     await expect(review.getByText("not confirmed yet")).toBeVisible();
-  });
-  await test.step("change one score with a note", async () => {
-    await review.getByRole("button", { name: "Change result" }).click();
-    await review.getByLabel("T1 Core claim").selectOption("9");
-    await review.getByLabel("Why do you change the result?").fill("The claim is precise");
-    await review.getByRole("button", { name: "Save" }).click();
-    await expect(review.getByRole("img", { name: "Total, Yours: 7.0 of 10" })).toBeVisible();
-    await expect(review.getByRole("img", { name: "Total, AI: 6.5 of 10" })).toBeVisible();
+    // The result cannot be changed (REV-10 dropped)
+    await expect(review.getByRole("button", { name: "Change result" })).toHaveCount(0);
   });
   await test.step("activating the draft confirms the review", async () => {
     await page.getByRole("button", { name: "Activate draft" }).click();
@@ -347,7 +341,7 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-10] [REV-11] [TL-01] reviews a th
       .getByRole("link", { name: "Timeline" })
       .click();
     await expect(
-      page.getByText("Thesis review of 'Growth' revision 2: intact, 7 / 10, modified"),
+      page.getByText("Thesis review of 'Growth' revision 2: intact, 6.5 / 10"),
     ).toBeVisible();
   });
 });

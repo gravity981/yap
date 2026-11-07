@@ -32,9 +32,7 @@ def _thesis_draft(client: TestClient) -> int:
     return int(thesis["id"])
 
 
-@pytest.mark.req(
-    "REV-01", "REV-08", "REV-10", "REV-11", "REV-12", "REV-16", "REV-17", "TL-02", "THS-08"
-)
+@pytest.mark.req("REV-01", "REV-08", "REV-11", "REV-12", "REV-16", "REV-17", "TL-02", "THS-08")
 def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
     fake_llm.answers = [thesis_answer()]
     tid = _thesis_draft(alice)
@@ -50,12 +48,9 @@ def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
         review["scoring_version"],
     ) == ("Standard", "anthropic", "claude-x", "1")
     assert [a["name"] for a in review["aspects"]][:2] == ["Core claim", "Value drivers"]
-    assert (review["ai_total"], review["total"], review["verdict"]) == (
-        6.5,
-        6.5,
-        "needs_adaptation",
-    )
-    assert (review["confirmed"], review["outdated"], review["modified"]) == (False, False, False)
+    assert (review["total"], review["verdict"]) == (6.5, "needs_adaptation")
+    assert (review["confirmed"], review["outdated"]) == (False, False)
+    assert review["legacy_modification"] is None
     assert ok(alice.get(f"/api/theses/{tid}/revisions/2/review"))["id"] == review["id"]
     # The revision list carries the review in short (THS-08)
     revisions = ok(alice.get(f"/api/theses/{tid}"))["revisions"]
@@ -65,33 +60,18 @@ def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
         "state": "done",
         "total": 6.5,
         "verdict": "needs_adaptation",
-        "modified": False,
         "outdated": False,
     }
     usage = ok(alice.get("/api/reviews/usage"))
     assert (usage["used"], usage["left"], usage["unavailable_reason"]) == (1, 2, None)
 
-    changed = ok(
-        alice.put(
-            f"/api/reviews/{review['id']}",
-            json={"scores": {"T6": 9}, "verdict": "intact", "note": "News misread"},
-        )
-    )
-    t6 = changed["aspects"][5]
-    assert (t6["ai_score"], t6["score"], t6["modified"]) == (6.5, 9, True)
-    assert (changed["ai_verdict"], changed["verdict"], changed["modified"]) == (
-        "needs_adaptation",
-        "intact",
-        True,
-    )
-    assert changed["total"] == 7  # 6.5 + 2.5 / 6 -> 6.92 -> 7
-
     ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "Reviewed"}))
     assert ok(alice.get(f"/api/reviews/{review['id']}"))["confirmed"] is True
     event = ok(alice.get("/api/timeline?type=thesis_review_confirmed"))[0]
-    assert event["summary"] == "Thesis review of 'Growth' revision 2: intact, 7 / 10, modified"
+    assert event["summary"] == "Thesis review of 'Growth' revision 2: needs adaptation, 6.5 / 10"
     assert event["review_id"] == review["id"]
-    assert alice.put(f"/api/reviews/{review['id']}", json={"scores": {}}).status_code == 409
+    # Reviews cannot be changed (REV-10 dropped)
+    assert alice.put(f"/api/reviews/{review['id']}", json={"scores": {}}).status_code == 405
 
 
 @pytest.mark.req("REV-01", "REV-05")

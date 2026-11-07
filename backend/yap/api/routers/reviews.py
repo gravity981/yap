@@ -17,9 +17,7 @@ router = APIRouter(tags=["reviews"])
 class AspectOut(BaseModel):
     code: str
     name: str
-    ai_score: float
-    score: float  # the investor's value if changed, otherwise the AI's (REV-10)
-    modified: bool
+    score: float
     reasoning_md: str
 
 
@@ -32,6 +30,14 @@ class SourceOut(BaseModel):
 class SuggestionOut(BaseModel):
     kind: str
     content_md: str
+
+
+class LegacyModificationOut(BaseModel):
+    """Investor changes of a review from before REV-10 was dropped; read-only."""
+
+    note: str | None
+    verdict: str | None
+    scores: dict[str, float]
 
 
 class ReviewOut(BaseModel):
@@ -50,12 +56,9 @@ class ReviewOut(BaseModel):
     started_at: datetime
     completed_at: datetime | None
     aspects: list[AspectOut]
-    ai_total: float | None
     total: float | None
-    ai_verdict: str | None
-    verdict: str | None  # the investor's value if changed, otherwise the AI's
-    modified: bool
-    modification_note: str | None
+    verdict: str | None  # thesis reviews only
+    legacy_modification: LegacyModificationOut | None
     outdated: bool  # REV-09: the draft changed after the review was started
     confirmed: bool  # REV-11: the draft was activated
     sources: list[SourceOut]
@@ -64,7 +67,8 @@ class ReviewOut(BaseModel):
 
 def _out(session: DbSession, review: Review) -> ReviewOut:
     names = reviews.aspect_names(review.kind)
-    total = reviews.totals(review)
+    total = reviews.total(review)
+    legacy = reviews.legacy_modification(review)
     return ReviewOut(
         id=review.id,
         kind=review.kind,
@@ -84,19 +88,18 @@ def _out(session: DbSession, review: Review) -> ReviewOut:
             AspectOut(
                 code=a.aspect,
                 name=names[a.aspect],
-                ai_score=a.ai_half_points / 2,
-                score=(a.half_points if a.half_points is not None else a.ai_half_points) / 2,
-                modified=a.half_points is not None,
+                score=a.half_points / 2,
                 reasoning_md=a.reasoning_md,
             )
             for a in review.aspects
         ],
-        ai_total=total.ai / 2 if total else None,
-        total=total.effective / 2 if total else None,
-        ai_verdict=review.ai_verdict,
-        verdict=reviews.effective_verdict(review),
-        modified=review.modified,
-        modification_note=review.modification_note,
+        total=total / 2 if total is not None else None,
+        verdict=review.verdict,
+        legacy_modification=(
+            LegacyModificationOut(note=legacy.note, verdict=legacy.verdict, scores=legacy.scores)
+            if legacy
+            else None
+        ),
         outdated=reviews.is_outdated(session, review),
         confirmed=reviews.is_confirmed(session, review),
         sources=[
@@ -130,14 +133,6 @@ class StartThesisReview(BaseModel):
 
 class StartPolicyReview(BaseModel):
     ai_reviewer_id: int | None = None  # USR-08: null = the investor's default
-
-
-class ReviewChange(BaseModel):
-    """REV-10: scores per aspect code (null = the AI's) and the verdict (null = the AI's)."""
-
-    scores: dict[str, float | None]
-    verdict: str | None = None
-    note: str | None = None
 
 
 def _schedule(
@@ -220,16 +215,6 @@ def start_policy_review(
 @router.get("/reviews/{review_id}")
 def get_review(review_id: int, session: DbSession, user: CurrentUser) -> ReviewOut:
     return _out(session, reviews.get_review(session, user, review_id))
-
-
-@router.put("/reviews/{review_id}")
-def modify_review(
-    review_id: int, body: ReviewChange, session: DbSession, user: CurrentUser
-) -> ReviewOut:
-    review = reviews.modify_review(
-        session, user, review_id, scores=body.scores, verdict=body.verdict, note=body.note
-    )
-    return _out(session, review)
 
 
 def _found(review: Review | None, missing: Message) -> Review:

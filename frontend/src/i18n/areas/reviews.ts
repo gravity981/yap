@@ -1,6 +1,6 @@
 import type { Messages } from "../messages";
 
-// AI reviews: start, result, modify, score course (features/reviews).
+// AI reviews: start, result, score course (features/reviews).
 export const en = {
   section: {
     thesis: "Thesis review",
@@ -10,9 +10,9 @@ export const en = {
   start: {
     form: "Start review",
     introThesis:
-      "An AI judges the thesis on six aspects and checks it against current news. The result is confirmed when you activate the draft; you can change it before.",
+      "An AI judges the thesis on six aspects and checks it against current news. The result is confirmed when you activate the draft.",
     introPolicy:
-      "An AI judges how well the target structure matches the thesis, on six aspects. The result is confirmed when you activate the draft; you can change it before.",
+      "An AI judges how well the target structure matches the thesis, on six aspects. The result is confirmed when you activate the draft.",
     dataThesis:
       "To run it, the thesis text is sent to the provider of your AI reviewer, which searches the web for news. ",
     dataPolicy:
@@ -33,25 +33,21 @@ export const en = {
     failed: "The review failed: {{error}}",
     confirmed: "confirmed",
     notConfirmed: "not confirmed yet",
-    modified: "modified",
     outdated: "outdated: the draft changed since",
     scoring: "scoring v{{version}}",
     news: "news {{from}} – {{to}}",
-    whyChanged: "Why the result was changed:",
     notAdvice:
       "AI reviews can be wrong or incomplete, and are not financial advice. You decide what to change.",
-    change: "Change result",
   },
   score: {
     totalLabel: "Total score",
-    ai: "AI",
-    yours: "Yours",
-    total: "Total, {{who}}",
     outOf: "{{score}} / 10",
-    aspectAi: "{{name}}, AI",
-    aspectYours: "{{name}}, yours",
-    yoursShort: "yours",
-    aiValue: "(AI {{score}})",
+  },
+  legacy: {
+    title: "You changed this result when reviews could still be changed:",
+    verdict: "Your verdict: {{verdict}}",
+    score: "{{name}}: {{score}}",
+    note: "Why: {{note}}",
   },
   aspects: {
     T1: "Core claim",
@@ -75,14 +71,6 @@ export const en = {
     thesis_status: "Thesis status",
     policy_position: "Position",
   },
-  modify: {
-    form: "Change result",
-    intro:
-      "Your values are shown next to the AI's, which stay visible. Choose “AI” to keep the AI's value.",
-    keepAi: "AI ({{value}})",
-    verdict: "Verdict",
-    note: "Why do you change the result?",
-  },
   states: {
     queued: "queued",
     running: "running",
@@ -96,9 +84,6 @@ export const en = {
   activation: {
     noReview: "This draft has no review. Activate it anyway?",
     outdated: "The draft changed after its review. Activate it with the outdated review?",
-  },
-  details: {
-    changedBecause: "Changed because: {{note}}",
   },
   course: {
     label: "Review score over the revisions",
@@ -119,9 +104,9 @@ export const de: Messages<typeof en> = {
   start: {
     form: "Prüfung starten",
     introThesis:
-      "Eine KI beurteilt die Anlagethese nach sechs Aspekten und prüft sie an aktuellen Nachrichten. Das Ergebnis wird bestätigt, wenn du den Entwurf aktivierst; vorher kannst du es ändern.",
+      "Eine KI beurteilt die Anlagethese nach sechs Aspekten und prüft sie an aktuellen Nachrichten. Das Ergebnis wird bestätigt, wenn du den Entwurf aktivierst.",
     introPolicy:
-      "Eine KI beurteilt nach sechs Aspekten, wie gut die Zielstruktur zur Anlagethese passt. Das Ergebnis wird bestätigt, wenn du den Entwurf aktivierst; vorher kannst du es ändern.",
+      "Eine KI beurteilt nach sechs Aspekten, wie gut die Zielstruktur zur Anlagethese passt. Das Ergebnis wird bestätigt, wenn du den Entwurf aktivierst.",
     dataThesis:
       "Dafür wird der Text der Anlagethese an den Anbieter deines KI-Reviewers gesendet, der im Web nach Nachrichten sucht. ",
     dataPolicy:
@@ -142,25 +127,21 @@ export const de: Messages<typeof en> = {
     failed: "Die Prüfung ist fehlgeschlagen: {{error}}",
     confirmed: "bestätigt",
     notConfirmed: "noch nicht bestätigt",
-    modified: "geändert",
     outdated: "veraltet: der Entwurf wurde seither geändert",
     scoring: "Bewertung v{{version}}",
     news: "Nachrichten {{from}} – {{to}}",
-    whyChanged: "Warum das Ergebnis geändert wurde:",
     notAdvice:
       "KI-Prüfungen können falsch oder unvollständig sein und sind keine Finanzberatung. Du entscheidest, was du änderst.",
-    change: "Ergebnis ändern",
   },
   score: {
     totalLabel: "Gesamtbewertung",
-    ai: "KI",
-    yours: "Deine",
-    total: "Gesamt, {{who}}",
     outOf: "{{score}} / 10",
-    aspectAi: "{{name}}, KI",
-    aspectYours: "{{name}}, deine",
-    yoursShort: "deine",
-    aiValue: "(KI {{score}})",
+  },
+  legacy: {
+    title: "Du hast dieses Ergebnis geändert, als Prüfungen noch geändert werden konnten:",
+    verdict: "Dein Urteil: {{verdict}}",
+    score: "{{name}}: {{score}}",
+    note: "Warum: {{note}}",
   },
   aspects: {
     T1: "Kernaussage",
@@ -184,14 +165,6 @@ export const de: Messages<typeof en> = {
     thesis_status: "Status der Anlagethese",
     policy_position: "Position",
   },
-  modify: {
-    form: "Ergebnis ändern",
-    intro:
-      "Deine Werte stehen neben denen der KI, die sichtbar bleiben. Wähle «KI», um den Wert der KI zu behalten.",
-    keepAi: "KI ({{value}})",
-    verdict: "Urteil",
-    note: "Warum änderst du das Ergebnis?",
-  },
   states: {
     queued: "wartet",
     running: "läuft",
@@ -206,9 +179,6 @@ export const de: Messages<typeof en> = {
     noReview: "Dieser Entwurf hat keine Prüfung. Trotzdem aktivieren?",
     outdated:
       "Der Entwurf wurde nach seiner Prüfung geändert. Mit der veralteten Prüfung aktivieren?",
-  },
-  details: {
-    changedBecause: "Geändert, weil: {{note}}",
   },
   course: {
     label: "Bewertung der Prüfungen über die Revisionen",

@@ -23,17 +23,14 @@ const brief = (id: number, total: number, extra: Record<string, unknown> = {}) =
   state: "done",
   total,
   verdict: "intact",
-  modified: false,
   outdated: false,
   ...extra,
 });
 
-const aspect = (n: number, ai: number, extra: Record<string, unknown> = {}) => ({
+const aspect = (n: number, score: number, extra: Record<string, unknown> = {}) => ({
   code: `T${n}`,
   name: ["Core claim", "Value drivers", "Risks", "Break conditions", "Fit", "Evidence"][n - 1],
-  ai_score: ai,
-  score: ai,
-  modified: false,
+  score,
   reasoning_md: `Reasoning ${n} [1]`,
   ...extra,
 });
@@ -53,12 +50,9 @@ const review = (extra: Record<string, unknown> = {}) => ({
   started_at: "2026-03-01T10:00:00+00:00",
   completed_at: "2026-03-01T10:05:00+00:00",
   aspects: [7, 6, 8, 5, 7, 6.5].map((s, i) => aspect(i + 1, s)),
-  ai_total: 6.5,
   total: 6.5,
-  ai_verdict: "needs_adaptation",
   verdict: "needs_adaptation",
-  modified: false,
-  modification_note: null,
+  legacy_modification: null,
   outdated: false,
   confirmed: false,
   sources: [
@@ -118,7 +112,7 @@ function thesis(draftReview: unknown = null) {
     created_at: "2026-01-01T10:00:00+00:00",
     revisions: [
       rev(1, { review: brief(10, 6) }),
-      rev(2, { review: brief(20, 7.5, { modified: true, verdict: "needs_adaptation" }) }),
+      rev(2, { review: brief(20, 7.5, { verdict: "needs_adaptation" }) }),
       rev(3, { is_draft: true, activated_at: null, change_note: null, review: draftReview }),
     ],
   };
@@ -240,14 +234,12 @@ describe("reviews", () => {
     renderApp("/theses/7");
     const section = await screen.findByRole("region", { name: "Thesis review" });
     expect(
-      await within(section).findByRole("img", { name: "Total, AI: 6.5 of 10" }),
+      await within(section).findByRole("img", { name: "Total score: 6.5 of 10" }),
     ).toBeInTheDocument();
     expect(within(section).getByText("needs adaptation")).toBeInTheDocument();
     expect(within(section).getByText("not confirmed yet")).toBeInTheDocument();
     expect(within(section).getByText(/anthropic claude-x · scoring v1/)).toBeInTheDocument();
-    expect(
-      within(section).getByRole("img", { name: "Core claim, AI: 7.0 of 10" }),
-    ).toBeInTheDocument();
+    expect(within(section).getByRole("img", { name: "Core claim: 7.0 of 10" })).toBeInTheDocument();
     expect(within(section).getByRole("link", { name: "ETF inflows rise" })).toHaveAttribute(
       "href",
       "https://news.example/etf",
@@ -259,59 +251,34 @@ describe("reviews", () => {
     );
   });
 
-  it("[REV-10] changes scores and verdict with a note; the AI's values stay visible", async () => {
-    const changed = review({
-      aspects: [
-        aspect(1, 7, { score: 9, modified: true }),
-        ...[6, 8, 5, 7, 6.5].map((s, i) => aspect(i + 2, s)),
-      ],
-      total: 7,
-      verdict: "intact",
-      modified: true,
-      modification_note: "Too strict",
-    });
-    let current = review();
-    const calls = setup(
+  it("[REV-02] shows the changes of a review from before reviews became read-only", async () => {
+    setup(
       {
-        "GET /api/reviews/30": () => json(current),
-        "PUT /api/reviews/30": () => {
-          current = changed;
-          return json(changed);
-        },
+        "GET /api/reviews/30": () =>
+          json(
+            review({
+              confirmed: true,
+              legacy_modification: { note: "Too strict", verdict: "intact", scores: { T1: 9 } },
+            }),
+          ),
       },
       brief(30, 6.5),
     );
     renderApp("/theses/7");
-    await userEvent.click(await screen.findByRole("button", { name: "Change result" }));
-    const form = screen.getByRole("form", { name: "Change result" });
-    expect(within(form).getByLabelText("T1 Core claim")).toHaveValue("");
-    await userEvent.selectOptions(within(form).getByLabelText("T1 Core claim"), "9");
-    await userEvent.selectOptions(within(form).getByLabelText("Verdict"), "intact");
-    await userEvent.type(
-      within(form).getByLabelText("Why do you change the result?"),
-      "Too strict",
-    );
-    await userEvent.click(within(form).getByRole("button", { name: "Save" }));
-    await waitFor(() =>
-      expect(calls.find((c) => c.method === "PUT")?.body).toEqual({
-        scores: { T1: 9, T2: null, T3: null, T4: null, T5: null, T6: null },
-        verdict: "intact",
-        note: "Too strict",
-      }),
-    );
-    const section = screen.getByRole("region", { name: "Thesis review" });
+    const section = await screen.findByRole("region", { name: "Thesis review" });
     expect(
-      await within(section).findByRole("img", { name: "Total, Yours: 7.0 of 10" }),
+      await within(section).findByText(/You changed this result when reviews could still/),
     ).toBeInTheDocument();
-    expect(within(section).getByRole("img", { name: "Total, AI: 6.5 of 10" })).toBeInTheDocument();
+    expect(within(section).getByText("Your verdict: intact")).toBeInTheDocument();
+    expect(within(section).getByText("T1 Core claim: 9.0")).toBeInTheDocument();
+    expect(within(section).getByText("Why: Too strict")).toBeInTheDocument();
+    // The AI's values are the result
     expect(
-      within(section).getByRole("img", { name: "Core claim, yours: 9.0 of 10" }),
+      within(section).getByRole("img", { name: "Total score: 6.5 of 10" }),
     ).toBeInTheDocument();
     expect(
-      within(section).getByRole("img", { name: "Core claim, AI: 7.0 of 10" }),
-    ).toBeInTheDocument();
-    expect(within(section).getByText("modified")).toBeInTheDocument();
-    expect(within(section).getByText(/Too strict/)).toBeInTheDocument();
+      within(section).queryByRole("button", { name: "Change result" }),
+    ).not.toBeInTheDocument();
   });
 
   it("[REV-09] marks a review as outdated when the draft changed", async () => {
@@ -333,7 +300,7 @@ describe("reviews", () => {
     expect(within(course).getByRole("img", { name: "Revision 2: 7.5 of 10" })).toBeInTheDocument();
     const second = screen.getByText("Revision 2").closest("li")!;
     expect(within(second).getByRole("img", { name: "Review: 7.5 of 10" })).toBeInTheDocument();
-    expect(within(second).getByText("modified")).toBeInTheDocument();
+    expect(within(second).getByText("needs adaptation")).toBeInTheDocument();
     // An activated revision's review cannot be changed or run again
     await userEvent.click(screen.getByRole("tab", { name: "Content" }));
     await userEvent.selectOptions(screen.getByLabelText("Revision"), "2");
