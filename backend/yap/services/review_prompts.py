@@ -1,14 +1,17 @@
-"""Instructions for the LLM and validation of its answer (REV-02 to REV-07).
+"""The review prompt and validation of its answer (REV-02 to REV-07, REV-19).
 
-The instructions belong to the scoring version (REV-06): change SCORING_VERSION in
-domain/reviews.py whenever they change. Requests contain only thesis text, asset names
-and tickers, and the target structure; never amounts or who the investor is (NFR-01).
+One prompt per review: AI reviewers receive it as a request, a manual review gets the same
+text to copy into an AI outside the app. The instructions belong to the scoring version
+(REV-06): change SCORING_VERSION in domain/reviews.py whenever they change. Prompts contain
+only thesis text, asset names and tickers, and the target structure; never amounts or who
+the investor is (NFR-01).
 """
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -53,6 +56,7 @@ class SuggestionAnswer(_Model):
 
 
 class ThesisAnswer(_Model):
+    prompt_id: str
     aspects: list[AspectAnswer]
     verdict: Verdict
     sources: list[SourceAnswer]
@@ -60,11 +64,12 @@ class ThesisAnswer(_Model):
 
 
 class PolicyAnswer(_Model):
+    prompt_id: str
     aspects: list[AspectAnswer]
     suggestions: list[SuggestionAnswer]
 
 
-def _schema(kind: ReviewKind) -> dict[str, Any]:
+def _schema(kind: ReviewKind, prompt_id: str) -> dict[str, Any]:
     """JSON Schema of the answer, in the subset all three providers accept in strict
     mode: every property required, no additional properties, no numeric bounds."""
 
@@ -90,7 +95,10 @@ def _schema(kind: ReviewKind) -> dict[str, Any]:
             "content": {"type": "string", "description": "The suggested change, in markdown"},
         }
     )
-    properties: dict[str, Any] = {"aspects": {"type": "array", "items": aspect}}
+    properties: dict[str, Any] = {
+        "prompt_id": {"type": "string", "enum": [prompt_id]},
+        "aspects": {"type": "array", "items": aspect},
+    }
     if kind == ReviewKind.THESIS:
         properties["verdict"] = {"type": "string", "enum": [v.value for v in Verdict]}
         properties["sources"] = {
@@ -133,8 +141,9 @@ def _valid_score(score: float) -> bool:
     return True
 
 
-def parse_answer(kind: ReviewKind, text: str) -> ParsedReview:
-    """Validates the answer strictly; an invalid answer fails the review (REV-08)."""
+def parse_answer(kind: ReviewKind, text: str, prompt_id: str) -> ParsedReview:
+    """Validates the answer strictly; an invalid answer fails the review (REV-08). It must
+    repeat the ID of its prompt (REV-19)."""
     match = re.search(r"\{.*\}", text, re.DOTALL)  # tolerate a code fence around the JSON
     try:
         data = json.loads(match.group(0) if match else text)
@@ -145,6 +154,8 @@ def parse_answer(kind: ReviewKind, text: str) -> ParsedReview:
         )
     except (json.JSONDecodeError, ValidationError) as e:
         raise LlmError(msg("answer_format_invalid", error=type(e).__name__)) from e
+    if answer.prompt_id.strip() != prompt_id:
+        raise LlmError(msg("answer_prompt_id_wrong", prompt_id=prompt_id))
     expected = [a.code for a in ASPECTS[kind]]
     if sorted(a.code for a in answer.aspects) != expected:
         raise LlmError(msg("answer_aspects_wrong", aspects=", ".join(expected)))
@@ -161,6 +172,106 @@ def parse_answer(kind: ReviewKind, text: str) -> ParsedReview:
     return ParsedReview(aspects, None, [], answer.suggestions)
 
 
+# --- Prompt ID -------------------------------------------------------------------------
+
+_ISSUED = "%Y%m%dT%H%M%SZ"
+_PROMPT_ID = re.compile(r"^([TP])(\d+)-(\d{8}T\d{6}Z)-(\d+)-([0-9a-f]{6})$")
+
+
+@dataclass(frozen=True)
+class PromptRef:
+    """What a prompt ID stands for (REV-19): the reviewed draft, when the prompt was made
+    from it (a later change of the draft makes the review outdated, REV-09) and the news
+    period of a thesis review."""
+
+    kind: ReviewKind
+    draft_id: int
+    issued_at: datetime
+    news_days: int  # 0 for policy reviews
+
+    @property
+    def prompt_id(self) -> str:
+        body = (
+            f"{'T' if self.kind == ReviewKind.THESIS else 'P'}{self.draft_id}"
+            f"-{self.issued_at.astimezone(UTC).strftime(_ISSUED)}-{self.news_days}"
+        )
+        return f"{body}-{_checksum(body)}"
+
+    @property
+    def news_from(self) -> date:
+        return (self.issued_at - timedelta(days=self.news_days)).date()
+
+    @property
+    def news_to(self) -> date:
+        return self.issued_at.date()
+
+
+def _checksum(body: str) -> str:
+    """Catches IDs that were mistyped or changed by the AI; not a secret."""
+    return hashlib.sha256(body.encode()).hexdigest()[:6]
+
+
+def parse_prompt_id(prompt_id: str) -> PromptRef | None:
+    """The reference of a prompt ID, or None if it is not one."""
+    match = _PROMPT_ID.match(prompt_id.strip())
+    if not match:
+        return None
+    letter, draft_id, issued, news_days, check = match.groups()
+    body = f"{letter}{draft_id}-{issued}-{news_days}"
+    if _checksum(body) != check:
+        return None
+    return PromptRef(
+        kind=ReviewKind.THESIS if letter == "T" else ReviewKind.POLICY,
+        draft_id=int(draft_id),
+        issued_at=datetime.strptime(issued, _ISSUED).replace(tzinfo=UTC),
+        news_days=int(news_days),
+    )
+
+
+# --- Prompt ----------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReviewPrompt:
+    """The complete review prompt (REV-19), the same for AI reviewers and manual reviews."""
+
+    prompt_id: str
+    instructions: str
+    content: str  # what is reviewed: thesis, and for a policy review its target structure
+    json_schema: dict[str, Any]
+    web_search: bool
+
+    def llm_request(self) -> LlmRequest:
+        return LlmRequest(
+            system=self.instructions,
+            prompt=self.content,
+            json_schema=self.json_schema,
+            web_search=self.web_search,
+        )
+
+    def text(self) -> str:
+        """One text to paste into an AI outside the app (REV-18): instructions, the answer
+        format and the content."""
+        return f"""{self.instructions}
+
+---
+
+{self.content}
+
+---
+
+The answer format as JSON Schema:
+
+```json
+{json.dumps(self.json_schema, indent=2)}
+```"""
+
+
+def _answer_format(prompt_id: str) -> str:
+    return f"""Answer with one JSON object in the given answer format and nothing else.
+Repeat this prompt ID exactly in the field prompt_id: {prompt_id}"""
+
+
 # --- Requests --------------------------------------------------------------------------
 
 
@@ -175,9 +286,10 @@ def _thesis_text(revision: ThesisRevision) -> str:
     )
 
 
-def thesis_request(revision: ThesisRevision, news_from: date, news_to: date) -> LlmRequest:
+def thesis_prompt(revision: ThesisRevision, ref: PromptRef) -> ReviewPrompt:
     """REV-02 to REV-04: aspects T1-T6 and a verdict, with current news."""
-    system = f"""You review an investment thesis written by a private investor.
+    news_from, news_to = ref.news_from, ref.news_to
+    instructions = f"""You review an investment thesis written by a private investor.
 Today is {news_to.isoformat()}.
 
 The thesis follows a template with eight sections: 1 Belief, 2 Investor Fit,
@@ -188,7 +300,8 @@ does not use the template, judge the same content wherever it is.
 Aspect T6 and the verdict judge the thesis against current news: search the web for news
 from {news_from.isoformat()} to {news_to.isoformat()} on the assets the thesis is about
 (take them from the thesis text), in particular on its value drivers, risks, break
-conditions and warning signals.
+conditions and warning signals. If you cannot search the web, say so in the reasoning of
+T6, score T6 only on what you know, and leave the sources empty.
 
 Aspects:
 {_aspect_list(ReviewKind.THESIS)}
@@ -205,11 +318,14 @@ Every statement based on news refers to its source as [n], the position in that 
 starting at 1. Do not invent sources.
 
 Suggestions are optional: concrete changes to the thesis text (thesis_text) or its
-status (thesis_status). Make none if nothing needs to change."""
-    return LlmRequest(
-        system=system,
-        prompt=_thesis_text(revision),
-        json_schema=_schema(ReviewKind.THESIS),
+status (thesis_status). Make none if nothing needs to change.
+
+{_answer_format(ref.prompt_id)}"""
+    return ReviewPrompt(
+        prompt_id=ref.prompt_id,
+        instructions=instructions,
+        content=_thesis_text(revision),
+        json_schema=_schema(ReviewKind.THESIS, ref.prompt_id),
         web_search=True,
     )
 
@@ -230,9 +346,9 @@ def _structure(version: PolicyVersion) -> str:
     return "\n".join(rows) + (f"\n\nRationales per position:\n\n{rationales}" if rationales else "")
 
 
-def policy_request(version: PolicyVersion) -> LlmRequest:
+def policy_prompt(version: PolicyVersion, ref: PromptRef) -> ReviewPrompt:
     """REV-02, REV-05: aspects P1-P6 from thesis and target structure; no web search."""
-    system = f"""You review the target structure of an investment policy written by a
+    instructions = f"""You review the target structure of an investment policy written by a
 private investor: does it match the investment thesis it is based on? 0 means the
 structure does not match the thesis at all, 10 a perfect match. Judge only the thesis
 and the structure given here; do not search for news.
@@ -248,14 +364,17 @@ Aspects:
 {SCORING_RULES}
 
 Suggestions are optional: concrete changes to target allocations, thresholds or exit
-flags of positions (policy_position). Make none if nothing needs to change."""
-    prompt = (
+flags of positions (policy_position). Make none if nothing needs to change.
+
+{_answer_format(ref.prompt_id)}"""
+    content = (
         f"{_thesis_text(version.thesis_revision)}\n\n"
         f"<target_structure>\n{_structure(version)}\n</target_structure>"
     )
-    return LlmRequest(
-        system=system,
-        prompt=prompt,
-        json_schema=_schema(ReviewKind.POLICY),
+    return ReviewPrompt(
+        prompt_id=ref.prompt_id,
+        instructions=instructions,
+        content=content,
+        json_schema=_schema(ReviewKind.POLICY, ref.prompt_id),
         web_search=False,
     )

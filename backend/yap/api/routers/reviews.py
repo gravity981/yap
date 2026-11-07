@@ -1,4 +1,4 @@
-"""Thesis and policy reviews (REV-01 to REV-17)."""
+"""Thesis and policy reviews (REV-01 to REV-19)."""
 
 from datetime import datetime
 
@@ -210,6 +210,35 @@ def start_policy_review(
     review = reviews.start_policy_review(session, user, clock, keys, policy_id, reviewer_id)
     _schedule(request, background, session, clock, keys, adapters, review)
     return _out(session, review)
+
+
+class ReviewPromptOut(BaseModel):
+    """REV-19: the review prompt to copy into an AI outside the app."""
+
+    prompt_id: str
+    text: str
+
+
+@router.get("/theses/{thesis_id}/draft/review-prompt")
+def get_thesis_review_prompt(
+    thesis_id: int,
+    session: DbSession,
+    clock: AppClock,
+    user: CurrentUser,
+    news_days: int = reviews.NEWS_DAYS_DEFAULT,
+) -> ReviewPromptOut:
+    """REV-19: the prompt of the thesis draft as it is saved now; changes nothing."""
+    prompt = reviews.thesis_review_prompt(session, user, clock, thesis_id, news_days)
+    return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
+
+
+@router.get("/policies/{policy_id}/draft/review-prompt")
+def get_policy_review_prompt(
+    policy_id: int, session: DbSession, clock: AppClock, user: CurrentUser
+) -> ReviewPromptOut:
+    """REV-19: the prompt of the policy draft as it is saved now; changes nothing."""
+    prompt = reviews.policy_review_prompt(session, user, clock, policy_id)
+    return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
 
 
 @router.get("/reviews/{review_id}")

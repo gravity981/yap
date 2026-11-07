@@ -1,4 +1,4 @@
-"""Reviews through the API, with the background run (REV-01 to REV-17)."""
+"""Reviews through the API, with the background run (REV-01 to REV-19)."""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -94,6 +94,36 @@ def test_policy_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
     assert review["verdict"] is None and review["sources"] == []
     version = ok(alice.get(f"/api/policies/{pid}"))["versions"][0]
     assert (version["review"]["id"], version["review"]["total"]) == (review["id"], 7.5)
+
+
+@pytest.mark.req("REV-19", "REV-16", "NFR-01")
+def test_the_review_prompt_of_a_draft_changes_nothing(
+    alice: TestClient, accounts_api: Accounts
+) -> None:
+    from yap.services.review_prompts import parse_prompt_id
+
+    tid = _thesis_draft(alice)
+    prompt = ok(alice.get(f"/api/theses/{tid}/draft/review-prompt?news_days=30"))
+    ref = parse_prompt_id(prompt["prompt_id"])
+    assert ref is not None and (ref.kind, ref.news_days) == ("thesis", 30)
+    assert prompt["prompt_id"] in prompt["text"] and "# Thesis" in prompt["text"]
+    assert "alice" not in prompt["text"]
+    # No review is started and nothing counts towards the limit
+    draft = ok(alice.get(f"/api/theses/{tid}"))["revisions"][1]
+    assert draft["review"] is None and ref.draft_id == draft["id"]
+    assert ok(alice.get("/api/reviews/usage"))["used"] == 0
+    assert alice.get(f"/api/theses/{tid}/draft/review-prompt?news_days=0").status_code == 422
+
+    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "x"}))
+    assert alice.get(f"/api/theses/{tid}/draft/review-prompt").status_code == 404  # no draft
+    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": tid}), 201)["id"]
+    policy_prompt = ok(alice.get(f"/api/policies/{pid}/draft/review-prompt"))
+    assert parse_prompt_id(policy_prompt["prompt_id"]).kind == "policy"  # type: ignore[union-attr]
+    assert "<target_structure>" in policy_prompt["text"]
+
+    accounts_api.create("bob")
+    bob = accounts_api.client("bob")
+    assert bob.get(f"/api/policies/{pid}/draft/review-prompt").status_code == 404
 
 
 @pytest.mark.req("REV-16")

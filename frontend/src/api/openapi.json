@@ -3455,6 +3455,25 @@
         "title": "ReviewOut",
         "type": "object"
       },
+      "ReviewPromptOut": {
+        "description": "REV-19: the review prompt to copy into an AI outside the app.",
+        "properties": {
+          "prompt_id": {
+            "title": "Prompt Id",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt_id",
+          "text"
+        ],
+        "title": "ReviewPromptOut",
+        "type": "object"
+      },
       "RevisionDiff": {
         "properties": {
           "from_revision_no": {
@@ -7018,6 +7037,65 @@
         ]
       }
     },
+    "/api/policies/{policy_id}/draft/review-prompt": {
+      "get": {
+        "description": "REV-19: the prompt of the policy draft as it is saved now; changes nothing.",
+        "operationId": "get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPromptOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Policy Review Prompt",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/api/policies/{policy_id}/draft/thesis-revision": {
       "put": {
         "operationId": "set_draft_thesis_revision_api_policies__policy_id__draft_thesis_revision_put",
@@ -9819,6 +9897,75 @@
           }
         },
         "summary": "Start Thesis Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/theses/{thesis_id}/draft/review-prompt": {
+      "get": {
+        "description": "REV-19: the prompt of the thesis draft as it is saved now; changes nothing.",
+        "operationId": "get_thesis_review_prompt_api_theses__thesis_id__draft_review_prompt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "thesis_id",
+            "required": true,
+            "schema": {
+              "title": "Thesis Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "news_days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "title": "News Days",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPromptOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Thesis Review Prompt",
         "tags": [
           "reviews"
         ]

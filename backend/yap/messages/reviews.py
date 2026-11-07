@@ -18,6 +18,7 @@ MESSAGES: dict[str, str] = {
     # Answers of the reviews (services/review_prompts.py)
     "answer_format_invalid": "The answer does not have the expected format ({error})",
     "answer_aspects_wrong": "The answer must score exactly the aspects {aspects}",
+    "answer_prompt_id_wrong": "The answer must repeat the prompt ID {prompt_id}",
     "score_invalid": "Score {score} is not between 0 and 10 in steps of 0.5",
     # Reviews (services/reviews.py, api/routers/reviews.py)
     "review_reviewer_not_found": "AI reviewer {id} not found",

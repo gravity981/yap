@@ -38,6 +38,7 @@ class FakeAdapter:
         codes = properties["aspects"]["items"]["properties"]["code"]["enum"]
         thesis = "verdict" in properties
         answer: dict[str, Any] = {
+            "prompt_id": properties["prompt_id"]["enum"][0],
             "aspects": [
                 {"code": code, "score": score, "reasoning": REASONING[code]}
                 for code, score in zip(codes, SCORES, strict=True)

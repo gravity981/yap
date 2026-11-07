@@ -16,6 +16,7 @@ export const de = {
   provider_error: "{{detail}}",
   answer_format_invalid: "Die Antwort hat nicht das erwartete Format ({{error}})",
   answer_aspects_wrong: "Die Antwort muss genau die Aspekte {{aspects}} bewerten",
+  answer_prompt_id_wrong: "Die Antwort muss die Prompt-ID {{prompt_id}} wiederholen",
   score_invalid: "Die Bewertung {{score}} liegt nicht zwischen 0 und 10 in Schritten von 0.5",
   review_reviewer_not_found: "KI-Reviewer {{id}} nicht gefunden",
   review_choose_reviewer: "Wähle einen KI-Reviewer",

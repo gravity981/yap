@@ -1,5 +1,6 @@
 """Database, clock and factory fixtures (test strategy §8)."""
 
+import json
 import shutil
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -323,7 +324,21 @@ class FakeLlm:
     def generate(self, request: LlmRequest) -> str:
         self.requests.append(request)
         self._fail()
-        return self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
+        answer = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
+        return with_prompt_id(answer, request)
+
+
+def with_prompt_id(answer: str, request: LlmRequest) -> str:
+    """Like a real AI, the fake repeats the prompt ID of the request (REV-19), unless the
+    answer gives one or is no JSON object."""
+    try:
+        data = json.loads(answer)
+    except json.JSONDecodeError:
+        return answer
+    if not isinstance(data, dict) or "prompt_id" in data:
+        return answer
+    prompt_id = request.json_schema["properties"]["prompt_id"]["enum"][0]
+    return json.dumps({"prompt_id": prompt_id, **data})
 
 
 @pytest.fixture

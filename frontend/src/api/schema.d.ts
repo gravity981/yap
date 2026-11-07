@@ -622,6 +622,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/policies/{policy_id}/draft/review-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Policy Review Prompt
+         * @description REV-19: the prompt of the policy draft as it is saved now; changes nothing.
+         */
+        get: operations["get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/policies/{policy_id}/draft/thesis-revision": {
         parameters: {
             query?: never;
@@ -1318,6 +1338,26 @@ export interface paths {
          * @description REV-01, REV-04: starts a review of the thesis draft; it runs in the background.
          */
         post: operations["start_thesis_review_api_theses__thesis_id__draft_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/theses/{thesis_id}/draft/review-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Thesis Review Prompt
+         * @description REV-19: the prompt of the thesis draft as it is saved now; changes nothing.
+         */
+        get: operations["get_thesis_review_prompt_api_theses__thesis_id__draft_review_prompt_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2603,6 +2643,16 @@ export interface components {
             total: number | null;
             /** Verdict */
             verdict: string | null;
+        };
+        /**
+         * ReviewPromptOut
+         * @description REV-19: the review prompt to copy into an AI outside the app.
+         */
+        ReviewPromptOut: {
+            /** Prompt Id */
+            prompt_id: string;
+            /** Text */
+            text: string;
         };
         /** RevisionDiff */
         RevisionDiff: {
@@ -4356,6 +4406,39 @@ export interface operations {
             };
         };
     };
+    get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPromptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_draft_thesis_revision_api_policies__policy_id__draft_thesis_revision_put: {
         parameters: {
             query?: never;
@@ -5880,6 +5963,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_thesis_review_prompt_api_theses__thesis_id__draft_review_prompt_get: {
+        parameters: {
+            query?: {
+                news_days?: number;
+            };
+            header?: never;
+            path: {
+                thesis_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPromptOut"];
                 };
             };
             /** @description Validation Error */

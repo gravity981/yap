@@ -207,6 +207,13 @@ def _start(
     return review
 
 
+def _check_news_days(news_days: int) -> None:
+    if not 1 <= news_days <= NEWS_DAYS_MAX:
+        raise ValidationError.single(
+            msg("review_news_days_invalid", max=NEWS_DAYS_MAX), "news_days"
+        )
+
+
 def start_thesis_review(
     session: Session,
     actor: Investor,
@@ -218,10 +225,7 @@ def start_thesis_review(
 ) -> Review:
     """REV-01, REV-04: a review of the thesis draft, with news of the last `news_days`,
     by the given AI reviewer or the investor's default (USR-08)."""
-    if not 1 <= news_days <= NEWS_DAYS_MAX:
-        raise ValidationError.single(
-            msg("review_news_days_invalid", max=NEWS_DAYS_MAX), "news_days"
-        )
+    _check_news_days(news_days)
     draft = _thesis_draft(session, actor, thesis_id)
     return _start(session, actor, clock, keys, ReviewKind.THESIS, draft, news_days, reviewer_id)
 
@@ -237,6 +241,33 @@ def start_policy_review(
     """REV-01, REV-05: a review of the policy draft against its pinned thesis revision."""
     draft = _policy_draft(session, actor, policy_id)
     return _start(session, actor, clock, keys, ReviewKind.POLICY, draft, None, reviewer_id)
+
+
+# --- Prompt for a manual review (REV-19) -----------------------------------------------
+
+
+def thesis_review_prompt(
+    session: Session,
+    actor: Investor,
+    clock: Clock,
+    thesis_id: int,
+    news_days: int = NEWS_DAYS_DEFAULT,
+) -> review_prompts.ReviewPrompt:
+    """The review prompt of the thesis draft as it is saved now, the same an AI reviewer
+    would receive. Making it changes nothing; it counts towards no limit (REV-16)."""
+    _check_news_days(news_days)
+    draft = _thesis_draft(session, actor, thesis_id)
+    ref = review_prompts.PromptRef(ReviewKind.THESIS, draft.id, clock.now(), news_days)
+    return _prompt(session, ref)
+
+
+def policy_review_prompt(
+    session: Session, actor: Investor, clock: Clock, policy_id: int
+) -> review_prompts.ReviewPrompt:
+    """The review prompt of the policy draft as it is saved now (REV-05, REV-19)."""
+    draft = _policy_draft(session, actor, policy_id)
+    ref = review_prompts.PromptRef(ReviewKind.POLICY, draft.id, clock.now(), 0)
+    return _prompt(session, ref)
 
 
 # --- Run (background job, REV-08) ------------------------------------------------------
@@ -265,7 +296,7 @@ def run_review(
             if reason is not None:
                 raise ConflictError(reason)
             config = llm_config(reviewer, keys)
-            request = _request(session, review)
+            request, prompt_id = _request(session, review)
         except ConflictError as e:
             _fail(review, clock, str(e))
             session.commit()
@@ -274,7 +305,7 @@ def run_review(
 
     try:
         answer = adapters(config).generate(request)
-        parsed = review_prompts.parse_answer(ReviewKind(review.kind), answer)
+        parsed = review_prompts.parse_answer(ReviewKind(review.kind), answer, prompt_id)
         error = None
     except LlmError as e:
         error = str(e)
@@ -296,16 +327,35 @@ def run_review(
         session.commit()
 
 
-def _request(session: Session, review: Review) -> LlmRequest:
+def _prompt_ref(review: Review) -> review_prompts.PromptRef:
+    """The prompt of an AI review is made when the review starts."""
     if review.kind == ReviewKind.THESIS:
-        revision = session.get(ThesisRevision, review.thesis_revision_id)
-        assert revision is not None and review.news_from and review.news_to
-        return review_prompts.thesis_request(
-            revision, review.news_from.date(), review.news_to.date()
+        assert review.thesis_revision_id and review.news_from and review.news_to
+        return review_prompts.PromptRef(
+            ReviewKind.THESIS,
+            review.thesis_revision_id,
+            review.started_at,
+            (review.news_to - review.news_from).days,
         )
-    version = session.get(PolicyVersion, review.policy_version_id)
+    assert review.policy_version_id
+    return review_prompts.PromptRef(
+        ReviewKind.POLICY, review.policy_version_id, review.started_at, 0
+    )
+
+
+def _prompt(session: Session, ref: review_prompts.PromptRef) -> review_prompts.ReviewPrompt:
+    if ref.kind == ReviewKind.THESIS:
+        revision = session.get(ThesisRevision, ref.draft_id)
+        assert revision is not None
+        return review_prompts.thesis_prompt(revision, ref)
+    version = session.get(PolicyVersion, ref.draft_id)
     assert version is not None
-    return review_prompts.policy_request(version)
+    return review_prompts.policy_prompt(version, ref)
+
+
+def _request(session: Session, review: Review) -> tuple[LlmRequest, str]:
+    prompt = _prompt(session, _prompt_ref(review))
+    return prompt.llm_request(), prompt.prompt_id
 
 
 def _fail(review: Review, clock: Clock, error: str) -> None:

@@ -7,6 +7,7 @@
   "ai_reviewer_not_found": "AI reviewer {id} not found",
   "answer_aspects_wrong": "The answer must score exactly the aspects {aspects}",
   "answer_format_invalid": "The answer does not have the expected format ({error})",
+  "answer_prompt_id_wrong": "The answer must repeat the prompt ID {prompt_id}",
   "answer_too_long": "The answer was too long and was cut off",
   "api_key_no_secret": "APP_SECRET_KEY is not set, so keys cannot be stored",
   "api_key_required": "An API key is required",
