@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { investor, json, mockApi, renderApp, type Handler } from "@/test/utils";
 
-import { THESIS_TEMPLATE } from "./template";
+import { THESIS_TEMPLATES } from "./template";
 
 // CodeMirror needs a real browser; the page logic is tested with a plain text field
 vi.mock("@uiw/react-codemirror", () => ({
@@ -96,7 +96,7 @@ describe("theses", () => {
     const editor = (
       await screen.findAllByLabelText("Content", {}, { timeout: 5000 })
     )[0] as HTMLTextAreaElement;
-    expect(editor.value).toBe(THESIS_TEMPLATE);
+    expect(editor.value).toBe(THESIS_TEMPLATES.en);
     await userEvent.clear(editor);
     await userEvent.type(editor, "# My view");
     expect(
@@ -114,6 +114,41 @@ describe("theses", () => {
       content_md: "# My view",
       visibility: "shared",
     });
+  });
+
+  it("[THS-07] starts a new thesis from the template in the account's language", async () => {
+    setup({ "GET /api/auth/me": () => json({ ...investor, language: "de" }) });
+    renderApp("/theses/new");
+    const editor = (
+      await screen.findAllByLabelText("Inhalt", {}, { timeout: 5000 })
+    )[0] as HTMLTextAreaElement;
+    expect(editor.value).toBe(THESIS_TEMPLATES.de);
+    expect(editor.value).toMatch(/^# Anlagethese\n/);
+  });
+
+  it("[THS-07] has the same sections in both languages, matching the review aspects", () => {
+    const structure = (template: string) =>
+      template
+        .split("\n")
+        .map((line) =>
+          line.startsWith("## ") ? line.slice(0, 5) : line.startsWith("- ") ? "-" : null,
+        )
+        .filter(Boolean);
+    expect(structure(THESIS_TEMPLATES.de)).toEqual(structure(THESIS_TEMPLATES.en));
+    const headings = THESIS_TEMPLATES.en.split("\n").filter((l) => l.startsWith("## "));
+    expect(headings.map((h) => h.split(" — ")[0])).toEqual([
+      "## 1. Belief",
+      "## 2. Investor Fit",
+      "## 3. Implementation",
+      "## 4. Opportunity",
+      "## 5. Downside",
+      "## 6. Invalidation",
+      "## 7. Early Warnings",
+      "## 8. Monitoring",
+    ]);
+    for (const template of Object.values(THESIS_TEMPLATES)) {
+      expect(template).not.toMatch(/ß/); // Swiss spelling
+    }
   });
 
   it("[THS-02] [THS-04] saves the draft with status and change note", async () => {

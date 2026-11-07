@@ -89,7 +89,7 @@ Status: **agreed**.
 - Each test gets a fresh SQLite database (temporary file, all Alembic migrations applied). The dev and prod volumes are never used.
 - Test data is created with factory functions in code, not shared fixture files (except the reference cases and import examples).
 - Time is controlled with a fixed clock; tests run with `TZ` set to a non-UTC zone.
-- **Not yet implemented** (excluded from the failing rule in section 3; must be empty at the first release): THS-02, THS-05, THS-07, POL-06, USR-08, TL-02, REV-01, REV-02, REV-08, REV-09, REV-11, REV-16, REV-17, REV-18, REV-19, REV-20, THS-10, THS-11, THS-12, THS-13, THS-14, THS-15
+- **Not yet implemented** (excluded from the failing rule in section 3; must be empty at the first release): THS-02, THS-05, POL-06, USR-08, REV-01, REV-02, REV-08, REV-09, REV-11, REV-16, REV-17, REV-18, REV-19, REV-20, THS-10, THS-11, THS-12, THS-13, THS-14, THS-15
 
 ## 9. Manual acceptance checklist (staging, per release candidate)
 

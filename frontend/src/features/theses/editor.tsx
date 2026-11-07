@@ -10,7 +10,7 @@ import { NativeSelect } from "@/components/ui/select";
 
 import { useCreateThesis, useRevision, useThesis, useThesisDraft } from "./api";
 import { statusLabel, THESIS_STATUSES } from "./status";
-import { THESIS_TEMPLATE } from "./template";
+import { thesisTemplate } from "./template";
 
 const FIELDS = ["title", "content_md", "status", "change_note", "visibility"];
 
@@ -20,7 +20,7 @@ export function NewThesisPage() {
   const create = useCreateThesis();
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState(THESIS_TEMPLATE);
+  const [content, setContent] = useState(thesisTemplate);
   const [visibility, setVisibility] = useState("private");
 
   const submit = (event: FormEvent) => {

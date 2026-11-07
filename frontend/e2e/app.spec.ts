@@ -61,7 +61,7 @@ test("[THS-01] [THS-02] [THS-07] writes a thesis in the markdown editor", async 
       .getByRole("link", { name: "Theses" })
       .click();
     await page.getByRole("link", { name: "New thesis" }).click();
-    await expect(page.locator(".cm-content").first()).toContainText("Investment thesis");
+    await expect(page.locator(".cm-content").first()).toContainText("Investment Thesis");
   });
   await test.step("type markdown and see the live preview", async () => {
     await page.getByLabel("Title").fill("Growth");
