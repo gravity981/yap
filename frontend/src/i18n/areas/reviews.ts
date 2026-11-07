@@ -8,24 +8,16 @@ export const en = {
     notReviewed: "Not reviewed.",
   },
   start: {
-    form: "Start review",
-    introThesis:
-      "An AI judges the thesis on six aspects and checks it against current news. The result is confirmed when you activate the draft.",
-    introPolicy:
-      "An AI judges how well the target structure matches the thesis, on six aspects. The result is confirmed when you activate the draft.",
     dataThesis:
       "To run it, the thesis text is sent to the provider of your AI reviewer, which searches the web for news. ",
     dataPolicy:
       "To run it, the thesis text and the target structure (percentages, thresholds, exit flags, rationales) are sent to the provider of your AI reviewer. ",
     dataNothingElse: "No amounts, portfolios or personal data are sent.",
-    reviewer: "AI reviewer",
     default: " (default)",
     newsDays: "News of the last … days",
     button: "Start review",
     again: "Run review again",
     usage: "{{used}} of {{limit}} reviews with {{name}} used this month",
-    noReviewers: "There are no AI reviewers yet; ask the admin.",
-    defaultIn: "The default AI reviewer is set in your <goto>settings</goto>.",
   },
   result: {
     running:
@@ -137,24 +129,16 @@ export const de: Messages<typeof en> = {
     notReviewed: "Nicht geprüft.",
   },
   start: {
-    form: "Prüfung starten",
-    introThesis:
-      "Eine KI beurteilt die Anlagethese nach sechs Aspekten und prüft sie an aktuellen Nachrichten. Das Ergebnis wird bestätigt, wenn du den Entwurf aktivierst.",
-    introPolicy:
-      "Eine KI beurteilt nach sechs Aspekten, wie gut die Zielstruktur zur Anlagethese passt. Das Ergebnis wird bestätigt, wenn du den Entwurf aktivierst.",
     dataThesis:
       "Dafür wird der Text der Anlagethese an den Anbieter deines KI-Reviewers gesendet, der im Web nach Nachrichten sucht. ",
     dataPolicy:
       "Dafür werden der Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen) an den Anbieter deines KI-Reviewers gesendet. ",
     dataNothingElse: "Es werden keine Beträge, Portfolios oder persönlichen Daten gesendet.",
-    reviewer: "KI-Reviewer",
     default: " (Standard)",
     newsDays: "Nachrichten der letzten … Tage",
     button: "Prüfung starten",
     again: "Prüfung erneut ausführen",
     usage: "{{used}} von {{limit}} Prüfungen mit {{name}} in diesem Monat verwendet",
-    noReviewers: "Es gibt noch keine KI-Reviewer; frag den Admin.",
-    defaultIn: "Den Standard-KI-Reviewer legst du in deinen <goto>Einstellungen</goto> fest.",
   },
   result: {
     running:

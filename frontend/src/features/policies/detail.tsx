@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 import { FileImport } from "@/components/file-import";
 import { filePositions, ImportPriceSources } from "@/features/prices/import-price-sources";
@@ -266,14 +266,23 @@ function VersionView({ policy, showDraft }: { policy: Policy; showDraft: boolean
           )}
         </>
       )}
-      {summary && (
-        <ReviewSection
-          key={summary.version_no}
-          kind="policy"
-          ownerId={policy.id}
-          brief={summary.review}
-          canStart={summary.is_draft && policy.archived_at === null}
-        />
+      {summary && <ReviewSection key={summary.version_no} kind="policy" brief={summary.review} />}
+      {/* REV-01: reviews are made in the draft editor */}
+      {summary?.is_draft && policy.archived_at === null && (
+        <p className="text-sm text-muted-foreground">
+          <Trans
+            i18nKey="reviews.pane.inEditor"
+            components={{
+              goto: (
+                <Link
+                  to="/policies/$policyId/draft"
+                  params={{ policyId: String(policy.id) }}
+                  className="underline"
+                />
+              ),
+            }}
+          />
+        </p>
       )}
     </div>
   );

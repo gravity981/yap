@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { investor, json, mockApi, renderApp, type Handler } from "@/test/utils";
 
@@ -355,6 +355,43 @@ describe("policies", () => {
       ["ETH", null, null, "60", true],
       ["GOLD", "Gold ETF", "ETF", "10", false],
     ]);
+  });
+
+  it("[REV-01] [REV-05] [REV-19] reviews the policy draft in its editor, saving it first", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    const calls = setup({
+      "PUT /api/policies/3/draft": () => json({ ...version(3, { is_draft: true }), positions: [] }),
+      "GET /api/ai-reviewers": () => json([]),
+      "GET /api/policies/3/draft/review-prompt": () =>
+        json({ prompt_id: "P203-20260301T100000Z-0-abcdef", text: "POLICY PROMPT" }),
+    });
+    renderApp("/policies/3/draft");
+    const section = await screen.findByRole("region", { name: "Policy review" });
+    expect(within(section).getByText(/has no review yet; it needs one/)).toBeInTheDocument();
+    // Without AI reviewers, manual is preselected (REV-16); a policy review has no news
+    await waitFor(() =>
+      expect(within(section).getByLabelText("Review method")).toHaveValue("manual"),
+    );
+    expect(within(section).queryByLabelText("News of the last … days")).toBeNull();
+    expect(within(section).getByText(/and the target structure \(percentages/)).toBeInTheDocument();
+    await userEvent.click(within(section).getByRole("button", { name: "Copy review prompt" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("POLICY PROMPT"));
+    const order = calls.map((c) => `${c.method} ${c.path}`);
+    expect(order.indexOf("PUT /api/policies/3/draft")).toBeLessThan(
+      order.indexOf("GET /api/policies/3/draft/review-prompt"),
+    );
+    expect(screen.getByRole("heading", { name: /core/ })).toBeInTheDocument(); // still editing
+  });
+
+  it("[REV-01] points from the policy page to the editor for reviews", async () => {
+    setup();
+    renderApp("/policies/3");
+    await userEvent.selectOptions(await screen.findByLabelText("Version"), "3"); // the draft
+    expect(await screen.findByRole("link", { name: "editor" })).toHaveAttribute(
+      "href",
+      "/policies/3/draft",
+    );
   });
 
   it("[POL-04] [IMP-06] shows the server's errors at the position", async () => {

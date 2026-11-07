@@ -1,34 +1,17 @@
-import { Link } from "@tanstack/react-router";
 import i18n from "i18next";
-import { useState, type FormEvent } from "react";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 
-import { translateMessage } from "@/api/client";
-import { useMe } from "@/auth/auth";
 import { NotAdvice } from "@/components/disclaimer";
-import { Field, FormError, fieldError } from "@/components/form";
 import { Markdown } from "@/components/markdown";
 import { Stars, formatScore } from "@/components/stars";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/select";
 import { statusLabel } from "@/features/theses/status";
 import { currentLanguage } from "@/i18n";
 import { formatDate, formatDateTime } from "@/lib/format";
 
-import {
-  isRunning,
-  useReview,
-  useReviewerOptions,
-  useStartReview,
-  useUsage,
-  type Review,
-  type ReviewBrief,
-  type ReviewKind,
-} from "./api";
+import { isRunning, useReview, type Review, type ReviewBrief, type ReviewKind } from "./api";
 
 const SUGGESTION_KINDS = ["thesis_text", "thesis_status", "policy_position"] as const;
 const ASPECT_CODES = ["T1", "T2", "T3", "T4", "T5", "T6", "P1", "P2", "P3", "P4", "P5", "P6"];
@@ -62,19 +45,9 @@ function VerdictBadge({ verdict }: { verdict: string }) {
   return <Badge variant={variant}>{verdictLabel(verdict)}</Badge>;
 }
 
-/** The review of one revision or version: start it on an own draft (REV-01), follow its
- * progress (REV-08) and show the result. */
-export function ReviewSection({
-  kind,
-  ownerId,
-  brief,
-  canStart,
-}: {
-  kind: ReviewKind;
-  ownerId: number; // thesis or policy ID
-  brief: ReviewBrief | null;
-  canStart: boolean; // an own draft
-}) {
+/** The review of one revision or version, read-only: its progress (REV-08) and result.
+ * Reviews are started in the draft editor (REV-01, features/reviews/pane.tsx). */
+export function ReviewSection({ kind, brief }: { kind: ReviewKind; brief: ReviewBrief | null }) {
   const { t } = useTranslation();
   const review = useReview(brief?.id);
   const title = kind === "thesis" ? t("reviews.section.thesis") : t("reviews.section.policy");
@@ -82,149 +55,18 @@ export function ReviewSection({
     <section className="grid gap-3" aria-label={title}>
       <h2 className="text-lg font-semibold">{title}</h2>
       {!brief ? (
-        canStart ? (
-          <StartReview kind={kind} ownerId={ownerId} />
-        ) : (
-          <p className="text-sm text-muted-foreground">{t("reviews.section.notReviewed")}</p>
-        )
+        <p className="text-sm text-muted-foreground">{t("reviews.section.notReviewed")}</p>
       ) : !review.data ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : (
-        <ReviewResult kind={kind} ownerId={ownerId} review={review.data} editable={canStart} />
+        <ReviewResult review={review.data} />
       )}
     </section>
   );
 }
 
-function StartReview({
-  kind,
-  ownerId,
-  again,
-}: {
-  kind: ReviewKind;
-  ownerId: number;
-  again?: boolean;
-}) {
+export function ReviewResult({ review }: { review: Review }) {
   const { t } = useTranslation();
-  const { data: me } = useMe();
-  const options = useReviewerOptions();
-  // USR-08: preselected with the default from the settings, if it is still available
-  const [picked, setPicked] = useState<number | null>(null);
-  const fallback =
-    options.data?.find((o) => o.id === me?.ai_reviewer_id)?.id ?? options.data?.[0]?.id ?? null;
-  const reviewerId = picked ?? fallback;
-  const usage = useUsage(reviewerId, reviewerId !== null);
-  const start = useStartReview(kind, ownerId);
-  const [days, setDays] = useState("90");
-  const unavailable =
-    options.data?.length === 0
-      ? t("reviews.start.noReviewers")
-      : usage.data?.unavailable_reason &&
-        // NFR-10: the reason in the UI language, by its code
-        translateMessage(
-          usage.data.unavailable_code,
-          usage.data.unavailable_params,
-          usage.data.unavailable_reason,
-        );
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (reviewerId === null) return;
-    start.mutate({ reviewerId, newsDays: kind === "thesis" ? Number(days) : undefined });
-  };
-  return (
-    <form className="grid gap-3" onSubmit={submit} aria-label={t("reviews.start.form")}>
-      {!again && (
-        <p className="text-sm text-muted-foreground">
-          {kind === "thesis" ? t("reviews.start.introThesis") : t("reviews.start.introPolicy")}
-        </p>
-      )}
-      {/* NFR-01, NFR-15: what leaves the server, before anything is sent */}
-      <p className="text-sm text-muted-foreground">
-        {kind === "thesis" ? t("reviews.start.dataThesis") : t("reviews.start.dataPolicy")}
-        {t("reviews.start.dataNothingElse")}
-      </p>
-      <div className="flex flex-wrap items-end gap-3">
-        {options.data && options.data.length > 0 && (
-          <Field id={`${kind}-ai-reviewer`} label={t("reviews.start.reviewer")}>
-            <NativeSelect
-              id={`${kind}-ai-reviewer`}
-              className="w-auto"
-              value={reviewerId ?? ""}
-              onChange={(e) => setPicked(Number(e.target.value))}
-            >
-              {options.data.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.name}
-                  {o.id === me?.ai_reviewer_id ? t("reviews.start.default") : ""}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-        )}
-        {kind === "thesis" && (
-          <Field
-            id="news-days"
-            label={t("reviews.start.newsDays")}
-            error={fieldError(start.error, "news_days")}
-          >
-            <Input
-              id="news-days"
-              type="number"
-              min={1}
-              max={365}
-              className="w-28"
-              value={days}
-              onChange={(e) => setDays(e.target.value)}
-              required
-            />
-          </Field>
-        )}
-        <Button
-          type="submit"
-          disabled={start.isPending || !!unavailable || !usage.data || reviewerId === null}
-        >
-          {again ? t("reviews.start.again") : t("reviews.start.button")}
-        </Button>
-        {usage.data?.ai_reviewer_name && (
-          <span className="pb-2 text-sm text-muted-foreground">
-            {t("reviews.start.usage", {
-              used: usage.data.used,
-              limit: usage.data.limit,
-              name: usage.data.ai_reviewer_name,
-            })}
-          </span>
-        )}
-      </div>
-      {options.data?.find((o) => o.id === reviewerId)?.description && (
-        <p className="text-sm text-muted-foreground">
-          {options.data.find((o) => o.id === reviewerId)?.description}
-        </p>
-      )}
-      {unavailable && <Alert variant="warning">{unavailable}</Alert>}
-      <p className="text-xs text-muted-foreground">
-        <Trans
-          i18nKey="reviews.start.defaultIn"
-          components={{ goto: <Link to="/settings" className="underline" /> }}
-        />
-      </p>
-      <FormError error={start.error ?? usage.error} fields={["news_days"]} />
-    </form>
-  );
-}
-
-export function ReviewResult({
-  kind,
-  ownerId,
-  review,
-  editable,
-}: {
-  kind: ReviewKind;
-  ownerId: number;
-  review: Review;
-  editable: boolean;
-}) {
-  const { t } = useTranslation();
-  const open = editable && !review.confirmed;
 
   if (isRunning(review.state)) {
     return (
@@ -237,7 +79,6 @@ export function ReviewResult({
     return (
       <div className="grid gap-3">
         <Alert variant="destructive">{t("reviews.result.failed", { error: review.error })}</Alert>
-        {open && <StartReview kind={kind} ownerId={ownerId} again />}
       </div>
     );
   }
@@ -280,11 +121,6 @@ export function ReviewResult({
         <Suggestions review={review} />
 
         <NotAdvice short={t("reviews.result.notAdvice")} />
-        {open && (
-          <div className="border-t pt-4">
-            <StartReview kind={kind} ownerId={ownerId} again />
-          </div>
-        )}
       </CardContent>
     </Card>
   );

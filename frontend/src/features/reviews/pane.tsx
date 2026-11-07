@@ -51,7 +51,7 @@ export function ReviewPane({
       {!brief ? (
         <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
       ) : review.data ? (
-        <ReviewResult kind={kind} ownerId={ownerId} review={review.data} editable={false} />
+        <ReviewResult review={review.data} />
       ) : (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}

@@ -136,9 +136,7 @@ export function ThesisPage({ thesisId }: { thesisId: number }) {
             <ReviewSection
               key={shownRevision.revision_no}
               kind="thesis"
-              ownerId={th.id}
               brief={shownRevision.review}
-              canStart={false}
             />
           )}
           {/* REV-01: reviews are made in the draft editor */}
