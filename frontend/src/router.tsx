@@ -14,11 +14,9 @@ import { applyLanguage } from "@/i18n";
 import { applyTimeZone } from "@/lib/format";
 import { DashboardPage } from "@/features/dashboard/dashboard";
 import { DraftEditorPage } from "@/features/policies/draft-editor";
+import { DraftSummaryPage } from "@/features/policies/summary";
 import { PolicyPage } from "@/features/policies/detail";
 import { PoliciesPage } from "@/features/policies/list";
-import { ThesisPage } from "@/features/theses/detail";
-import { EditThesisPage, NewThesisPage } from "@/features/theses/editor";
-import { ThesesPage } from "@/features/theses/list";
 import { PortfolioPage } from "@/features/portfolios/detail";
 import { PortfoliosPage } from "@/features/portfolios/list";
 import { SnapshotPage } from "@/features/portfolios/snapshot";
@@ -129,38 +127,13 @@ const draftRoute = createRoute({
     return <WithId value={policyId} render={(id) => <DraftEditorPage key={id} policyId={id} />} />;
   },
 });
-const thesesRoute = createRoute({
+// POL-17: the summary of the draft, from which it is activated
+const draftSummaryRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/theses",
-  component: () => (
-    <InvestorOnly>
-      <ThesesPage />
-    </InvestorOnly>
-  ),
-});
-const newThesisRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/theses/new",
-  component: () => (
-    <InvestorOnly>
-      <NewThesisPage />
-    </InvestorOnly>
-  ),
-});
-const thesisRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/theses/$thesisId",
-  component: function Thesis() {
-    const { thesisId } = thesisRoute.useParams();
-    return <WithId value={thesisId} render={(id) => <ThesisPage key={id} thesisId={id} />} />;
-  },
-});
-const editThesisRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/theses/$thesisId/edit",
-  component: function EditThesis() {
-    const { thesisId } = editThesisRoute.useParams();
-    return <WithId value={thesisId} render={(id) => <EditThesisPage key={id} thesisId={id} />} />;
+  path: "/policies/$policyId/draft/summary",
+  component: function DraftSummary() {
+    const { policyId } = draftSummaryRoute.useParams();
+    return <WithId value={policyId} render={(id) => <DraftSummaryPage key={id} policyId={id} />} />;
   },
 });
 const timelineRoute = createRoute({
@@ -248,10 +221,11 @@ const planReportRoute = createRoute({
   path: "/portfolios/$portfolioId/rebalance/report",
   validateSearch: (
     search: Record<string, unknown>,
-  ): { snapshot?: number; contribution?: string; withdrawal?: string } => ({
+  ): { snapshot?: number; contribution?: string; withdrawal?: string; mode?: string } => ({
     snapshot: snapshotParam(search.snapshot),
     contribution: amountParam(search.contribution),
     withdrawal: amountParam(search.withdrawal),
+    mode: search.mode === "sell_all" ? "sell_all" : undefined,
   }),
   component: function PlanReport() {
     const { portfolioId } = planReportRoute.useParams();
@@ -265,6 +239,7 @@ const planReportRoute = createRoute({
             snapshotId={snapshotParam(search.snapshot)}
             contribution={amountParam(search.contribution)}
             withdrawal={amountParam(search.withdrawal)}
+            mode={search.mode}
           />
         )}
       />
@@ -358,10 +333,7 @@ const routeTree = rootRoute.addChildren([
     policiesRoute,
     policyRoute,
     draftRoute,
-    thesesRoute,
-    newThesisRoute,
-    thesisRoute,
-    editThesisRoute,
+    draftSummaryRoute,
     timelineRoute,
     accountsRoute,
     aiReviewersRoute,

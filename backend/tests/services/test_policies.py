@@ -5,54 +5,58 @@ import pytest
 from sqlalchemy.orm import Session
 
 from tests.fixtures import Factory, spec
-from yap.services import policies, theses, versioning
+from yap.services import policies, versioning
 from yap.services.common import ConflictError, NotFoundError, ValidationError
 from yap.services.timeline import EventType, list_events
 
 
-@pytest.mark.req("POL-01")
-def test_policy_requires_a_readable_thesis(session: Session, factory: Factory) -> None:
-    owner, other = factory.investor(), factory.investor()
-    private = factory.thesis(other)
-    with pytest.raises(NotFoundError):
-        policies.create_policy(session, owner, factory.clock, name="core", thesis_id=private.id)
-    shared = factory.thesis(other, shared=True)
-    policy = policies.create_policy(session, owner, factory.clock, name="core", thesis_id=shared.id)
-    assert policy.versions[0].version_no == 1
-    assert policy.versions[0].thesis_revision_id == shared.revisions[0].id
-
-
-@pytest.mark.req("POL-01", "THS-02")
-def test_policy_pins_only_activated_thesis_revisions(session: Session, factory: Factory) -> None:
+@pytest.mark.req("POL-01", "POL-02", "THS-01", "THS-04")
+def test_a_new_policy_starts_as_draft_v1_with_its_thesis(
+    session: Session, factory: Factory
+) -> None:
     owner = factory.investor()
-    unpublished = factory.thesis(owner, activate=False)
+    policy = policies.create_policy(
+        session, owner, factory.clock, name=" core ", thesis_md="# Investment Thesis"
+    )
+    (draft,) = policy.versions
+    assert (policy.name, draft.version_no, draft.activated_at) == ("core", 1, None)
+    assert (draft.thesis_title, draft.thesis_md) == (
+        "core",  # the title defaults to the name
+        "# Investment Thesis",
+    )
+    assert draft.positions == []
+    # A thesis has no status set by the investor (THS-04)
+    assert not hasattr(draft, "thesis_status")
+
+
+@pytest.mark.req("POL-02", "THS-01")
+def test_the_draft_holds_the_thesis_and_activation_freezes_it(
+    session: Session, factory: Factory
+) -> None:
+    owner = factory.investor()
+    policy = factory.policy_draft(owner, positions=[spec("AAA", 100)])
+    thesis = policies.ThesisSpec("Growth", "# New text")
+    draft = policies.update_thesis(session, owner, factory.clock, policy.id, thesis)
+    assert (draft.thesis_title, draft.thesis_md) == ("Growth", "# New text")
     with pytest.raises(ValidationError) as err:
-        policies.create_policy(
-            session, owner, factory.clock, name="early", thesis_id=unpublished.id
+        policies.update_thesis(
+            session, owner, factory.clock, policy.id, policies.ThesisSpec(" ", "")
         )
-    assert err.value.problems[0][0] == "thesis_id"
-    thesis = factory.thesis(owner)
-    draft = theses.create_draft(session, owner, factory.clock, thesis.id)
-    policy = policies.create_policy(session, owner, factory.clock, name="core", thesis_id=thesis.id)
-    assert policy.versions[0].thesis_revision_id == thesis.revisions[0].id
-    with pytest.raises(NotFoundError):
-        policies.set_draft_thesis_revision(session, owner, factory.clock, policy.id, draft.id)
+    assert err.value.problems[0][0] == "thesis_title"
+    policies.activate_draft(session, owner, factory.clock, policy.id, None)
+    with pytest.raises(NotFoundError):  # no draft any more
+        policies.update_thesis(session, owner, factory.clock, policy.id, thesis)
+    draft = policies.create_draft(session, owner, factory.clock, policy.id)
+    assert (draft.thesis_title, draft.thesis_md) == ("Growth", "# New text")  # copied
 
 
 @pytest.mark.req("POL-01")
 def test_policy_names_are_unique_per_owner(session: Session, factory: Factory) -> None:
     owner = factory.investor()
-    thesis = factory.thesis(owner)
-    policies.create_policy(session, owner, factory.clock, name="core", thesis_id=thesis.id)
+    policies.create_policy(session, owner, factory.clock, name="core")
     with pytest.raises(ConflictError):
-        policies.create_policy(session, owner, factory.clock, name="core", thesis_id=thesis.id)
-    policies.create_policy(
-        session,
-        factory.investor(),
-        factory.clock,
-        name="core",
-        thesis_id=factory.thesis(owner, shared=True).id,
-    )
+        policies.create_policy(session, owner, factory.clock, name="core")
+    policies.create_policy(session, factory.investor(), factory.clock, name="core")
 
 
 @pytest.mark.req("POL-02", "POL-03")
@@ -60,9 +64,7 @@ def test_draft_holds_target_structure_and_normalizes_tickers(
     session: Session, factory: Factory
 ) -> None:
     owner = factory.investor()
-    policy = policies.create_policy(
-        session, owner, factory.clock, name="core", thesis_id=factory.thesis(owner).id
-    )
+    policy = policies.create_policy(session, owner, factory.clock, name="core")
     draft = policies.update_draft(
         session,
         owner,
@@ -85,9 +87,7 @@ def test_draft_holds_target_structure_and_normalizes_tickers(
 )
 def test_threshold_ranges(session: Session, factory: Factory, position, field) -> None:  # type: ignore[no-untyped-def]
     owner = factory.investor()
-    policy = policies.create_policy(
-        session, owner, factory.clock, name="p", thesis_id=factory.thesis(owner).id
-    )
+    policy = policies.create_policy(session, owner, factory.clock, name="p")
     with pytest.raises(ValidationError) as err:
         policies.update_draft(session, owner, factory.clock, policy.id, positions=[position])
     assert err.value.problems == [(f"positions[0].{field}", err.value.problems[0][1])]
@@ -96,9 +96,7 @@ def test_threshold_ranges(session: Session, factory: Factory, position, field) -
 @pytest.mark.req("POL-05")
 def test_activation_requires_targets_summing_to_100(session: Session, factory: Factory) -> None:
     owner = factory.investor()
-    policy = policies.create_policy(
-        session, owner, factory.clock, name="p", thesis_id=factory.thesis(owner).id
-    )
+    policy = policies.create_policy(session, owner, factory.clock, name="p")
     policies.update_draft(session, owner, factory.clock, policy.id, positions=[spec("A", 90)])
     with pytest.raises(ValidationError, match="differs from 100"):
         policies.activate_draft(session, owner, factory.clock, policy.id, None)
@@ -107,9 +105,7 @@ def test_activation_requires_targets_summing_to_100(session: Session, factory: F
 @pytest.mark.req("POL-05")
 def test_at_most_one_cash_buffer(session: Session, factory: Factory) -> None:
     owner = factory.investor()
-    policy = policies.create_policy(
-        session, owner, factory.clock, name="p", thesis_id=factory.thesis(owner).id
-    )
+    policy = policies.create_policy(session, owner, factory.clock, name="p")
     with pytest.raises(ValidationError, match="cash buffer"):
         policies.update_draft(
             session,
@@ -144,13 +140,14 @@ def test_change_note_required_from_v2(session: Session, factory: Factory) -> Non
     assert version.change_note == "Rebalanced"
 
 
-@pytest.mark.req("POL-06")
-def test_first_version_cannot_be_deleted(session: Session, factory: Factory) -> None:
+@pytest.mark.req("POL-16")
+def test_discarding_the_first_draft_deletes_the_policy(session: Session, factory: Factory) -> None:
     owner = factory.investor()
-    policy = policies.create_policy(
-        session, owner, factory.clock, name="p", thesis_id=factory.thesis(owner).id
-    )
-    with pytest.raises(ConflictError):
+    policy = policies.create_policy(session, owner, factory.clock, name="p")
+    assert policies.delete_draft(session, owner, policy.id) is True
+    with pytest.raises(NotFoundError):
+        policies.get_policy(session, owner, policy.id)
+    with pytest.raises(NotFoundError):  # nothing left to discard
         policies.delete_draft(session, owner, policy.id)
 
 
@@ -215,33 +212,17 @@ def test_compare_versions(session: Session, factory: Factory) -> None:
         "target_pct": (Decimal(60), Decimal(50)),
         "sell_threshold_pct": (Decimal(20), Decimal(30)),
     }
-    assert diff.thesis_revision is None
-
-
-@pytest.mark.req("POL-10")
-def test_adopt_newer_thesis_revision_creates_draft(session: Session, factory: Factory) -> None:
-    owner = factory.investor()
-    thesis = factory.thesis(owner)
-    policy = factory.active_policy(owner, thesis=thesis)
-    with pytest.raises(ConflictError):
-        policies.adopt_newer_thesis_revision(session, owner, factory.clock, policy.id)
-    factory.revise_thesis(owner, thesis, content_md="v2")
-    draft = policies.adopt_newer_thesis_revision(session, owner, factory.clock, policy.id)
-    assert draft.version_no == 2
-    assert draft.thesis_revision.revision_no == 2
-    assert policy.versions[0].thesis_revision.revision_no == 1
-
-
-@pytest.mark.req("POL-10")
-def test_draft_may_only_pin_revisions_of_its_own_thesis(session: Session, factory: Factory) -> None:
-    owner = factory.investor()
-    policy = factory.active_policy(owner)
-    other_thesis = factory.thesis(owner, title="other")
-    policies.create_draft(session, owner, factory.clock, policy.id)
-    with pytest.raises(NotFoundError):
-        policies.set_draft_thesis_revision(
-            session, owner, factory.clock, policy.id, other_thesis.revisions[0].id
-        )
+    assert (diff.thesis_changed, diff.thesis_diff) == (False, "")
+    policies.update_thesis(
+        session,
+        owner,
+        factory.clock,
+        policy.id,
+        policies.ThesisSpec("Core thesis", "# New"),
+    )
+    diff = policies.compare_versions(v1, v2)
+    assert diff.thesis_changed is True
+    assert "-# Thesis\n+# New\n" in diff.thesis_diff
 
 
 @pytest.mark.req("POL-12")

@@ -10,6 +10,11 @@ configure({ asyncUtilTimeout: 3000 });
 // jsdom has no scrolling; the router scrolls to the top on every navigation
 window.scrollTo = () => {};
 
+// jsdom has no layout; CodeMirror measures text ranges when its content changes
+const noRects = () => Object.assign([], { item: () => null }) as unknown as DOMRectList;
+Range.prototype.getClientRects = noRects;
+Range.prototype.getBoundingClientRect = () => new DOMRect();
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();

@@ -10,7 +10,7 @@ from yap.db.models import Base
 config = context.config
 url = config.get_main_option("sqlalchemy.url") or os.environ["DATABASE_URL"]
 
-engine = make_engine(url)
+engine = make_engine(url, writer_transactions=False)
 with engine.connect() as connection:
     sqlite = connection.dialect.name == "sqlite"
     if sqlite:

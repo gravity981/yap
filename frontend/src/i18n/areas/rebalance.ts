@@ -28,6 +28,19 @@ export const en = {
     withdrawalHelp:
       "Withdrawal: cash to take out of the portfolio. It is paid from the contribution and the sells first; anything missing is sold from the positions furthest above target.",
     report: "Report for printing / PDF",
+    thesis: {
+      brokenTitle: "The thesis of {{policy}} is broken",
+      brokenReason: "Reason of the latest review: {{reason}}",
+      noReason: "The latest review gave no reason.",
+      warningTitle: "The thesis of {{policy}} needs attention",
+      openPolicy: "Open the policy",
+      choice: "How do you want to rebalance?",
+      sellAll: "Sell the whole portfolio",
+      sellAllHelp:
+        "Every position is sold completely; nothing is bought. The cash stays in the portfolio unless you enter a withdrawal.",
+      normal: "Rebalance as usual",
+      normalHelp: "The normal calculation with the policy's targets and thresholds.",
+    },
     notAdvice:
       "These instructions only apply the rules of your policy; they are not financial advice. You decide whether and how to trade.",
   },
@@ -49,6 +62,7 @@ export const en = {
     toSell: "To sell for the withdrawal",
     available: "Available for buys",
     unallocated: "Unallocated (no position can take it)",
+    stays: "Stays in the portfolio",
     rounding: "Left over by whole units",
     withdrawalSellsPerBroker: "Withdrawal sells per broker",
     buysPerBroker: "Buys per broker",
@@ -102,6 +116,7 @@ export const en = {
     valuesAfter: "values after",
     portfolio: "portfolio",
     report: "report for printing / PDF",
+    sellAll: "Sold completely, thesis broken",
     phase: "Phase",
     position: "Position",
     action: "Action",
@@ -139,18 +154,21 @@ export const en = {
       threshold:
         "at {{before}}, above its sell threshold: sold down to its midband of {{after}}, −{{amount}}",
       exit: "has the exit flag: sold completely, −{{amount}}",
+      sellAll: "sold completely because the thesis is broken, −{{amount}}",
       notInPolicy: "is not in the policy: sold completely, −{{amount}}",
     },
     cash: {
       title: "Cash",
       sum: "Contribution {{contribution}} + sell proceeds {{sells}} − withdrawal {{withdrawal}} = {{cash}}.",
       available: "This is invested in step 4.",
+      stays: "This stays in the portfolio; nothing is bought.",
       missing: "{{amount}} is missing for the withdrawal; it is sold in step 4.",
       nothing: "Nothing is left for buys.",
     },
     buys: {
       title: "Buys",
       none: "Nothing to buy.",
+      sellAll: "Nothing is bought: the whole portfolio is sold.",
       intro:
         "Positions below target get the cash, weighted by how far below they are, each at most up to its target; anything left over is spread in proportion to target. Positions sold in step 2 get nothing.",
       item: "+{{amount}}, now {{after}} (target {{target}})",
@@ -195,6 +213,19 @@ export const de: Messages<typeof en> = {
     withdrawalHelp:
       "Entnahme: Geld, das aus dem Portfolio genommen wird. Es wird zuerst aus der Einzahlung und den Verkäufen bezahlt; was fehlt, wird bei den Positionen verkauft, die am weitesten über ihrem Ziel liegen.",
     report: "Bericht zum Drucken / als PDF",
+    thesis: {
+      brokenTitle: "Die Anlagethese von {{policy}} ist gebrochen",
+      brokenReason: "Begründung der letzten Prüfung: {{reason}}",
+      noReason: "Die letzte Prüfung nannte keine Begründung.",
+      warningTitle: "Die Anlagethese von {{policy}} braucht Aufmerksamkeit",
+      openPolicy: "Anlagestrategie öffnen",
+      choice: "Wie willst du rebalancen?",
+      sellAll: "Ganzes Portfolio verkaufen",
+      sellAllHelp:
+        "Jede Position wird vollständig verkauft, es wird nichts gekauft. Das Geld bleibt im Portfolio, ausser du gibst eine Entnahme ein.",
+      normal: "Wie gewohnt rebalancen",
+      normalHelp: "Die normale Berechnung mit den Zielen und Schwellen der Anlagestrategie.",
+    },
     notAdvice:
       "Diese Anweisungen wenden nur die Regeln deiner Anlagestrategie an; sie sind keine Finanzberatung. Du entscheidest, ob und wie du handelst.",
   },
@@ -216,6 +247,7 @@ export const de: Messages<typeof en> = {
     toSell: "Zu verkaufen für die Entnahme",
     available: "Verfügbar für Käufe",
     unallocated: "Nicht investiert (keine Position kann es aufnehmen)",
+    stays: "Bleibt im Portfolio",
     rounding: "Übrig wegen ganzer Stücke",
     withdrawalSellsPerBroker: "Verkäufe für die Entnahme pro Broker",
     buysPerBroker: "Käufe pro Broker",
@@ -270,6 +302,7 @@ export const de: Messages<typeof en> = {
     valuesAfter: "Werte nachher",
     portfolio: "Portfolio",
     report: "Bericht zum Drucken / als PDF",
+    sellAll: "Vollständig verkauft, Anlagethese gebrochen",
     phase: "Phase",
     position: "Position",
     action: "Aktion",
@@ -306,18 +339,21 @@ export const de: Messages<typeof en> = {
       threshold:
         "bei {{before}}, über ihrer Verkaufsschwelle: verkauft bis auf ihr Mittelband von {{after}}, −{{amount}}",
       exit: "hat die Exit-Markierung: vollständig verkauft, −{{amount}}",
+      sellAll: "vollständig verkauft, weil die Anlagethese gebrochen ist, −{{amount}}",
       notInPolicy: "ist nicht in der Anlagestrategie: vollständig verkauft, −{{amount}}",
     },
     cash: {
       title: "Liquidität",
       sum: "Einzahlung {{contribution}} + Verkaufserlös {{sells}} − Entnahme {{withdrawal}} = {{cash}}.",
       available: "Dieser Betrag wird in Schritt 4 investiert.",
+      stays: "Dieser Betrag bleibt im Portfolio; es wird nichts gekauft.",
       missing: "Für die Entnahme fehlen {{amount}}; sie werden in Schritt 4 verkauft.",
       nothing: "Für Käufe bleibt nichts übrig.",
     },
     buys: {
       title: "Käufe",
       none: "Nichts zu kaufen.",
+      sellAll: "Es wird nichts gekauft: das ganze Portfolio wird verkauft.",
       intro:
         "Positionen unter ihrem Ziel erhalten das Geld, gewichtet danach, wie weit sie darunter liegen, jede höchstens bis zu ihrem Ziel; was übrig bleibt, wird im Verhältnis der Ziele verteilt. In Schritt 2 verkaufte Positionen erhalten nichts.",
       item: "+{{amount}}, jetzt {{after}} (Ziel {{target}})",

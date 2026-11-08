@@ -24,19 +24,19 @@ describe("backend messages", () => {
   it("[NFR-10] shows a backend message in the UI language by its code", async () => {
     applyLanguage("de");
     const e = await error(404, {
-      detail: "Thesis 9 not found",
-      code: "thesis_not_found",
+      detail: "Policy 9 not found",
+      code: "policy_not_found",
       params: { id: 9 },
     });
-    expect(e.message).toBe("Anlagethese 9 nicht gefunden");
-    expect([e.status, e.code]).toEqual([404, "thesis_not_found"]);
+    expect(e.message).toBe("Anlagestrategie 9 nicht gefunden");
+    expect([e.status, e.code]).toEqual([404, "policy_not_found"]);
     applyLanguage("en");
     const english = await error(404, {
-      detail: "Thesis 9 not found",
-      code: "thesis_not_found",
+      detail: "Policy 9 not found",
+      code: "policy_not_found",
       params: { id: 9 },
     });
-    expect(english.message).toBe("Thesis 9 not found");
+    expect(english.message).toBe("Policy 9 not found");
   });
 
   it("[NFR-10] translates the problems of a validation error too", async () => {

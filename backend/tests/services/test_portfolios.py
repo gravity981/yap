@@ -40,9 +40,7 @@ def test_only_policies_with_active_version_can_be_assigned(
     session: Session, factory: Factory
 ) -> None:
     owner = factory.investor()
-    draft_only = policies.create_policy(
-        session, owner, factory.clock, name="draft", thesis_id=factory.thesis(owner).id
-    )
+    draft_only = policies.create_policy(session, owner, factory.clock, name="draft")
     with pytest.raises(ConflictError, match="no active version"):
         portfolios.create_portfolio(
             session, owner, factory.clock, name="Main", policy_id=draft_only.id

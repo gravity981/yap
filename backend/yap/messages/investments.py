@@ -2,22 +2,15 @@
 catalog, rebalancing inputs and the JSON import (IMP-06)."""
 
 MESSAGES: dict[str, str] = {
+    "sharing_level_unknown": "Unknown sharing level {level}; use private, text or all",
+    "sharing_needs_review": (
+        "Only a policy whose active version has a review can be shared; review {name} first"
+    ),
     # Theses
     "title_required": "Title must not be empty",
-    "thesis_status_unknown": "Unknown status {status}",
-    "visibility_unknown": "Unknown visibility {visibility}",
-    "thesis_has_no_draft": "Thesis {id} has no draft",
-    "thesis_has_draft": "The thesis already has a draft",
-    "thesis_first_revision_kept": (
-        "The first revision cannot be deleted; it is the thesis' only one"
-    ),
-    "change_note_required": "A change note is required",
-    "thesis_revision_not_found": "Thesis revision {id} not found",
-    "thesis_revision_no_not_found": "Revision {number} of thesis {id} not found",
     # Policies
     "name_required": "Name must not be empty",
     "policy_name_taken": "A policy named {name} already exists",
-    "thesis_not_activated": "The thesis has no activated revision yet; activate its draft first",
     "policy_has_no_draft": "Policy {name} has no draft",
     "policy_has_draft": "Policy {name} already has a draft",
     "ticker_duplicate": "Ticker {ticker} appears more than once",
@@ -25,17 +18,12 @@ MESSAGES: dict[str, str] = {
     "buy_threshold_range": "Buy threshold must be between -100 and 0",
     "sell_threshold_min": "Sell threshold must be 0 or more",
     "one_cash_buffer": "At most one cash buffer position is allowed",
-    "policy_first_version_kept": (
-        "The first version cannot be deleted; it is the policy's only version"
-    ),
     "target_sum": (
         "Target allocations sum to {sum} %, which differs from 100 % "
         "by {difference} percentage points"
     ),
     "multiple_cash_buffers": "The policy contains more than one cash buffer position",
     "change_note_required_v2": "A change note is required from v2 on",
-    "policy_thesis_current": "The policy already uses the newest thesis revision",
-    "policy_thesis_revision_not_found": "Thesis revision {id} not found for this policy",
     "policy_has_portfolios": "A policy with assigned portfolios cannot be archived",
     "policy_archived": "Policy {name} is archived",
     "policy_version_not_found": "Policy version {id} not found",

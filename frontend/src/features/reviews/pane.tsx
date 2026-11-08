@@ -1,14 +1,15 @@
 import { Link } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { ApiError, translateMessage } from "@/api/client";
 import { useMe } from "@/auth/auth";
-import { Field, FormError, fieldError } from "@/components/form";
+import { Field, FormError } from "@/components/form";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/select";
+import type { Version } from "@/features/policies/api";
 
 import {
   isRunning,
@@ -19,45 +20,51 @@ import {
   useSubmitManualReview,
   useUsage,
   type ReviewBrief,
-  type ReviewKind,
+  type ReviewTarget,
 } from "./api";
-import { ReviewResult } from "./review";
+import { ReviewShort } from "./review";
 
 /** An AI reviewer's ID, or a manual review (REV-18). */
 type Method = number | "manual";
 
-/** REV-01: the review in the draft editor. The result stays visible while the investor
- * edits; a new review replaces it (REV-09). `save` stores what is in the editor first, so
- * the review sees the current text. */
+/** REV-01: the review of the whole draft in the editor: thesis and target structure. The
+ * result stays visible while the investor edits; a new review replaces it (REV-09). `save`
+ * stores what is in the editor first, so the review sees the current content. */
 export function ReviewPane({
-  kind,
-  ownerId,
+  policyId,
   brief,
   save,
+  onDraft,
+  target = "draft",
 }: {
-  kind: ReviewKind;
-  ownerId: number;
+  policyId: number;
   brief: ReviewBrief | null | undefined;
   save: () => Promise<unknown>;
+  /** REV-07: the draft after a suggestion was taken over, dismissed or undone */
+  onDraft: (draft: Version | null) => void;
+  /** POL-20: on the policy page, the active version is reviewed again */
+  target?: ReviewTarget;
 }) {
   const { t } = useTranslation();
   const review = useReview(brief?.id);
   const running = isRunning(review.data?.state ?? brief?.state);
+  // On the policy page the pane is part of the "Review again" section (POL-20)
+  const label = target === "draft" ? t("reviews.section.title") : undefined;
   return (
-    <section
-      className="grid content-start gap-4"
-      aria-label={kind === "thesis" ? t("reviews.section.thesis") : t("reviews.section.policy")}
-    >
+    <section className="grid content-start gap-4" aria-label={label}>
       {!brief ? (
-        <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
+        target === "draft" && <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
       ) : review.data ? (
-        <ReviewResult review={review.data} />
+        <ReviewShort
+          review={review.data}
+          actions={{ save, onDraft, activeVersion: target === "active" }}
+        />
       ) : (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}
       {!running && (
         <div className={brief ? "border-t pt-4" : undefined}>
-          <ReviewForm kind={kind} ownerId={ownerId} again={!!brief} save={save} />
+          <ReviewForm policyId={policyId} again={!!brief} save={save} target={target} />
         </div>
       )}
     </section>
@@ -65,14 +72,14 @@ export function ReviewPane({
 }
 
 function ReviewForm({
-  kind,
-  ownerId,
+  policyId,
   again,
   save,
+  target,
 }: {
-  kind: ReviewKind;
-  ownerId: number;
+  policyId: number;
   again: boolean;
+  target: ReviewTarget;
   save: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
@@ -89,14 +96,14 @@ function ReviewForm({
         "manual");
   const method = picked ?? fallback;
   const [days, setDays] = useState("90");
-  const newsDays = kind === "thesis" ? Number(days) : undefined;
+  const newsDays = Number(days);
 
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-end gap-3">
-        <Field id={`${kind}-review-method`} label={t("reviews.pane.method")}>
+        <Field id="review-method" label={t("reviews.pane.method")}>
           <NativeSelect
-            id={`${kind}-review-method`}
+            id="review-method"
             className="w-auto"
             value={method ?? ""}
             onChange={(e) =>
@@ -117,27 +124,26 @@ function ReviewForm({
             </option>
           </NativeSelect>
         </Field>
-        {kind === "thesis" && (
-          <Field id={`${kind}-news-days`} label={t("reviews.start.newsDays")}>
-            <Input
-              id={`${kind}-news-days`}
-              type="number"
-              min={1}
-              max={365}
-              className="w-28"
-              value={days}
-              onChange={(e) => setDays(e.target.value)}
-              required
-            />
-          </Field>
-        )}
+        {/* REV-04: the news period of T6 and the verdict */}
+        <Field id="review-news-days" label={t("reviews.start.newsDays")}>
+          <Input
+            id="review-news-days"
+            type="number"
+            min={1}
+            max={365}
+            className="w-28"
+            value={days}
+            onChange={(e) => setDays(e.target.value)}
+            required
+          />
+        </Field>
       </div>
       {method === "manual" ? (
-        <ManualReview kind={kind} ownerId={ownerId} newsDays={newsDays} save={save} />
+        <ManualReview policyId={policyId} newsDays={newsDays} save={save} target={target} />
       ) : method !== null ? (
         <AiReview
-          kind={kind}
-          ownerId={ownerId}
+          target={target}
+          policyId={policyId}
           reviewerId={method}
           newsDays={newsDays}
           again={again}
@@ -157,24 +163,24 @@ function ReviewForm({
 
 /** REV-08: the AI reviewer runs in the background; the result fills in when it is ready. */
 function AiReview({
-  kind,
-  ownerId,
+  target,
+  policyId,
   reviewerId,
   newsDays,
   again,
   save,
 }: {
-  kind: ReviewKind;
-  ownerId: number;
+  target: ReviewTarget;
+  policyId: number;
   reviewerId: number;
-  newsDays: number | undefined;
+  newsDays: number;
   again: boolean;
   save: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
   const options = useReviewerOptions();
   const usage = useUsage(reviewerId);
-  const start = useStartReview(kind, ownerId);
+  const start = useStartReview(policyId, target);
   const [saving, setSaving] = useState(false);
   const unavailable =
     usage.data?.unavailable_reason &&
@@ -200,7 +206,7 @@ function AiReview({
     <div className="grid gap-3">
       {/* NFR-01, NFR-15: what leaves the server, before anything is sent */}
       <p className="text-sm text-muted-foreground">
-        {kind === "thesis" ? t("reviews.start.dataThesis") : t("reviews.start.dataPolicy")}
+        {t("reviews.start.data")}
         {t("reviews.start.dataNothingElse")}
       </p>
       {description && <p className="text-sm text-muted-foreground">{description}</p>}
@@ -230,22 +236,21 @@ function AiReview({
 
 /** REV-18, REV-19: copy the prompt into an AI outside the app and paste its answer back. */
 function ManualReview({
-  kind,
-  ownerId,
+  target,
+  policyId,
   newsDays,
   save,
 }: {
-  kind: ReviewKind;
-  ownerId: number;
-  newsDays: number | undefined;
+  target: ReviewTarget;
+  policyId: number;
+  newsDays: number;
   save: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
-  const prompt = useReviewPrompt(kind, ownerId);
-  const submit = useSubmitManualReview(kind, ownerId);
+  const prompt = useReviewPrompt(policyId, target);
+  const submit = useSubmitManualReview(policyId, target);
   const [copied, setCopied] = useState<"yes" | "failed" | null>(null);
   const [answer, setAnswer] = useState("");
-  const [model, setModel] = useState("");
 
   const copy = async () => {
     setCopied(null);
@@ -260,15 +265,12 @@ function ManualReview({
   };
   const send = (event: FormEvent) => {
     event.preventDefault();
-    submit.mutate(
-      { answer, model },
-      {
-        onSuccess: () => {
-          setAnswer("");
-          setCopied(null);
-        },
+    submit.mutate(answer, {
+      onSuccess: () => {
+        setAnswer("");
+        setCopied(null);
       },
-    );
+    });
   };
   const answerProblems =
     submit.error instanceof ApiError
@@ -277,75 +279,84 @@ function ManualReview({
 
   return (
     <form className="grid gap-3" onSubmit={send} aria-label={t("reviews.pane.manualForm")}>
-      {/* NFR-01, REV-19: what the prompt contains, before it is copied */}
-      <p className="text-sm text-muted-foreground">
-        {kind === "thesis" ? t("reviews.pane.dataThesis") : t("reviews.pane.dataPolicy")}
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void copy().catch(() => undefined)}
-          disabled={prompt.isPending}
-        >
-          {t("reviews.pane.copy")}
-        </Button>
-        {copied === "yes" && (
-          <span role="status" className="text-sm text-muted-foreground">
-            {t("reviews.pane.copied")}
-          </span>
-        )}
-      </div>
-      {copied === "failed" && prompt.data && (
-        <Field id={`${kind}-prompt`} label={t("reviews.pane.copyFailed")}>
-          <Textarea
-            id={`${kind}-prompt`}
-            readOnly
-            rows={6}
-            value={prompt.data.text}
-            onFocus={(e) => e.target.select()}
-          />
-        </Field>
-      )}
-      <FormError error={prompt.error} />
-      <Field
-        id={`${kind}-manual-model`}
-        label={t("reviews.pane.model")}
-        error={fieldError(submit.error, "model")}
-      >
-        <Input
-          id={`${kind}-manual-model`}
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-          placeholder={t("reviews.pane.modelPlaceholder")}
-          required
-        />
-      </Field>
-      <Field id={`${kind}-manual-answer`} label={t("reviews.pane.answer")}>
-        <Textarea
-          id={`${kind}-manual-answer`}
-          rows={8}
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          required
-        />
-      </Field>
-      {answerProblems.length > 0 && (
-        <Alert variant="destructive">
-          <p className="font-medium">{t("reviews.pane.problems")}</p>
-          <ul className="list-disc pl-5">
-            {answerProblems.map((p) => (
-              <li key={p.message}>{p.message}</li>
-            ))}
-          </ul>
-        </Alert>
-      )}
-      <FormError error={submit.error} fields={["answer", "model"]} />
-      <div className="flex justify-end">
-        <Button type="submit" disabled={submit.isPending}>
-          {t("reviews.pane.save")}
-        </Button>
-      </div>
+      <ol className="grid gap-4">
+        <Step no={1}>
+          {/* NFR-01, REV-19: what the prompt contains, before it is copied */}
+          <p className="text-sm text-muted-foreground">{t("reviews.pane.data")}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void copy().catch(() => undefined)}
+              disabled={prompt.isPending}
+            >
+              {t("reviews.pane.copy")}
+            </Button>
+            {copied === "yes" && (
+              <span role="status" className="text-sm text-muted-foreground">
+                {t("reviews.pane.copied")}
+              </span>
+            )}
+          </div>
+          {copied === "failed" && prompt.data && (
+            <Field id="review-prompt" label={t("reviews.pane.copyFailed")}>
+              <Textarea
+                id="review-prompt"
+                readOnly
+                rows={6}
+                value={prompt.data.text}
+                onFocus={(e) => e.target.select()}
+              />
+            </Field>
+          )}
+          <FormError error={prompt.error} />
+        </Step>
+        <Step no={2}>
+          <p className="text-sm">{t("reviews.pane.step2")}</p>
+        </Step>
+        <Step no={3}>
+          <Field id="review-manual-answer" label={t("reviews.pane.answer")}>
+            <Textarea
+              id="review-manual-answer"
+              rows={8}
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              required
+            />
+          </Field>
+          {answerProblems.length > 0 && (
+            <Alert variant="destructive">
+              <p className="font-medium">{t("reviews.pane.problems")}</p>
+              <ul className="list-disc pl-5">
+                {answerProblems.map((p) => (
+                  <li key={p.message}>{p.message}</li>
+                ))}
+              </ul>
+            </Alert>
+          )}
+          <FormError error={submit.error} fields={["answer"]} />
+          <div>
+            <Button type="submit" disabled={submit.isPending}>
+              {t("reviews.pane.save")}
+            </Button>
+          </div>
+        </Step>
+      </ol>
     </form>
+  );
+}
+
+/** One of the numbered steps of a manual review (REV-18). */
+function Step({ no, children }: { no: number; children: ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span
+        aria-hidden="true"
+        className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground"
+      >
+        {no}
+      </span>
+      <div className="grid min-w-0 flex-1 gap-2">{children}</div>
+    </li>
   );
 }

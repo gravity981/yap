@@ -19,8 +19,6 @@ export const de = {
   answer_field_invalid: "{{field}}: {{error}}",
   answer_prompt_id_unknown: "Die Antwort hat keine gültige Prompt-ID; kopiere den Prompt erneut",
   answer_prompt_id_other_draft: "Die Antwort gehört zum Prompt eines anderen Entwurfs",
-  review_model_required: "Nenne das KI-Modell, das die Antwort geschrieben hat",
-  review_model_too_long: "Der Name des Modells hat höchstens {{max}} Zeichen",
   answer_aspects_wrong: "Die Antwort muss genau die Aspekte {{aspects}} bewerten",
   answer_prompt_id_wrong: "Die Antwort muss die Prompt-ID {{prompt_id}} wiederholen",
   score_invalid: "Die Bewertung {{score}} liegt nicht zwischen 0 und 10 in Schritten von 0.5",
@@ -34,7 +32,6 @@ export const de = {
     "Der KI-Reviewer {{name}} kann nicht verwendet werden: {{detail}} Frag den Admin.",
   review_reviewer_no_reviews: "Der KI-Reviewer {{name}} umfasst keine Prüfungen",
   review_limit_reached: "Alle {{limit}} Prüfungen mit {{name}} sind für diesen Monat verbraucht",
-  review_thesis_no_draft: "Anlagethese {{id}} hat keinen Entwurf",
   review_policy_no_draft: "Anlagestrategie {{name}} hat keinen Entwurf",
   review_running: "Eine Prüfung dieses Entwurfs läuft noch",
   review_running_wait: "Eine Prüfung dieses Entwurfs läuft noch; warte, bis sie fertig ist",
@@ -43,15 +40,26 @@ export const de = {
   review_news_days_invalid: "Der Nachrichtenzeitraum muss zwischen 1 und {{max}} Tagen liegen",
   review_interrupted: "Durch einen Neustart der App unterbrochen; starte die Prüfung neu",
   review_failed_unexpectedly: "Die Prüfung ist unerwartet fehlgeschlagen ({{detail}})",
-  review_revision_not_found:
-    "Revision {{revision_no}} der Anlagethese {{thesis_id}} nicht gefunden",
   review_version_not_found: "Version {{version_no}} der Anlagestrategie {{policy}} nicht gefunden",
-  review_revision_no_review: "Revision {{revision_no}} hat keine Prüfung",
   review_version_no_review: "{{version}} hat keine Prüfung",
+  suggestion_not_found: "Vorschlag {{id}} nicht gefunden",
+  suggestion_review_confirmed:
+    "Die Prüfung ist bestätigt; ihre Vorschläge können sich nicht mehr ändern",
+  suggestion_without_change:
+    "Dieser Vorschlag stammt aus einer älteren Prüfung und kann nicht übernommen werden",
+  suggestion_not_open: "Dieser Vorschlag wurde bereits übernommen oder verworfen",
+  suggestion_is_open: "Dieser Vorschlag ist weder übernommen noch verworfen",
+  suggestion_position_missing: "Der Entwurf hat keine Position {{ticker}} mehr",
+  suggestion_position_exists: "Der Entwurf hat bereits eine Position {{ticker}}",
+  suggestion_no_draft: "Der Entwurf, in den dieser Vorschlag übernommen wurde, gibt es nicht mehr",
+  review_policy_not_active: "Die Anlagestrategie {{name}} hat keine aktive Version zum Prüfen",
   rebalance_values_missing: "Erfasse zuerst die aktuellen Werte des Portfolios",
   rebalance_snapshot_not_found: "Stand {{id}} nicht gefunden",
   rebalance_policy_changed:
     "Die Anlagestrategie hat sich seit der Vorschau geändert; berechne das Rebalancing neu",
+  rebalance_sell_all_not_broken:
+    "Das ganze Portfolio zu verkaufen wird nur angeboten, wenn die Anlagethese gebrochen ist",
+  rebalance_mode_invalid: "Der Modus muss normal oder sell_all sein",
   rebalance_no_instruction: "Keine Anweisung {{phase}} für {{ticker}}",
   rebalance_executed_negative: "Ausgeführte Beträge müssen 0 oder mehr sein",
   rebalance_buffer_exceeded:

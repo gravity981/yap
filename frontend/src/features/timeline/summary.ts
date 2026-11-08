@@ -1,6 +1,6 @@
 import i18n from "i18next";
 
-import { statusLabel } from "@/features/theses/status";
+import { semaphoreLabel, toSemaphore } from "@/features/reviews/semaphore";
 import { currentLocale } from "@/i18n";
 import { formatAmount } from "@/lib/format";
 
@@ -10,10 +10,11 @@ type Params = Record<string, unknown>;
 
 const text = (value: unknown) => String(value ?? "");
 
-/** A review result, e.g. "needs adaptation, 7 / 10, modified" (TL-02). */
+/** A review result, e.g. "warning, 7 / 10" (TL-02); verdicts of events from before
+ * scoring version 3 as their semaphore (REV-06). */
 function reviewResult(p: Params): string {
   const parts: string[] = [];
-  if (p.verdict) parts.push(statusLabel(text(p.verdict)));
+  if (p.verdict) parts.push(semaphoreLabel(toSemaphore(text(p.verdict))));
   if (typeof p.total === "number") {
     const total = new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: 1 });
     parts.push(i18n.t("timeline.summary.score", { total: total.format(p.total) }));
@@ -57,14 +58,38 @@ export function eventSummary(event: TimelineEvent): string {
         bought: amount(p.bought),
         withdrawal: amount(p.withdrawal),
       };
+      if (p.mode === "sell_all")
+        return i18n.t(
+          p.withdrawal
+            ? "timeline.summary.soldCompletelyWithdrawal"
+            : "timeline.summary.soldCompletely",
+          values,
+        );
       return p.withdrawal
         ? i18n.t("timeline.summary.rebalanceWithdrawal", values)
         : i18n.t("timeline.summary.rebalance", values);
     }
     case "thesis_review_confirmed":
-      return i18n.t("timeline.summary.thesisReview", {
-        title: text(p.title),
-        revision: text(p.revision),
+      // Since policies hold their thesis, the review names the version; older events
+      // name the thesis revision
+      return p.version !== undefined
+        ? i18n.t("timeline.summary.thesisReviewOfVersion", {
+            version: text(p.version),
+            result: reviewResult(p),
+          })
+        : i18n.t("timeline.summary.thesisReview", {
+            title: text(p.title),
+            revision: text(p.revision),
+            result: reviewResult(p),
+          });
+    case "review_saved":
+      return i18n.t("timeline.summary.reviewAgain", {
+        version: text(p.version),
+        result: reviewResult(p),
+      });
+    case "review_confirmed":
+      return i18n.t("timeline.summary.review", {
+        version: text(p.version),
         result: reviewResult(p),
       });
     case "policy_review_confirmed":

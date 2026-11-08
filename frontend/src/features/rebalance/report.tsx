@@ -80,15 +80,17 @@ export function PlanReportPage({
   snapshotId,
   contribution,
   withdrawal,
+  mode,
 }: {
   portfolioId: number;
   snapshotId?: number;
   contribution?: string;
   withdrawal?: string;
+  mode?: string;
 }) {
   const { t } = useTranslation();
   const portfolio = usePortfolio(portfolioId);
-  const plan = usePlan(portfolioId, snapshotId, contribution, withdrawal);
+  const plan = usePlan(portfolioId, snapshotId, contribution, withdrawal, mode);
   if (plan.error) return <FormError error={plan.error} />;
   if (!plan.data) return <p className="text-muted-foreground">{t("common.loading")}</p>;
   const p = plan.data;
@@ -184,6 +186,7 @@ export function ConfirmedReportPage({ rebalanceId }: { rebalanceId: number }) {
         withdrawal={r.withdrawal}
         result={result.data}
         precise={precise}
+        sellAll={r.mode === "sell_all"}
       />
       <CalculationSteps
         contribution={r.contribution}
@@ -191,6 +194,7 @@ export function ConfirmedReportPage({ rebalanceId }: { rebalanceId: number }) {
         result={result.data}
         precise={precise}
         open
+        sellAll={r.mode === "sell_all"}
       />
       <ResultTable result={result.data} precise={precise} open />
       <ResultCharts result={result.data} />

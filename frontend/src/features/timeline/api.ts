@@ -12,6 +12,8 @@ export const EVENT_TYPES = [
   "rebalance_confirmed",
   "thesis_review_confirmed",
   "policy_review_confirmed",
+  "review_confirmed",
+  "review_saved",
   "thesis_revised",
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
@@ -51,17 +53,6 @@ export function useVersionById(id: number | null) {
     queryFn: () =>
       unwrap(
         api.GET("/api/policy-versions/{version_id}", { params: { path: { version_id: id! } } }),
-      ),
-  });
-}
-
-export function useRevisionById(id: number | null) {
-  return useQuery({
-    queryKey: ["thesis-revisions", id],
-    enabled: id !== null,
-    queryFn: () =>
-      unwrap(
-        api.GET("/api/thesis-revisions/{revision_id}", { params: { path: { revision_id: id! } } }),
       ),
   });
 }

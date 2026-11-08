@@ -1,64 +1,87 @@
-"""Policies and versions (POL-01 to POL-13) and target-structure import (IMP-02)."""
+"""Policies and versions with their thesis (POL-01 to POL-13), import of theses and target
+structures (IMP-01, IMP-02)."""
 
 from typing import Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from yap.api.deps import AppClock, CurrentUser, DbSession, RawBody
 from yap.api.schemas import (
     Activation,
+    DraftBrief,
     DraftIn,
-    DraftThesisRevision,
     NewPolicy,
     PolicyOut,
     PolicySummary,
     PortfolioRef,
     PositionChangeOut,
+    ReviewBrief,
+    ThesisImportPreview,
     VersionDiffOut,
     VersionOut,
     VersionRef,
     version_summary,
 )
 from yap.db.models import Investor, Policy, PolicyVersion
-from yap.domain.types import ThesisStatus
+from yap.domain.reviews import Verdict
 from yap.imports import importer
 from yap.messages import msg
-from yap.services import policies
+from yap.services import policies, reviews
 from yap.services.common import Clock, NotFoundError
-from yap.services.policies import PositionSpec, VersionDiff
+from yap.services.policies import PositionSpec, ThesisSpec, VersionDiff
 from yap.services.versioning import active_version, version_periods
 
 router = APIRouter(prefix="/policies", tags=["policies"])
 
 
 def _policy(session: DbSession, user: Investor, clock: Clock, policy: Policy) -> PolicyOut:
-    now = clock.now()
-    active = active_version(policy, now)
-    newer = policies.newer_thesis_revision(session, user, policy, now)
+    active = active_version(policy, clock.now())
     return PolicyOut(
         id=policy.id,
         name=policy.name,
-        thesis_id=policy.versions[0].thesis_revision.thesis_id,
         archived_at=policy.archived_at,
         created_at=policy.created_at,
         versions=[
             version_summary(p.version, p.active_from, p.active_until)
             for p in version_periods(policy)
         ],
-        portfolios=[
-            PortfolioRef(id=p.id, name=p.name) for p in policies.portfolios_using(session, policy)
-        ],
-        newer_thesis_revision_id=newer.id if newer else None,
-        **_thesis_warning(active),
+        **_state(session, policy, active),
     )
 
 
-def _thesis_warning(active: PolicyVersion | None) -> dict[str, Any]:
-    """POL-11: warn when the pinned thesis revision needs adaptation or is broken."""
-    status = active.thesis_revision.status if active else None
+def _state(session: DbSession, policy: Policy, active: PolicyVersion | None) -> dict[str, Any]:
+    """POL-11, POL-19, REV-21, THS-04: the semaphore, score and marks of the active version,
+    the sharing level, the draft and the portfolios that follow the policy."""
+    latest = reviews.current_review(active) if active is not None else None
+    pending = reviews.pending_review(active) if active is not None else None
+    semaphore = reviews.review_semaphore(latest)
+    draft = policies.get_draft(policy)
+    draft_review = reviews.current_review(draft) if draft is not None else None
     return {
-        "thesis_warning": status is not None and status != ThesisStatus.INTACT.value,
-        "thesis_status": status,
+        "thesis_warning": semaphore in (Verdict.WARNING, Verdict.BROKEN),
+        "semaphore": semaphore.value if semaphore else None,
+        "semaphore_reason": latest.verdict_reason if latest and semaphore else None,
+        "mark": reviews.effective_mark(active) if active is not None else None,
+        "sharing": policy.sharing,
+        "active_version_no": active.version_no if active else None,
+        "active_from": active.activated_at if active else None,
+        "latest_review": ReviewBrief.of(active, latest) if active and latest else None,
+        "pending_review": ReviewBrief.of(active, pending) if active and pending else None,
+        "draft": DraftBrief(
+            version_no=draft.version_no,
+            label=draft.label,
+            updated_at=draft.updated_at,
+            positions=len(draft.positions),
+            changed=active is None
+            or reviews.draft_fingerprint(draft) != reviews.draft_fingerprint(active),
+            review=ReviewBrief.of(draft, draft_review) if draft_review else None,
+        )
+        if draft is not None
+        else None,
+        "portfolios": [
+            PortfolioRef(id=p.id, name=p.name) for p in policies.portfolios_using(session, policy)
+        ],
     }
 
 
@@ -78,9 +101,7 @@ def _version_by_no(policy: Policy, version_no: int) -> PolicyVersion:
 def list_policies(session: DbSession, clock: AppClock, user: CurrentUser) -> list[PolicySummary]:
     result = []
     for policy in policies.list_policies(session, user):
-        now = clock.now()
-        active = active_version(policy, now)
-        newer = policies.newer_thesis_revision(session, user, policy, now)
+        active = active_version(policy, clock.now())
         result.append(
             PolicySummary(
                 id=policy.id,
@@ -88,8 +109,7 @@ def list_policies(session: DbSession, clock: AppClock, user: CurrentUser) -> lis
                 archived_at=policy.archived_at,
                 active_version_label=active.label if active else None,
                 has_draft=policies.get_draft(policy) is not None,
-                newer_thesis_revision_id=newer.id if newer else None,
-                **_thesis_warning(active),
+                **_state(session, policy, active),
             )
         )
     return result
@@ -104,7 +124,8 @@ def create_policy(
         user,
         clock,
         name=body.name,
-        thesis_id=body.thesis_id,
+        thesis_title=body.thesis_title,
+        thesis_md=body.thesis_md,
     )
     return _policy(session, user, clock, policy)
 
@@ -132,7 +153,8 @@ def _diff(diff: VersionDiff) -> VersionDiffOut:
             )
             for c in diff.positions
         ],
-        thesis_revision=diff.thesis_revision,
+        thesis_changed=diff.thesis_changed,
+        thesis_diff=diff.thesis_diff,
     )
 
 
@@ -167,26 +189,33 @@ def update_draft(
         clock,
         policy_id,
         positions=[PositionSpec(**p.model_dump()) for p in body.positions],
+        thesis=ThesisSpec(body.thesis.title, body.thesis.content_md) if body.thesis else None,
     )
     return _version(draft.policy, draft)
 
 
-@router.delete("/{policy_id}/draft", status_code=204)
-def delete_draft(policy_id: int, session: DbSession, user: CurrentUser) -> None:
-    policies.delete_draft(session, user, policy_id)
+class Discarded(BaseModel):
+    """POL-16: whether the policy was deleted with the draft (it was never activated)."""
+
+    policy_deleted: bool
 
 
-@router.put("/{policy_id}/draft/thesis-revision")
-def set_draft_thesis_revision(
-    policy_id: int,
-    body: DraftThesisRevision,
-    session: DbSession,
-    clock: AppClock,
-    user: CurrentUser,
+@router.delete("/{policy_id}/draft")
+def delete_draft(policy_id: int, session: DbSession, user: CurrentUser) -> Discarded:
+    """POL-16: discards the draft and its review."""
+    return Discarded(policy_deleted=policies.delete_draft(session, user, policy_id))
+
+
+class ChangeNote(BaseModel):
+    change_note: str | None
+
+
+@router.put("/{policy_id}/draft/change-note")
+def update_change_note(
+    policy_id: int, body: ChangeNote, session: DbSession, clock: AppClock, user: CurrentUser
 ) -> VersionOut:
-    draft = policies.set_draft_thesis_revision(
-        session, user, clock, policy_id, body.thesis_revision_id
-    )
+    """POL-14, POL-17: saves the change note of the draft."""
+    draft = policies.update_change_note(session, user, clock, policy_id, body.change_note)
     return _version(draft.policy, draft)
 
 
@@ -198,13 +227,30 @@ def activate_draft(
     return _version(version.policy, version)
 
 
-@router.post("/{policy_id}/adopt-thesis-revision")
-def adopt_thesis_revision(
-    policy_id: int, session: DbSession, clock: AppClock, user: CurrentUser
-) -> VersionOut:
-    """POL-10: draft pinning the newest thesis revision."""
-    draft = policies.adopt_newer_thesis_revision(session, user, clock, policy_id)
-    return _version(draft.policy, draft)
+class RenameIn(BaseModel):
+    name: str
+
+
+@router.put("/{policy_id}/name")
+def rename_policy(
+    policy_id: int, body: RenameIn, session: DbSession, clock: AppClock, user: CurrentUser
+) -> PolicyOut:
+    """POL-21: renames the policy; its versions are labelled with the new name."""
+    policy = policies.rename_policy(session, user, policy_id, body.name)
+    return _policy(session, user, clock, policy)
+
+
+class SharingIn(BaseModel):
+    sharing: str  # private | text | all
+
+
+@router.put("/{policy_id}/sharing")
+def set_sharing(
+    policy_id: int, body: SharingIn, session: DbSession, clock: AppClock, user: CurrentUser
+) -> PolicyOut:
+    """POL-18: the sharing level; only a reviewed active version can be shared."""
+    policy = policies.set_sharing(session, user, clock, policy_id, body.sharing)
+    return _policy(session, user, clock, policy)
 
 
 @router.post("/{policy_id}/archive")
@@ -215,7 +261,39 @@ def archive_policy(
     return _policy(session, user, clock, policy)
 
 
-# --- Import (IMP-02, IMP-07) --------------------------------------------------
+# --- Import (IMP-01, IMP-02, IMP-07) -----------------------------------------
+
+
+@router.post("/import-thesis", status_code=201)
+def import_thesis_as_policy(
+    body: RawBody, session: DbSession, clock: AppClock, user: CurrentUser
+) -> PolicyOut:
+    """IMP-01: a new policy whose draft v1 holds the thesis of the file."""
+    draft = importer.import_thesis(session, user, clock, body)
+    return _policy(session, user, clock, draft.policy)
+
+
+@router.post("/import-thesis/preview")
+def preview_thesis_as_policy(
+    body: RawBody, session: DbSession, user: CurrentUser
+) -> ThesisImportPreview:
+    return ThesisImportPreview(**vars(importer.preview_thesis(session, user, body)))
+
+
+@router.post("/{policy_id}/import-thesis", status_code=201)
+def import_thesis(
+    policy_id: int, body: RawBody, session: DbSession, clock: AppClock, user: CurrentUser
+) -> VersionOut:
+    """IMP-01: replaces the thesis of the policy's draft (created if there is none)."""
+    draft = importer.import_thesis(session, user, clock, body, policy_id)
+    return _version(draft.policy, draft)
+
+
+@router.post("/{policy_id}/import-thesis/preview")
+def preview_thesis(
+    policy_id: int, body: RawBody, session: DbSession, user: CurrentUser
+) -> ThesisImportPreview:
+    return ThesisImportPreview(**vars(importer.preview_thesis(session, user, body, policy_id)))
 
 
 @router.post("/{policy_id}/import", status_code=201)

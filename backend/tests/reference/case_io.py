@@ -4,7 +4,8 @@ A case file contains:
   description  – what the case shows, with the requirements it covers
   approved     – reviewed and approved by the product owner
   calculation  – how the expected values were obtained
-  input        – contribution, withdrawal (optional, default 0), positions; a position may
+  input        – contribution, withdrawal (optional, default 0), mode (optional, `normal` or
+                 `sell_all`, RB-25), positions; a position may
                  have units, price and whole_units, then the amounts are converted into
                  units (RB-24)
   expected     – per ticker: buffer_buy, sell_amount, buy_amount, withdrawal_sell (optional),

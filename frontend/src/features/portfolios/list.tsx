@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Field, FormError, fieldError } from "@/components/form";
 import { PageTitle } from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
+import { PolicySemaphore } from "@/features/reviews/semaphore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -47,6 +48,12 @@ export function PortfolioCards({ portfolios }: { portfolios: PortfolioSummary[] 
               <span className="text-muted-foreground">
                 {t("portfolios.list.policy", { name: p.policy_name })}
               </span>
+              {/* PTF-07 */}
+              <PolicySemaphore
+                policyId={p.policy_id}
+                semaphore={p.policy_semaphore}
+                reason={p.policy_semaphore_reason}
+              />
               {latest ? (
                 <>
                   <span>

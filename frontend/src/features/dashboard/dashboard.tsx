@@ -7,7 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { usePolicies } from "@/features/policies/api";
 import { usePortfolios } from "@/features/portfolios/api";
 import { PortfolioCards } from "@/features/portfolios/list";
-import { statusLabel } from "@/features/theses/status";
+import { semaphoreLabel } from "@/features/reviews/semaphore";
 import { EventList } from "@/features/timeline/timeline";
 import { useTimeline } from "@/features/timeline/api";
 
@@ -19,9 +19,7 @@ export function DashboardPage() {
   const portfolios = usePortfolios();
   const policies = usePolicies();
   const events = useTimeline({ types: [] });
-  const warnings = (policies.data ?? []).filter(
-    (p) => !p.archived_at && (p.thesis_warning || p.newer_thesis_revision_id !== null),
-  );
+  const warnings = (policies.data ?? []).filter((p) => !p.archived_at && p.thesis_warning);
 
   return (
     <div className="grid gap-6">
@@ -46,14 +44,9 @@ export function DashboardPage() {
               >
                 {p.name}
               </Link>
-              {p.thesis_warning &&
-                t("portfolios.dashboard.thesisMarked", {
-                  status: statusLabel(p.thesis_status ?? ""),
-                })}
-              {!p.thesis_warning && t("portfolios.dashboard.newerRevision")}
-              {p.thesis_warning &&
-                p.newer_thesis_revision_id !== null &&
-                t("portfolios.dashboard.alsoNewerRevision")}
+              {t("portfolios.dashboard.thesisMarked", {
+                status: semaphoreLabel(p.semaphore),
+              })}
             </Alert>
           ))}
         </section>

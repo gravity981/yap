@@ -232,42 +232,6 @@ class Asset(Base):
     type: Mapped[str] = mapped_column(String(20))
 
 
-class Thesis(Base):
-    __tablename__ = "thesis"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("investor.id"))
-    visibility: Mapped[str] = mapped_column(String(10))
-    created_at: Mapped[datetime]
-
-    revisions: Mapped[list[ThesisRevision]] = relationship(
-        back_populates="thesis", order_by="ThesisRevision.revision_no"
-    )
-
-
-class ThesisRevision(Base):
-    __tablename__ = "thesis_revision"
-    __table_args__ = (UniqueConstraint("thesis_id", "revision_no"),)
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    thesis_id: Mapped[int] = mapped_column(ForeignKey("thesis.id"))
-    revision_no: Mapped[int] = mapped_column(Integer)
-    title: Mapped[str] = mapped_column(String(200))
-    content_md: Mapped[str] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(String(20))
-    change_note: Mapped[str | None] = mapped_column(Text)
-    activated_at: Mapped[datetime | None]  # null for the draft (THS-02)
-    updated_at: Mapped[datetime | None]  # last change of the draft (REV-09)
-    created_at: Mapped[datetime]
-
-    thesis: Mapped[Thesis] = relationship(back_populates="revisions")
-    review: Mapped[Review | None] = relationship(viewonly=True)
-
-    @property
-    def is_draft(self) -> bool:
-        return self.activated_at is None
-
-
 class Policy(Base):
     __tablename__ = "policy"
     __table_args__ = (UniqueConstraint("owner_id", "name"),)
@@ -275,6 +239,7 @@ class Policy(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("investor.id"))
     name: Mapped[str] = mapped_column(String(100))
+    sharing: Mapped[str] = mapped_column(String(10), default="private")  # | text | all (POL-18)
     archived_at: Mapped[datetime | None]
     created_at: Mapped[datetime]
 
@@ -290,15 +255,18 @@ class PolicyVersion(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     policy_id: Mapped[int] = mapped_column(ForeignKey("policy.id"))
     version_no: Mapped[int] = mapped_column(Integer)
-    thesis_revision_id: Mapped[int] = mapped_column(ForeignKey("thesis_revision.id"))
+    # The thesis of the version (THS-01); its semaphore comes from its review (THS-04)
+    thesis_title: Mapped[str] = mapped_column(String(200))
+    thesis_md: Mapped[str] = mapped_column(Text)
     change_note: Mapped[str | None] = mapped_column(Text)
+    # REV-20: not_reviewed | review_did_not_match, set at activation; null otherwise
+    mark: Mapped[str | None] = mapped_column(String(30))
     activated_at: Mapped[datetime | None]
-    updated_at: Mapped[datetime | None]  # last change of a draft (REV-09)
+    updated_at: Mapped[datetime | None]  # last auto-save of a draft (POL-14)
     created_at: Mapped[datetime]
 
     policy: Mapped[Policy] = relationship(back_populates="versions")
-    thesis_revision: Mapped[ThesisRevision] = relationship()
-    review: Mapped[Review | None] = relationship(viewonly=True)
+    reviews: Mapped[list[Review]] = relationship(viewonly=True, order_by="Review.id")
     positions: Mapped[list[PolicyPosition]] = relationship(
         back_populates="policy_version",
         order_by="PolicyPosition.sort_order",
@@ -425,6 +393,7 @@ class Rebalance(Base):
     policy_version_id: Mapped[int] = mapped_column(ForeignKey("policy_version.id"))
     contribution: Mapped[Decimal]
     withdrawal: Mapped[Decimal]
+    mode: Mapped[str] = mapped_column(String(10), server_default="normal")  # RB-25
     precise_amounts: Mapped[bool] = mapped_column(Boolean)
     result_snapshot_id: Mapped[int | None] = mapped_column(ForeignKey("snapshot.id"))
     confirmed_at: Mapped[datetime]
@@ -448,25 +417,30 @@ class RebalanceAction(Base):
 
 
 class Review(Base):
-    """A thesis or policy review of a draft (REV-01 to REV-12). It is confirmed, and
-    immutable from then on, when its draft is activated (REV-11)."""
+    """A review of a version (REV-01 to REV-12): of the whole policy, or from before stage 2
+    of its thesis or its target structure. It is confirmed, and immutable from then on,
+    when its draft is activated (REV-11)."""
 
     __tablename__ = "review"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    kind: Mapped[str] = mapped_column(String(10))  # thesis | policy
-    # The reviewed draft: exactly one of the two, by kind; at most one review each (REV-09)
-    thesis_revision_id: Mapped[int | None] = mapped_column(
-        ForeignKey("thesis_revision.id"), unique=True
-    )
-    policy_version_id: Mapped[int | None] = mapped_column(
-        ForeignKey("policy_version.id"), unique=True
-    )
+    kind: Mapped[str] = mapped_column(String(10))  # full; thesis | policy before stage 2
+    # The reviewed version: a draft has at most one open review (REV-09); a version keeps
+    # every saved review in its review log (REV-23)
+    policy_version_id: Mapped[int] = mapped_column(ForeignKey("policy_version.id"))
     started_by: Mapped[int] = mapped_column(ForeignKey("investor.id"))
     state: Mapped[str] = mapped_column(String(10))  # queued | running | done | failed
-    news_from: Mapped[datetime | None]  # thesis reviews only
+    news_from: Mapped[datetime | None]  # null for policy reviews before stage 2
     news_to: Mapped[datetime | None]
-    verdict: Mapped[str | None] = mapped_column(String(20))  # thesis reviews only
+    # REV-03: good | warning | broken; before scoring version 3 intact | needs_adaptation |
+    # broken (REV-06); null for policy reviews before stage 2
+    verdict: Mapped[str | None] = mapped_column(String(20))
+    verdict_reason: Mapped[str | None] = mapped_column(Text)  # since scoring version 3
+    # REV-09: of the reviewed content; null for reviews from before fingerprints
+    fingerprint: Mapped[str | None] = mapped_column(String(64))
+    # REV-11, REV-23, POL-20: when confirmed by activation or saved on the active version;
+    # null while open. Saved reviews are immutable.
+    saved_at: Mapped[datetime | None]
     # Investor changes of reviews from before REV-10 was dropped, read-only (JSON: note,
     # verdict, scores per aspect); null for all newer reviews
     legacy_modification: Mapped[str | None] = mapped_column(Text)
@@ -474,11 +448,12 @@ class Review(Base):
     method: Mapped[str] = mapped_column(String(10), default="ai")  # ai | manual (REV-18)
     prompt_id: Mapped[str | None] = mapped_column(String(60))  # REV-19; null before it
     # REV-17: the AI reviewer it runs on, its name at the start, provider and model; a
-    # manual review has the provider "manual" and the model the investor named
+    # manual review has the provider "manual" and no model (before stage 2: the model the
+    # investor named)
     ai_reviewer_id: Mapped[int | None] = mapped_column(ForeignKey("ai_reviewer.id"))
     ai_reviewer_name: Mapped[str | None] = mapped_column(String(100))  # null before 0007
     provider: Mapped[str] = mapped_column(String(20))
-    model: Mapped[str] = mapped_column(String(100))
+    model: Mapped[str | None] = mapped_column(String(100))
     error: Mapped[str | None] = mapped_column(Text)
     started_at: Mapped[datetime]
     completed_at: Mapped[datetime | None]
@@ -522,8 +497,18 @@ class ReviewSuggestion(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     review_id: Mapped[int] = mapped_column(ForeignKey("review.id", ondelete="CASCADE"))
-    kind: Mapped[str] = mapped_column(String(20))  # thesis_text | thesis_status | policy_position
-    content_md: Mapped[str] = mapped_column(Text)
+    """A suggestion or proposal of a review (REV-07, REV-22). Its state may change only
+    while its review belongs to an open draft (REV-11)."""
+
+    # thesis_section | position_change | position_add | position_remove | proposal;
+    # before scoring version 3 also thesis_text, thesis_status, policy_position (no change)
+    kind: Mapped[str] = mapped_column(String(20))
+    content_md: Mapped[str] = mapped_column(Text)  # the reason, or a proposal's description
+    # What Take over applies (domain/suggestions.py); null for older suggestions
+    change: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # What Take over replaced, so it can be undone
+    previous: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    state: Mapped[str] = mapped_column(String(20), default="open")  # | taken_over | dismissed
 
 
 class ReviewRun(Base):
@@ -552,7 +537,6 @@ class TimelineEvent(Base):
     policy_version_id: Mapped[int | None] = mapped_column(ForeignKey("policy_version.id"))
     rebalance_id: Mapped[int | None] = mapped_column(ForeignKey("rebalance.id"))
     review_id: Mapped[int | None] = mapped_column(ForeignKey("review.id"))
-    thesis_revision_id: Mapped[int | None] = mapped_column(ForeignKey("thesis_revision.id"))
     summary: Mapped[str] = mapped_column(String(500))  # English, as stored at the time
     # The values of the summary, so the UI can write it in its language (TL-02, NFR-10);
     # null for events from before 0010

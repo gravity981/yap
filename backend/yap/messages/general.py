@@ -7,7 +7,6 @@ MESSAGES: dict[str, str] = {
     "investors_only": "Only active investors can access investment data",
     "invalid_input": "The input is invalid",
     # get_owned: one per owned table, named after it
-    "thesis_not_found": "Thesis {id} not found",
     "policy_not_found": "Policy {id} not found",
     "portfolio_not_found": "Portfolio {id} not found",
 }

@@ -5,7 +5,6 @@ import type { components } from "@/api/schema";
 
 export type Review = components["schemas"]["ReviewOut"];
 export type ReviewBrief = components["schemas"]["ReviewBrief"];
-export type ReviewKind = "thesis" | "policy";
 
 const POLL_MS = 3000;
 export const usageKey = ["reviews", "usage"] as const;
@@ -20,7 +19,6 @@ function useInvalidateOwners() {
   const client = useQueryClient();
   return () =>
     Promise.all([
-      client.invalidateQueries({ queryKey: ["theses"] }),
       client.invalidateQueries({ queryKey: ["policies"] }),
       client.invalidateQueries({ queryKey: ["timeline"] }),
     ]);
@@ -65,29 +63,30 @@ export function useReviewerOptions() {
   });
 }
 
+/** REV-01: the draft, or POL-20: the active version, reviewed again. */
+export type ReviewTarget = "draft" | "active";
+
 export interface StartReview {
   reviewerId: number;
-  newsDays?: number; // thesis reviews only
+  newsDays?: number; // REV-04
 }
 
-export function useStartReview(kind: ReviewKind, ownerId: number) {
+/** REV-01: one review of the whole draft: thesis and target structure. */
+export function useStartReview(policyId: number, target: ReviewTarget = "draft") {
   const client = useQueryClient();
   const invalidate = useInvalidateOwners();
   return useMutation({
-    mutationFn: ({ reviewerId, newsDays }: StartReview) =>
-      kind === "thesis"
-        ? unwrap(
-            api.POST("/api/theses/{thesis_id}/draft/review", {
-              params: { path: { thesis_id: ownerId } },
-              body: { ai_reviewer_id: reviewerId, ...(newsDays && { news_days: newsDays }) },
-            }),
-          )
-        : unwrap(
-            api.POST("/api/policies/{policy_id}/draft/review", {
-              params: { path: { policy_id: ownerId } },
-              body: { ai_reviewer_id: reviewerId },
-            }),
-          ),
+    mutationFn: ({ reviewerId, newsDays }: StartReview) => {
+      const request = {
+        params: { path: { policy_id: policyId } },
+        body: { ai_reviewer_id: reviewerId, ...(newsDays && { news_days: newsDays }) },
+      };
+      return unwrap(
+        target === "draft"
+          ? api.POST("/api/policies/{policy_id}/draft/review", request)
+          : api.POST("/api/policies/{policy_id}/active/review", request),
+      );
+    },
     onSuccess: (review) => {
       client.setQueryData(reviewKey(review.id), review);
       void client.invalidateQueries({ queryKey: usageKey });
@@ -97,53 +96,87 @@ export function useStartReview(kind: ReviewKind, ownerId: number) {
 }
 
 /** REV-19: the review prompt of the draft as it is saved now; nothing is stored. */
-export function useReviewPrompt(kind: ReviewKind, ownerId: number) {
+export function useReviewPrompt(policyId: number, target: ReviewTarget = "draft") {
   return useMutation({
-    mutationFn: ({ newsDays }: { newsDays?: number }) =>
-      kind === "thesis"
-        ? unwrap(
-            api.GET("/api/theses/{thesis_id}/draft/review-prompt", {
-              params: {
-                path: { thesis_id: ownerId },
-                query: newsDays ? { news_days: newsDays } : {},
-              },
-            }),
-          )
-        : unwrap(
-            api.GET("/api/policies/{policy_id}/draft/review-prompt", {
-              params: { path: { policy_id: ownerId } },
-            }),
-          ),
+    mutationFn: ({ newsDays }: { newsDays?: number }) => {
+      const request = {
+        params: {
+          path: { policy_id: policyId },
+          query: newsDays ? { news_days: newsDays } : {},
+        },
+      };
+      return unwrap(
+        target === "draft"
+          ? api.GET("/api/policies/{policy_id}/draft/review-prompt", request)
+          : api.GET("/api/policies/{policy_id}/active/review-prompt", request),
+      );
+    },
   });
 }
 
-export interface ManualAnswer {
-  answer: string;
-  model: string;
-}
-
 /** REV-18: stores the answer of an AI outside the app as the review of the draft. */
-export function useSubmitManualReview(kind: ReviewKind, ownerId: number) {
+export function useSubmitManualReview(policyId: number, target: ReviewTarget = "draft") {
   const client = useQueryClient();
   const invalidate = useInvalidateOwners();
   return useMutation({
-    mutationFn: (body: ManualAnswer) =>
-      kind === "thesis"
-        ? unwrap(
-            api.POST("/api/theses/{thesis_id}/draft/review/manual", {
-              params: { path: { thesis_id: ownerId } },
-              body,
-            }),
-          )
-        : unwrap(
-            api.POST("/api/policies/{policy_id}/draft/review/manual", {
-              params: { path: { policy_id: ownerId } },
-              body,
-            }),
-          ),
+    mutationFn: (answer: string) => {
+      const request = { params: { path: { policy_id: policyId } }, body: { answer } };
+      return unwrap(
+        target === "draft"
+          ? api.POST("/api/policies/{policy_id}/draft/review/manual", request)
+          : api.POST("/api/policies/{policy_id}/active/review/manual", request),
+      );
+    },
     onSuccess: (review) => {
       client.setQueryData(reviewKey(review.id), review);
       return invalidate();
     },
+  });
+}
+
+export type Suggestion = Review["suggestions"][number];
+export type SuggestionAction = "take-over" | "dismiss" | "undo";
+
+/** REV-07, REV-22: takes over, dismisses or undoes a suggestion; returns the review and
+ * the draft as they are now. */
+export function useSuggestionAction(reviewId: number) {
+  const client = useQueryClient();
+  const invalidate = useInvalidateOwners();
+  return useMutation({
+    mutationFn: ({ action, suggestionId }: { action: SuggestionAction; suggestionId: number }) => {
+      const params = { path: { review_id: reviewId, suggestion_id: suggestionId } };
+      if (action === "take-over") {
+        return unwrap(
+          api.POST("/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over", { params }),
+        );
+      }
+      if (action === "dismiss") {
+        return unwrap(
+          api.POST("/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss", { params }),
+        );
+      }
+      return unwrap(
+        api.POST("/api/reviews/{review_id}/suggestions/{suggestion_id}/undo", { params }),
+      );
+    },
+    onSuccess: (result) => {
+      client.setQueryData(reviewKey(result.review.id), result.review);
+      return invalidate();
+    },
+  });
+}
+
+export type ReviewLogEntry = components["schemas"]["ReviewLogEntry"];
+
+/** REV-23: the saved reviews of a policy's versions, newest first. */
+export function useReviewLog(policyId: number) {
+  return useQuery({
+    queryKey: ["policies", policyId, "reviews"],
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/policies/{policy_id}/reviews", {
+          params: { path: { policy_id: policyId } },
+        }),
+      ),
   });
 }

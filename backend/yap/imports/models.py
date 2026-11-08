@@ -60,13 +60,18 @@ class ImportFile(BaseModel):
 
 
 class ThesisFile(ImportFile):
-    """A thesis (IMP-01). Visibility only applies when a new thesis is created."""
+    """A thesis (IMP-01). Visibility, status and change note are accepted and ignored: a
+    thesis has no status (THS-04) and the sharing level belongs to the policy."""
 
     model_config = ConfigDict(title="Thesis import")
 
     title: Annotated[str, Field(min_length=1, max_length=200, pattern=r"\S")]
     visibility: Literal["private", "shared"] = "private"
-    status: Literal["intact", "needs_adaptation", "broken"] = "intact"
+    status: Literal["intact", "needs_adaptation", "broken"] | None = Field(
+        default=None,
+        deprecated=True,
+        description="Ignored: the semaphore of a thesis comes from its review (THS-04)",
+    )
     content_md: str = Field(description="Thesis content in markdown")
     change_note: str | None = Field(
         default=None,

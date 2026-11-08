@@ -8,12 +8,12 @@ from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session
 
 from tests.fixtures import TEST_SECRET, Factory, FakeLlm
-from tests.reviews.answers import policy_answer, thesis_answer
+from tests.reviews.answers import answer, thesis_answer
 from yap.db.engine import make_engine, make_session_factory
 from yap.db.models import AiReviewer, Investor, Review
 from yap.domain.reviews import SCORING_VERSION
 from yap.messages import msg
-from yap.services import ai_reviewers, policies, reviews, theses
+from yap.services import ai_reviewers, policies, reviews
 from yap.services.common import ConflictError, NotFoundError, ValidationError
 from yap.services.secrets import KeyBox
 from yap.services.timeline import EventType, list_events
@@ -25,13 +25,13 @@ Run = Callable[[Review], Review]
 
 @pytest.fixture
 def fake() -> FakeLlm:
-    return FakeLlm(answers=[thesis_answer()])
+    return FakeLlm(answers=[answer()])
 
 
 @pytest.fixture
 def run(session: Session, db_url: str, factory: Factory, fake: FakeLlm) -> Run:
     """Runs a started review like the background job: in its own sessions."""
-    engine = make_engine(db_url)
+    engine = make_engine(db_url, writer_transactions=False)
     sessions = make_session_factory(engine)
 
     def run(review: Review) -> Review:
@@ -56,84 +56,91 @@ def _choose_first(session: Session, owner: Investor) -> None:
         owner.ai_reviewer_id = session.scalar(select(AiReviewer.id).order_by(AiReviewer.id))
 
 
-def _thesis_with_draft(factory: Factory, owner: Investor, **kwargs: bool) -> int:
-    thesis = factory.thesis(owner, **kwargs)
-    theses.create_draft(factory.session, owner, factory.clock, thesis.id)
-    return thesis.id
+def _thesis_with_draft(factory: Factory, owner: Investor) -> int:
+    """An active policy with a draft v2, which is reviewed; returns the policy."""
+    policy = factory.active_policy(owner)
+    policies.create_draft(factory.session, owner, factory.clock, policy.id)
+    return policy.id
 
 
-def _start(session: Session, factory: Factory, owner: Investor, thesis_id: int) -> Review:
+def _start(session: Session, factory: Factory, owner: Investor, policy_id: int) -> Review:
     _choose_first(session, owner)
-    return reviews.start_thesis_review(session, owner, factory.clock, KEYS, thesis_id, 30)
+    return reviews.start_review(session, owner, factory.clock, KEYS, policy_id, 30)
 
 
-def _start_policy(session: Session, factory: Factory, owner: Investor, policy_id: int) -> Review:
-    _choose_first(session, owner)
-    return reviews.start_policy_review(session, owner, factory.clock, KEYS, policy_id)
-
-
-@pytest.mark.req("REV-01", "REV-02", "REV-03", "REV-04", "REV-06", "REV-07", "REV-08", "REV-17")
-def test_thesis_review_of_a_draft_runs_and_is_stored(
+@pytest.mark.req(
+    "REV-01", "REV-02", "REV-03", "REV-04", "REV-05", "REV-06", "REV-07", "REV-08", "REV-17"
+)
+def test_a_review_of_a_draft_runs_and_is_stored(
     session: Session, factory: Factory, run: Run, fake: FakeLlm
 ) -> None:
     _configure(session, factory)
     owner = factory.investor()
-    thesis_id = _thesis_with_draft(factory, owner)
-    review = _start(session, factory, owner, thesis_id)
-    assert (review.state, review.provider, review.model) == ("queued", "openai", "gpt-x")
+    policy_id = _thesis_with_draft(factory, owner)
+    review = _start(session, factory, owner, policy_id)
+    assert (review.kind, review.state, review.provider, review.model) == (
+        "full",
+        "queued",
+        "openai",
+        "gpt-x",
+    )
     assert review.ai_reviewer_name == "Standard"
     assert (review.news_to - review.news_from).days == 30  # type: ignore[operator]
     run(review)
     assert review.state == "done" and review.completed_at is not None
-    assert [a.half_points for a in review.aspects] == [14, 12, 16, 10, 14, 13]
-    assert review.verdict == "needs_adaptation"
-    assert reviews.total(review) == 13
+    assert [a.aspect for a in review.aspects][:7] == ["P1", "P2", "P3", "P4", "P5", "P6", "T1"]
+    assert {a.aspect: a.half_points for a in review.aspects}["T1"] == 14
+    assert (review.verdict, review.verdict_reason) == (
+        "warning",
+        "Warning signals are observed [1].",
+    )
+    scores = reviews.scores(review)
+    assert (scores.thesis, scores.structure, scores.total) == (13, 15, 14)
+    assert reviews.total(review) == 14
+    assert reviews.review_semaphore(review) == "warning"
     # The undated source keeps its link; its unreadable date is dropped
     assert [(s.title, s.published_on) for s in review.sources] == [
         ("ETF inflows rise", "2026-01-10"),
         ("Undated", None),
     ]
     assert review.suggestions[0].content_md == "Add a time horizon."
-    assert review.scoring_version == SCORING_VERSION == "2"
-    # The verdict is a suggestion only; the thesis status stays as the investor set it
-    draft = reviews.draft_of(session, review)
-    assert draft.status == "intact"  # type: ignore[union-attr]
-    assert fake.requests[0].web_search is True
+    assert review.scoring_version == SCORING_VERSION == "3"
+    # One request with web search, for thesis and target structure together
+    assert len(fake.requests) == 1 and fake.requests[0].web_search is True
+    assert "<target_structure>" in fake.requests[0].prompt
     assert fake.configs[0].api_key == "sk-test"
 
 
-@pytest.mark.req("REV-01", "REV-05")
-def test_policy_review_of_a_draft_runs_without_web_search(
+@pytest.mark.req("REV-02")
+def test_a_draft_without_positions_is_reviewed_on_its_thesis_only(
     session: Session, factory: Factory, run: Run, fake: FakeLlm
 ) -> None:
     _configure(session, factory)
     owner = factory.investor()
-    policy = factory.active_policy(owner)
-    policies.create_draft(session, owner, factory.clock, policy.id)
-    fake.answers = [policy_answer()]
-    review = run(_start_policy(session, factory, owner, policy.id))
-    assert review.state == "done" and review.news_from is None
-    assert reviews.total(review) == 15
-    assert fake.requests[0].web_search is False
+    policy = factory.policy_draft(owner)
+    fake.answers = [thesis_answer()]
+    review = run(_start(session, factory, owner, policy.id))
+    assert review.state == "done"
+    scores = reviews.scores(review)
+    assert (scores.thesis, scores.structure, scores.total) == (13, None, 13)
+    # An answer that scores the target structure anyway fails
+    fake.answers = [answer()]
+    again = run(_start(session, factory, owner, policy.id))
+    assert again.state == "failed" and "exactly the aspects" in (again.error or "")
 
 
 @pytest.mark.req("REV-01")
-def test_only_drafts_of_own_theses_and_policies_are_reviewed(
-    session: Session, factory: Factory
-) -> None:
+def test_only_drafts_of_own_policies_are_reviewed(session: Session, factory: Factory) -> None:
     _configure(session, factory)
     owner, other = factory.investor(), factory.investor()
-    thesis = factory.thesis(owner, shared=True)
-    with pytest.raises(NotFoundError, match="no draft"):
-        _start(session, factory, owner, thesis.id)
-    theses.create_draft(session, owner, factory.clock, thesis.id)
-    with pytest.raises(NotFoundError):
-        _start(session, factory, other, thesis.id)
     policy = factory.active_policy(owner)
     with pytest.raises(NotFoundError, match="no draft"):
-        _start_policy(session, factory, owner, policy.id)
+        _start(session, factory, owner, policy.id)
+    policies.create_draft(session, owner, factory.clock, policy.id)
+    with pytest.raises(NotFoundError):
+        _start(session, factory, other, policy.id)
     with pytest.raises(ValidationError):
-        reviews.start_thesis_review(session, owner, factory.clock, KEYS, thesis.id, 0)
+        reviews.start_review(session, owner, factory.clock, KEYS, policy.id, 0)
 
 
 @pytest.mark.req("REV-08")
@@ -214,7 +221,7 @@ def test_the_chosen_ai_reviewer_decides(session: Session, factory: Factory) -> N
     assert usage.unavailable_reason == msg("review_choose_reviewer")
     assert str(usage.unavailable_reason) == "Choose an AI reviewer"
     with pytest.raises(ConflictError, match="Choose an AI reviewer"):
-        reviews.start_thesis_review(session, owner, factory.clock, KEYS, thesis_id, 30)
+        reviews.start_review(session, owner, factory.clock, KEYS, thesis_id, 30)
     none = _configure(session, factory, "None", limit=0)
     ai_reviewers.choose_reviewer(session, owner, none.id)
     assert "includes no reviews" in (
@@ -238,7 +245,7 @@ def test_each_review_can_use_another_reviewer_than_the_default(
     off = factory.ai_reviewer("Off", enabled=False)
     ai_reviewers.choose_reviewer(session, owner, standard.id)
     thesis_id = _thesis_with_draft(factory, owner)
-    review = reviews.start_thesis_review(
+    review = reviews.start_review(
         session, owner, factory.clock, KEYS, thesis_id, 30, reviewer_id=deep.id
     )
     assert (review.ai_reviewer_name, review.provider) == ("Deep", "anthropic")
@@ -249,18 +256,16 @@ def test_each_review_can_use_another_reviewer_than_the_default(
     assert reviews.usage(session, owner, factory.clock, KEYS, deep.id).left == 0
     assert reviews.usage(session, owner, factory.clock, KEYS).used == 0
     with pytest.raises(ConflictError, match="All 1 reviews with Deep"):
-        reviews.start_thesis_review(
+        reviews.start_review(
             session, owner, factory.clock, KEYS, thesis_id, 30, reviewer_id=deep.id
         )
     with pytest.raises(ConflictError, match="disabled"):
-        reviews.start_thesis_review(
-            session, owner, factory.clock, KEYS, thesis_id, 30, reviewer_id=off.id
-        )
+        reviews.start_review(session, owner, factory.clock, KEYS, thesis_id, 30, reviewer_id=off.id)
     with pytest.raises(NotFoundError):
         reviews.usage(session, owner, factory.clock, KEYS, 999)
     policy = factory.active_policy(owner)
     policies.create_draft(session, owner, factory.clock, policy.id)
-    started = reviews.start_policy_review(
+    started = reviews.start_review(
         session, owner, factory.clock, KEYS, policy.id, reviewer_id=standard.id
     )
     assert started.ai_reviewer_name == "Standard"
@@ -313,10 +318,25 @@ def test_a_new_run_replaces_the_previous_review_of_the_draft(
     with pytest.raises(ConflictError, match="still running"):
         _start(session, factory, owner, thesis_id)
     run(first)
-    fake.answers = [thesis_answer(verdict="intact")]
+    fake.answers = [answer(verdict="good")]
     second = run(_start(session, factory, owner, thesis_id))
     assert session.scalars(select(Review)).all() == [second]
-    assert second.verdict == "intact"
+    assert second.verdict == "good"
+
+
+@pytest.mark.req("REV-09", "REV-06")
+def test_a_new_review_replaces_the_reviews_of_a_draft_from_before_stage_2(
+    session: Session, factory: Factory, run: Run
+) -> None:
+    _configure(session, factory)
+    owner = factory.investor()
+    policy_id = _thesis_with_draft(factory, owner)
+    draft = policies.get_draft(policies.get_policy(session, owner, policy_id))
+    assert draft is not None
+    factory.review(owner, draft, kind="thesis", verdict="intact", scoring_version="2")
+    factory.review(owner, draft, kind="policy", scoring_version="2")
+    review = run(_start(session, factory, owner, policy_id))
+    assert session.scalars(select(Review)).all() == [review]
 
 
 @pytest.mark.req("REV-09")
@@ -329,18 +349,15 @@ def test_a_review_is_outdated_when_the_draft_changes(
     review = run(_start(session, factory, owner, thesis_id))
     assert reviews.is_outdated(session, review) is False
     factory.clock.advance(minutes=5)
-    theses.update_draft(
-        session, owner, factory.clock, thesis_id, title="T", content_md="new", status="intact"
+    policies.update_thesis(
+        session, owner, factory.clock, thesis_id, policies.ThesisSpec("T", "new")
     )
     assert reviews.is_outdated(session, review) is True
 
     policy = factory.active_policy(owner)
     policies.create_draft(session, owner, factory.clock, policy.id)
-    fake.answers = [policy_answer()]
-    policy_review = run(_start_policy(session, factory, owner, policy.id))
+    policy_review = run(_start(session, factory, owner, policy.id))
     factory.clock.advance(minutes=5)
-    draft = policies.get_draft(policy)
-    assert draft is not None
     policies.update_draft(session, owner, factory.clock, policy.id, positions=[])
     assert reviews.is_outdated(session, policy_review) is True
 
@@ -351,50 +368,42 @@ def test_activating_the_draft_confirms_the_review(
 ) -> None:
     _configure(session, factory)
     owner, reader = factory.investor(), factory.investor()
-    thesis_id = _thesis_with_draft(factory, owner, shared=True)
+    thesis_id = _thesis_with_draft(factory, owner)
     review = run(_start(session, factory, owner, thesis_id))
     # A draft's review is the owner's only and is not in the timeline yet
     with pytest.raises(NotFoundError):
         reviews.get_review(session, reader, review.id)
-    assert EventType.THESIS_REVIEW_CONFIRMED not in [e.type for e in list_events(session, owner)]
-    theses.activate_draft(session, owner, factory.clock, thesis_id, "Reviewed")
+    assert EventType.REVIEW_CONFIRMED not in [e.type for e in list_events(session, owner)]
+    policies.activate_draft(session, owner, factory.clock, thesis_id, "Reviewed")
     assert reviews.is_confirmed(session, review)
     event = list_events(session, owner)[-1]
-    assert event.type == EventType.THESIS_REVIEW_CONFIRMED and event.review_id == review.id
-    assert event.summary == "Thesis review of 'Core thesis' revision 2: needs adaptation, 6.5 / 10"
-    assert event.params == {
-        "title": "Core thesis",
-        "revision": 2,
-        "verdict": "needs_adaptation",
-        "total": 6.5,
-    }
-    assert reviews.get_review(session, reader, review.id) == review
+    label = reviews.draft_of(session, review).label
+    assert event.type == EventType.REVIEW_CONFIRMED and event.review_id == review.id
+    assert event.summary == f"Review of {label}: warning, 7 / 10"
+    assert event.params == {"version": label, "verdict": "warning", "total": 7.0}
+    with pytest.raises(NotFoundError):  # reviews are the owner's (REV-12)
+        reviews.get_review(session, reader, review.id)
     review.aspects[0].half_points = 1
     with pytest.raises(DatabaseError, match="confirmed review is immutable"):
         session.flush()
 
 
-@pytest.mark.req("REV-11", "REV-12", "TL-01")
-def test_activating_a_policy_draft_confirms_its_review(
-    session: Session, factory: Factory, run: Run, fake: FakeLlm
+@pytest.mark.req("REV-11", "REV-12", "TL-01", "REV-06")
+def test_activating_confirms_reviews_from_before_stage_2_with_their_events(
+    session: Session, factory: Factory
 ) -> None:
-    _configure(session, factory)
-    owner, other = factory.investor(), factory.investor()
+    owner = factory.investor()
     policy = factory.active_policy(owner)
-    policies.create_draft(session, owner, factory.clock, policy.id)
-    fake.answers = [policy_answer()]
-    review = run(_start_policy(session, factory, owner, policy.id))
+    draft = policies.create_draft(session, owner, factory.clock, policy.id)
+    factory.review(owner, draft, kind="thesis", verdict="needs_adaptation", scoring_version="2")
+    factory.review(owner, draft, kind="policy", half_points=(16,) * 6, scoring_version="2")
     policies.activate_draft(session, owner, factory.clock, policy.id, "Reviewed")
-    event = list_events(session, owner)[-1]
-    assert event.type == EventType.POLICY_REVIEW_CONFIRMED
-    assert event.summary == f"Policy review of {policy.name}-v2: 7.5 / 10"
-    assert event.params == {
-        "version": f"{policy.name}-v2",
-        "verdict": None,
-        "total": 7.5,
-    }
-    with pytest.raises(NotFoundError):
-        reviews.get_review(session, other, review.id)
+    events = sorted(list_events(session, owner)[-2:], key=lambda e: e.type)
+    assert [(e.type, e.summary) for e in events] == [
+        (EventType.POLICY_REVIEW_CONFIRMED, f"Policy review of {draft.label}: 8 / 10"),
+        (EventType.THESIS_REVIEW_CONFIRMED, f"Thesis review of {draft.label}: warning, 6.5 / 10"),
+    ]
+    assert events[1].params == {"version": draft.label, "verdict": "warning", "total": 6.5}
 
 
 @pytest.mark.req("REV-11")
@@ -406,14 +415,14 @@ def test_a_running_review_blocks_activation_and_deletion(
     thesis_id = _thesis_with_draft(factory, owner)
     review = _start(session, factory, owner, thesis_id)
     with pytest.raises(ConflictError, match="still running"):
-        theses.activate_draft(session, owner, factory.clock, thesis_id, "x")
+        policies.activate_draft(session, owner, factory.clock, thesis_id, "x")
     with pytest.raises(ConflictError, match="still running"):
-        theses.delete_draft(session, owner, thesis_id)
+        policies.delete_draft(session, owner, thesis_id)
     fake.error = "OpenAI answered with error 500"
     run(review)
     review_id = review.id
     # A failed review is dropped on activation; it is not confirmed
-    theses.activate_draft(session, owner, factory.clock, thesis_id, "x")
+    policies.activate_draft(session, owner, factory.clock, thesis_id, "x")
     assert session.get(Review, review_id) is None
 
 
@@ -425,28 +434,44 @@ def test_deleting_the_draft_deletes_its_review(
     owner = factory.investor()
     thesis_id = _thesis_with_draft(factory, owner)
     review_id = run(_start(session, factory, owner, thesis_id)).id
-    theses.delete_draft(session, owner, thesis_id)
+    policies.delete_draft(session, owner, thesis_id)
     assert session.get(Review, review_id) is None
 
 
 @pytest.mark.req("REV-18", "REV-09")
 def test_no_manual_answer_while_an_ai_review_runs(session: Session, factory: Factory) -> None:
-    from tests.reviews.answers import thesis_answer
     from yap.services import review_prompts
 
     _configure(session, factory)
     owner = factory.investor()
-    thesis_id = _thesis_with_draft(factory, owner)
-    queued = _start(session, factory, owner, thesis_id)
-    prompt = reviews.thesis_review_prompt(session, owner, factory.clock, thesis_id)
+    policy_id = _thesis_with_draft(factory, owner)
+    queued = _start(session, factory, owner, policy_id)
+    prompt = reviews.review_prompt(session, owner, factory.clock, policy_id)
     assert review_prompts.parse_prompt_id(prompt.prompt_id) is not None
     with pytest.raises(ConflictError, match="still running"):
-        reviews.submit_manual_thesis_review(
-            session,
-            owner,
-            factory.clock,
-            thesis_id,
-            thesis_answer(prompt_id=prompt.prompt_id),
-            "GPT",
+        reviews.submit_manual_review(
+            session, owner, factory.clock, policy_id, answer(prompt_id=prompt.prompt_id)
         )
-    assert reviews.draft_review(session, reviews.draft_of(session, queued)) == queued
+    draft = reviews.draft_of(session, queued)
+    assert reviews.current_review(draft) == queued
+
+
+@pytest.mark.req("REV-18", "REV-17", "REV-19", "REV-03")
+def test_a_manual_review_names_no_model(session: Session, factory: Factory) -> None:
+    owner = factory.investor()
+    policy_id = _thesis_with_draft(factory, owner)
+    factory.clock.advance(minutes=1)
+    prompt = reviews.review_prompt(session, owner, factory.clock, policy_id, news_days=60)
+    review = reviews.submit_manual_review(
+        session, owner, factory.clock, policy_id, answer(prompt_id=prompt.prompt_id)
+    )
+    assert (review.kind, review.method, review.provider, review.model) == (
+        "full",
+        "manual",
+        "manual",
+        None,
+    )
+    assert (review.ai_reviewer_id, review.prompt_id) == (None, prompt.prompt_id)
+    assert (review.news_to - review.news_from).days == 60  # type: ignore[operator]
+    assert review.verdict_reason == "Warning signals are observed [1]."
+    assert reviews.total(review) == 14

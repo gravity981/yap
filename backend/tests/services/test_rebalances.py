@@ -17,6 +17,7 @@ from yap.db.models import (
     RebalanceAction,
     Snapshot,
 )
+from yap.domain.rebalancing import Mode
 from yap.services import policies, portfolios, rebalances, snapshots
 from yap.services.common import ConflictError, NotFoundError, ValidationError
 from yap.services.portfolios import PositionSettings
@@ -25,7 +26,9 @@ from yap.services.snapshots import ValueSpec
 from yap.services.timeline import EventType, list_events
 
 
-def setup(factory: Factory, **values: int) -> tuple[Investor, Portfolio]:
+def setup(
+    factory: Factory, verdict: str | None = None, **values: int
+) -> tuple[Investor, Portfolio]:
     """A 50/50 policy (sell +20 % -> 60 %, midband 55 %) plus a cash buffer, with values."""
     owner = factory.investor()
     policy = factory.active_policy(
@@ -36,6 +39,7 @@ def setup(factory: Factory, **values: int) -> tuple[Investor, Portfolio]:
             spec("CASH", 5, buy=-100, sell=100, type="cash_buffer"),
         ],
         name="core",
+        verdict=verdict,
     )
     portfolio = factory.portfolio(owner, policy, name="Main", default_contribution=Decimal(100))
     portfolios.set_positions(
@@ -167,6 +171,7 @@ def test_confirm_stores_calculated_and_executed_amounts(session: Session, factor
         "sold": "140",
         "bought": str(bought),
         "withdrawal": None,
+        "mode": "normal",
         "precise": False,
     }
     assert event.rebalance_id == record.id
@@ -524,3 +529,139 @@ def test_simulation_continues_with_the_units_after_each_cycle(
         c.positions[0].position.units == u["AAA"]
         for c, u in zip(cycles[1:], units[:-1], strict=True)
     )
+
+
+@pytest.mark.req("RB-25", "RB-26", "THS-04")
+def test_plan_carries_the_semaphore_and_its_reason(session: Session, factory: Factory) -> None:
+    owner, portfolio = setup(factory, verdict="warning", AAA=500, BBB=450, CASH=50)
+    plan = rebalances.plan(session, owner, factory.clock, portfolio.id)
+    assert plan.semaphore is not None and plan.semaphore.value == "warning"
+    assert plan.mode is Mode.NORMAL
+    owner, portfolio = setup(factory, AAA=500, BBB=450, CASH=50)
+    unreviewed = rebalances.plan(session, owner, factory.clock, portfolio.id)
+    assert (unreviewed.semaphore, unreviewed.semaphore_reason) == (None, None)
+
+
+@pytest.mark.req("RB-25")
+def test_selling_the_whole_portfolio_is_only_for_a_broken_thesis(
+    session: Session, factory: Factory
+) -> None:
+    for verdict in ("good", "warning", None):
+        owner, portfolio = setup(factory, verdict=verdict, AAA=500, BBB=450, CASH=50)
+        with pytest.raises(ConflictError, match="only offered when the thesis is broken"):
+            rebalances.plan(session, owner, factory.clock, portfolio.id, mode=Mode.SELL_ALL)
+        latest = snapshots.latest_snapshot(session, owner, portfolio.id)
+        assert latest is not None
+        with pytest.raises(ConflictError, match="only offered when the thesis is broken"):
+            rebalances.confirm(
+                session,
+                owner,
+                factory.clock,
+                portfolio.id,
+                snapshot_id=latest.id,
+                contribution=Decimal(0),
+                policy_version_id=1,
+                executed=[],
+                mode=Mode.SELL_ALL,
+            )
+    assert session.scalar(select(func.count()).select_from(Rebalance)) == 0
+    with pytest.raises(ValidationError):
+        rebalances.parse_mode("sell_everything")
+
+
+@pytest.mark.req("RB-25", "TL-02", "RB-16", "RB-17")
+def test_confirming_the_sale_of_the_whole_portfolio(session: Session, factory: Factory) -> None:
+    owner, portfolio = setup(factory, verdict="broken", AAA=500, BBB=450, CASH=50)
+    p = rebalances.plan(session, owner, factory.clock, portfolio.id, mode=Mode.SELL_ALL)
+    assert p.semaphore is not None and p.semaphore.value == "broken"
+    assert {(i.ticker, i.amount) for i in p.actions} == {
+        ("AAA", Decimal(500)),
+        ("BBB", Decimal(450)),
+    }
+    record = rebalances.confirm(
+        session,
+        owner,
+        factory.clock,
+        portfolio.id,
+        snapshot_id=p.snapshot.id,
+        contribution=p.contribution,
+        policy_version_id=p.version.id,
+        executed=[],
+        mode=Mode.SELL_ALL,
+    )
+    assert record.mode == "sell_all"
+    # The cash stays in the portfolio: the buffer holds it, all other positions are empty
+    assert record.result_snapshot_id is not None
+    values = {
+        v.asset.ticker: v.value
+        for v in snapshots.get_snapshot(session, owner, record.result_snapshot_id).values
+    }
+    assert values == {"AAA": 0, "BBB": 0, "CASH": 1100}
+    (event,) = [e for e in list_events(session, owner) if e.type == EventType.REBALANCE_CONFIRMED]
+    assert event.summary == "Main: sold completely, thesis broken"
+    assert event.params["mode"] == "sell_all"
+    assert event.rebalance_id == record.id
+    # Recalculated for its report (RB-19) in the mode it was confirmed in
+    result = rebalances.recalculate(session, owner, record.id)
+    assert sum(r.sell_amount for r in result.positions) == 950
+
+
+@pytest.mark.req("RB-25", "RB-22")
+def test_the_sale_of_the_whole_portfolio_pays_a_withdrawal_from_the_buffer(
+    session: Session, factory: Factory
+) -> None:
+    owner, portfolio = setup(factory, verdict="broken", AAA=500, BBB=450, CASH=50)
+    p = rebalances.plan(
+        session,
+        owner,
+        factory.clock,
+        portfolio.id,
+        contribution=Decimal(0),
+        withdrawal=Decimal(980),
+        mode=Mode.SELL_ALL,
+    )
+    assert {(i.ticker, i.amount) for i in p.actions} == {
+        ("AAA", Decimal(500)),
+        ("BBB", Decimal(450)),
+        ("CASH", Decimal(30)),
+    }
+    record = rebalances.confirm(
+        session,
+        owner,
+        factory.clock,
+        portfolio.id,
+        snapshot_id=p.snapshot.id,
+        contribution=Decimal(0),
+        withdrawal=Decimal(980),
+        policy_version_id=p.version.id,
+        executed=[],
+        mode=Mode.SELL_ALL,
+    )
+    assert record.result_snapshot_id is not None
+    values = {
+        v.asset.ticker: v.value
+        for v in snapshots.get_snapshot(session, owner, record.result_snapshot_id).values
+    }
+    assert values == {"AAA": 0, "BBB": 0, "CASH": 20}
+
+
+@pytest.mark.req("RB-25")
+def test_the_usual_rebalance_stays_possible_with_a_broken_thesis(
+    session: Session, factory: Factory
+) -> None:
+    owner, portfolio = setup(factory, verdict="broken", AAA=500, BBB=450, CASH=50)
+    preselected = rebalances.plan(session, owner, factory.clock, portfolio.id)
+    assert preselected.mode is Mode.SELL_ALL  # preselected, not forced
+    p = rebalances.plan(session, owner, factory.clock, portfolio.id, mode=Mode.NORMAL)
+    assert p.mode is Mode.NORMAL
+    record = rebalances.confirm(
+        session,
+        owner,
+        factory.clock,
+        portfolio.id,
+        snapshot_id=p.snapshot.id,
+        contribution=p.contribution,
+        policy_version_id=p.version.id,
+        executed=[],
+    )
+    assert record.mode == "normal"

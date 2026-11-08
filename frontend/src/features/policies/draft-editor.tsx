@@ -1,21 +1,22 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
-import { FormError } from "@/components/form";
+import { Field, FormError, fieldError } from "@/components/form";
+import { MarkdownSource } from "@/components/lazy-markdown-editor";
+import { Markdown } from "@/components/markdown";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PriceSourceControl } from "@/features/prices/price-source";
 import type { ReviewBrief } from "@/features/reviews/api";
 import { ReviewPane } from "@/features/reviews/pane";
-import { useThesis } from "@/features/theses/api";
-import { statusLabel } from "@/features/theses/status";
-import { api, unwrap } from "@/api/client";
-import { formatPct } from "@/lib/format";
+import { formatPct, formatTime } from "@/lib/format";
+import { useWide } from "@/lib/use-wide";
 
 import {
   useAssets,
@@ -25,6 +26,8 @@ import {
   type PositionIn,
   type Version,
 } from "./api";
+import { useAutoSave, type SaveStatus } from "./auto-save";
+import { DiscardDraft } from "./discard";
 import { assetTypeLabel } from "./positions";
 
 const TYPES = ["ETF", "stock", "crypto", "cash_buffer"] as const;
@@ -73,7 +76,7 @@ export function band(row: Pick<Row, "target_pct" | "buy_threshold_pct" | "sell_t
   return { buy, sell, midband: (target + sell) / 2 };
 }
 
-/** POL-02 to POL-05: edits the draft's target structure. */
+/** POL-02 to POL-05, THS-01: edits the draft's thesis and target structure. */
 export function DraftEditorPage({ policyId }: { policyId: number }) {
   const { t } = useTranslation();
   const policy = usePolicy(policyId);
@@ -89,9 +92,9 @@ export function DraftEditorPage({ policyId }: { policyId: number }) {
     <DraftForm
       policyId={policyId}
       policyName={policy.data.name}
-      thesisId={policy.data.thesis_id}
       version={version.data}
       brief={draft?.review}
+      neverActivated={policy.data.versions.every((v) => v.is_draft)}
     />
   );
 }
@@ -99,34 +102,32 @@ export function DraftEditorPage({ policyId }: { policyId: number }) {
 function DraftForm({
   policyId,
   policyName,
-  thesisId,
   version,
   brief,
+  neverActivated,
 }: {
   policyId: number;
   policyName: string;
-  thesisId: number;
   version: Version;
   brief: ReviewBrief | null | undefined;
+  neverActivated: boolean;
 }) {
   const { t } = useTranslation();
   const { saveDraft } = usePolicyActions(policyId);
   const assets = useAssets();
-  const thesis = useThesis(thesisId);
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>(() =>
     version.positions.length ? rowsOf(version) : [emptyRow()],
   );
-  const [revisionId, setRevisionId] = useState(version.thesis_revision_id);
-  const [revisionError, setRevisionError] = useState<unknown>(null);
+  const [title, setTitle] = useState(version.thesis_title);
+  const [content, setContent] = useState(version.thesis_md);
   const known = new Map((assets.data ?? []).map((a) => [a.ticker, a]));
+  const wide = useWide();
 
   const total = rows.reduce((sum, r) => sum + (Number(r.target_pct) || 0), 0);
   const cashBuffers = rows.filter(
     (r) => (known.get(r.ticker.trim().toUpperCase())?.type ?? r.type) === "cash_buffer",
   ).length;
-  const back = () =>
-    navigate({ to: "/policies/$policyId", params: { policyId: String(policyId) } });
 
   const update = (i: number, patch: Partial<Row>) =>
     setRows((current) => current.map((r, k) => (k === i ? { ...r, ...patch } : r)));
@@ -136,66 +137,95 @@ function DraftForm({
       ? saveDraft.error.problems.find((p) => p.path === `positions[${i}].${field}`)?.message
       : undefined;
 
-  const changeRevision = async (id: number) => {
-    setRevisionError(null);
-    try {
-      await unwrap(
-        api.PUT("/api/policies/{policy_id}/draft/thesis-revision", {
-          params: { path: { policy_id: policyId } },
-          body: { thesis_revision_id: id },
-        }),
-      );
-      setRevisionId(id);
-    } catch (error) {
-      setRevisionError(error);
-    }
+  // A row left completely empty is no position; a new policy may have none yet
+  const positions = (rows: Row[]): PositionIn[] =>
+    rows
+      .filter((r) => r.ticker.trim() !== "")
+      .map((r) => {
+        const asset = known.get(r.ticker.trim().toUpperCase());
+        return {
+          ticker: r.ticker,
+          name: asset ? null : r.name,
+          type: asset ? null : r.type,
+          target_pct: r.target_pct,
+          buy_threshold_pct: r.buy_threshold_pct,
+          sell_threshold_pct: r.sell_threshold_pct,
+          exit: r.exit,
+          rationale_md: r.rationale_md,
+        };
+      });
+  // POL-14: everything in the editor is saved automatically; there is no save button
+  const body = (draft: Content) => ({
+    positions: positions(draft.rows),
+    thesis: { title: draft.title, content_md: draft.content },
+  });
+  const autoSave = useAutoSave<Content>(
+    { title, content, rows },
+    (draft) => saveDraft.mutateAsync(body(draft)),
+    (draft) =>
+      // Leaving the page: sent without waiting for the answer
+      void fetch(`${api_base()}/api/policies/${policyId}/draft`, {
+        method: "PUT",
+        keepalive: true,
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body(draft)),
+      }).catch(() => undefined),
+  );
+  const finalize = async () => {
+    await autoSave.flush();
+    await navigate({
+      to: "/policies/$policyId/draft/summary",
+      params: { policyId: String(policyId) },
+    });
   };
 
-  const positions = (): PositionIn[] =>
-    rows.map((r) => {
-      const asset = known.get(r.ticker.trim().toUpperCase());
-      return {
-        ticker: r.ticker,
-        name: asset ? null : r.name,
-        type: asset ? null : r.type,
-        target_pct: r.target_pct,
-        buy_threshold_pct: r.buy_threshold_pct,
-        sell_threshold_pct: r.sell_threshold_pct,
-        exit: r.exit,
-        rationale_md: r.rationale_md,
-      };
-    });
-  const submit = () => saveDraft.mutate({ positions: positions() }, { onSuccess: back });
-
-  // Not a <form>: the review pane below has forms of its own (REV-18)
-  return (
-    <div className="grid gap-4">
-      <div className="grid gap-1">
-        <h1 className="text-2xl font-semibold">
-          {t("policies.editor.title", { name: policyName, no: version.version_no })}
-        </h1>
-        <p className="text-sm text-muted-foreground">{t("policies.editor.hint")}</p>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm">
-          {t("policies.editor.thesisRevision")}
-          <NativeSelect
-            className="w-auto"
-            aria-label={t("policies.editor.thesisRevision")}
-            value={revisionId}
-            onChange={(e) => changeRevision(Number(e.target.value))}
-          >
-            {thesis.data?.revisions.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.revision_no} ({statusLabel(r.status)})
-              </option>
-            ))}
-          </NativeSelect>
-        </label>
-      </div>
-      <FormError error={revisionError} />
-
+  const titleField = (
+    <Field
+      id="thesis-title"
+      label={t("theses.editor.title")}
+      error={fieldError(saveDraft.error, "thesis_title")}
+    >
+      <Input id="thesis-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+    </Field>
+  );
+  // THS-01: markdown with a live preview; the thesis has no status, its semaphore comes
+  // from the review (THS-04)
+  const source = (
+    <MarkdownSource value={content} onChange={setContent} label={t("policies.detail.tabThesis")} />
+  );
+  const preview = (
+    <div
+      className="max-h-[40rem] min-h-[24rem] overflow-auto rounded-md border p-4"
+      aria-label={t("components.markdownEditor.preview")}
+    >
+      <Markdown source={content} />
+    </div>
+  );
+  // REV-01: the review of the whole draft; it saves the draft first
+  const pane = (
+    <ReviewPane
+      policyId={policyId}
+      brief={brief}
+      save={autoSave.flush}
+      onDraft={(draft) => {
+        if (!draft) return;
+        // REV-07: a suggestion changed the draft on the server
+        const next = {
+          title: draft.thesis_title,
+          content: draft.thesis_md,
+          rows: draft.positions.length ? rowsOf(draft) : [emptyRow()],
+        };
+        autoSave.markSaved(next);
+        setTitle(next.title);
+        setContent(next.content);
+        setRows(next.rows);
+      }}
+    />
+  );
+  const structure = (
+    <section className="grid gap-3" aria-label={t("policies.detail.tabStructure")}>
+      <h2 className="text-sm font-semibold">{t("policies.detail.tabStructure")}</h2>
       <datalist id="asset-catalog">
         {assets.data?.map((a) => (
           <option key={a.ticker} value={a.ticker}>
@@ -337,25 +367,122 @@ function DraftForm({
           ),
         )}
       />
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={back}>
-          {t("common.cancel")}
-        </Button>
-        <Button type="button" onClick={submit} disabled={saveDraft.isPending}>
-          {t("policies.editor.saveDraft")}
-        </Button>
+    </section>
+  );
+
+  // Not a <form>: the review pane has forms of its own (REV-18)
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="grid gap-1">
+          <Link
+            to="/policies/$policyId"
+            params={{ policyId: String(policyId) }}
+            className="text-sm underline"
+          >
+            {t("policies.editor.back", { name: policyName })}
+          </Link>
+          <h1 className="text-2xl font-semibold">
+            {t("policies.editor.title", { name: policyName, no: version.version_no })}
+          </h1>
+        </div>
+        <SaveState status={autoSave.status} />
       </div>
-      {/* REV-01: a review saves the draft first, so it sees what is in the editor */}
-      <div className="grid gap-3 border-t pt-4">
-        <h2 className="text-lg font-semibold">{t("reviews.section.policy")}</h2>
-        <ReviewPane
-          kind="policy"
-          ownerId={policyId}
-          brief={brief}
-          save={() => saveDraft.mutateAsync({ positions: positions() })}
-        />
+
+      {wide ? (
+        // POL-15: title, thesis and target structure on the left, the review on the right
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <div className="grid min-w-0 gap-4">
+            {titleField}
+            <section className="grid gap-2" aria-label={t("policies.detail.tabThesis")}>
+              <Tabs defaultValue="write">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold">{t("policies.detail.tabThesis")}</h2>
+                  <TabsList>
+                    <TabsTrigger value="write">{t("components.markdownEditor.write")}</TabsTrigger>
+                    <TabsTrigger value="preview">
+                      {t("components.markdownEditor.preview")}
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                <TabsContent value="write">{source}</TabsContent>
+                <TabsContent value="preview">{preview}</TabsContent>
+              </Tabs>
+            </section>
+            {structure}
+          </div>
+          <aside className="min-w-0 rounded-lg border bg-card p-4 lg:sticky lg:top-4">{pane}</aside>
+        </div>
+      ) : (
+        // POL-15: on phones the editor, the preview and the review are tabs
+        <Tabs defaultValue="edit">
+          <TabsList className="w-full">
+            <TabsTrigger value="edit" className="flex-1">
+              {t("policies.editor.tabEdit")}
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="flex-1">
+              {t("components.markdownEditor.preview")}
+            </TabsTrigger>
+            <TabsTrigger value="review" className="flex-1">
+              {t("reviews.pane.tab")}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="edit" className="grid gap-4">
+            {titleField}
+            <section className="grid gap-2" aria-label={t("policies.detail.tabThesis")}>
+              <h2 className="text-sm font-semibold">{t("policies.detail.tabThesis")}</h2>
+              {source}
+            </section>
+            {structure}
+          </TabsContent>
+          <TabsContent value="preview">{preview}</TabsContent>
+          <TabsContent value="review">{pane}</TabsContent>
+        </Tabs>
+      )}
+
+      {/* POL-16, POL-17 */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <DiscardDraft policyId={policyId} neverActivated={neverActivated} />
+        <Button type="button" onClick={() => void finalize().catch(() => undefined)}>
+          {t("policies.editor.finalize")}
+        </Button>
       </div>
     </div>
+  );
+}
+
+interface Content {
+  title: string;
+  content: string;
+  rows: Row[];
+}
+
+const api_base = () => globalThis.location?.origin ?? "";
+
+/** POL-14: when the draft was saved last, or that saving failed and is retried. */
+function SaveState({ status }: { status: SaveStatus }) {
+  const { t } = useTranslation();
+  const text =
+    status.state === "saving"
+      ? t("policies.editor.saving")
+      : status.state === "failed"
+        ? t("policies.editor.saveFailed")
+        : status.state === "invalid"
+          ? t("policies.editor.saveInvalid")
+          : status.at
+            ? t("policies.editor.savedAt", { time: formatTime(status.at.toISOString()) })
+            : t("policies.editor.savedAuto");
+  return (
+    <p
+      role="status"
+      className={
+        status.state === "failed" || status.state === "invalid"
+          ? "text-sm text-destructive"
+          : "text-sm text-muted-foreground"
+      }
+    >
+      {text}
+    </p>
   );
 }
 

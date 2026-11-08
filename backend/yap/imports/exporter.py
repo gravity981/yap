@@ -4,7 +4,7 @@ import json
 from decimal import Decimal
 from typing import Any
 
-from yap.db.models import PolicyVersion, Snapshot, ThesisRevision
+from yap.db.models import PolicyVersion, Snapshot
 from yap.imports.importer import parse
 from yap.imports.models import (
     SCHEMA_MAJOR,
@@ -41,15 +41,15 @@ def dumps(data: Any) -> str:
     return text + "\n"
 
 
-def thesis(revision: ThesisRevision) -> str:
+def thesis(version: PolicyVersion) -> str:
+    """IMP-10: the thesis of a policy version, in the format of the thesis import."""
     data = {
         "$schema": schema_filename("thesis"),
         "schema_version": SCHEMA_VERSION,
-        "title": revision.title,
-        "visibility": revision.thesis.visibility,
-        "status": revision.status,
-        "content_md": revision.content_md,
-        "change_note": revision.change_note,
+        "title": version.thesis_title,
+        "visibility": "private",
+        "content_md": version.thesis_md,
+        "change_note": version.change_note,
     }
     return _checked(data, ThesisFile)
 

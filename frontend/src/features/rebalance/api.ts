@@ -12,9 +12,10 @@ export function usePlan(
   snapshotId: number | undefined,
   contribution: string | undefined,
   withdrawal?: string,
+  mode?: string,
 ) {
   return useQuery({
-    queryKey: ["portfolios", portfolioId, "plan", snapshotId, contribution, withdrawal],
+    queryKey: ["portfolios", portfolioId, "plan", snapshotId, contribution, withdrawal, mode],
     retry: false,
     queryFn: () =>
       unwrap(
@@ -25,6 +26,7 @@ export function usePlan(
               snapshot_id: snapshotId ?? null,
               contribution: contribution ?? null,
               withdrawal: withdrawal ?? null,
+              mode: mode ?? null,
             },
           },
         }),
@@ -39,6 +41,7 @@ export function useConfirm(portfolioId: number) {
       snapshot_id: number;
       contribution: string;
       withdrawal: string;
+      mode: string;
       policy_version_id: number;
       executed: { phase: string; ticker: string; amount: string }[];
     }) =>

@@ -70,6 +70,9 @@ export function RebalanceDetailPage({ rebalanceId }: { rebalanceId: number }) {
             {t("rebalance.detail.report")}
           </Link>
         </p>
+        {r.mode === "sell_all" && (
+          <p className="text-sm font-medium text-destructive">{t("rebalance.detail.sellAll")}</p>
+        )}
       </div>
       <Table>
         <TableHeader>

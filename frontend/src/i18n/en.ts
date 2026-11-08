@@ -39,7 +39,6 @@ export const en = {
     dashboard: "Dashboard",
     portfolios: "Portfolios",
     policies: "Policies",
-    theses: "Theses",
     timeline: "Timeline",
     administration: "Administration",
     accounts: "Accounts",

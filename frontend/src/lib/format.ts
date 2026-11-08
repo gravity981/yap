@@ -89,3 +89,15 @@ export function formatDate(
     timeZone,
   }).format(new Date(utc));
 }
+
+/** The time of day of a UTC timestamp, e.g. "10:42" (POL-14). */
+export function formatTime(
+  utc: string,
+  locale?: string,
+  timeZone: string | undefined = currentTimeZone(),
+): string {
+  return new Intl.DateTimeFormat(locale ?? currentLocale(), {
+    timeStyle: "short",
+    timeZone,
+  }).format(new Date(utc));
+}

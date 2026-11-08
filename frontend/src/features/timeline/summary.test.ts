@@ -20,7 +20,6 @@ function event(
     policy_version_id: null,
     rebalance_id: null,
     review_id: null,
-    thesis_revision_id: null,
   };
 }
 
@@ -72,6 +71,30 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
     "Main: Rebalancing, verkauft 190, gekauft 2’718, entnommen 200",
   ],
   [
+    event("rebalance_confirmed", {
+      portfolio: "Main",
+      sold: "3000",
+      bought: "0",
+      withdrawal: null,
+      mode: "sell_all",
+      precise: false,
+    }),
+    "Main: sold completely, thesis broken",
+    "Main: vollständig verkauft, Anlagethese gebrochen",
+  ],
+  [
+    event("rebalance_confirmed", {
+      portfolio: "Main",
+      sold: "3000",
+      bought: "0",
+      withdrawal: "1000",
+      mode: "sell_all",
+      precise: false,
+    }),
+    "Main: sold completely, thesis broken, withdrew 1,000",
+    "Main: vollständig verkauft, Anlagethese gebrochen, entnommen 1’000",
+  ],
+  [
     event("thesis_review_confirmed", {
       title: "Core thesis",
       revision: 2,
@@ -79,8 +102,14 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
       total: 7,
       modified: true,
     }),
-    "Thesis review of 'Core thesis' revision 2: needs adaptation, 7 / 10, modified",
-    "Prüfung der Anlagethese «Core thesis» Revision 2: Anpassung nötig, 7 / 10, geändert",
+    // REV-06: verdicts from before scoring version 3 are shown as their semaphore
+    "Thesis review of 'Core thesis' revision 2: warning, 7 / 10, modified",
+    "Prüfung der Anlagethese «Core thesis» Revision 2: Warnung, 7 / 10, geändert",
+  ],
+  [
+    event("thesis_review_confirmed", { version: "core-v3", verdict: "broken", total: 4.5 }),
+    "Thesis review of core-v3: broken, 4.5 / 10",
+    "Prüfung der Anlagethese von core-v3: gebrochen, 4.5 / 10",
   ],
   [
     event("policy_review_confirmed", {
@@ -91,6 +120,22 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
     }),
     "Policy review of core-v2: 7.5 / 10",
     "Prüfung der Anlagestrategie core-v2: 7.5 / 10",
+  ],
+  [
+    event("review_confirmed", { version: "core-v4", verdict: "warning", total: 6.5 }),
+    "Review of core-v4: warning, 6.5 / 10",
+    "Prüfung von core-v4: Warnung, 6.5 / 10",
+  ],
+  [
+    event("review_confirmed", { version: "core-v5", verdict: "good", total: 8 }),
+    "Review of core-v5: good, 8 / 10",
+    "Prüfung von core-v5: gut, 8 / 10",
+  ],
+  [
+    // REV-12, POL-20: a review of the active version saved later
+    event("review_saved", { version: "core-v5", verdict: "warning", total: 6.5, method: "ai" }),
+    "Review of core-v5 (again): warning, 6.5 / 10",
+    "Prüfung von core-v5 (erneut): Warnung, 6.5 / 10",
   ],
   [
     event("thesis_revised", { title: "Growth", revision: 3, version: "core-v1", used_revision: 2 }),
@@ -105,7 +150,7 @@ const swiss = (text: string) => text.replace(/'(?=\d{3})/g, "’");
 describe("timeline summaries", () => {
   afterEach(() => applyLanguage("en"));
 
-  it("[TL-02] [NFR-10] writes each entry like the backend in English", () => {
+  it("[TL-02] [NFR-10] [REV-12] writes each entry like the backend in English", () => {
     applyLanguage("en");
     for (const [e, english] of EXAMPLES) expect(eventSummary(e), e.type).toBe(english);
   });

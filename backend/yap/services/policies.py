@@ -1,7 +1,7 @@
-"""Policies and their versions (POL-01 to POL-13)."""
+"""Policies and their versions (POL-01 to POL-13); a version holds its thesis (THS-01)."""
 
+import difflib
 from dataclasses import dataclass, field
-from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -13,7 +13,6 @@ from yap.db.models import (
     PolicyPosition,
     PolicyVersion,
     Portfolio,
-    ThesisRevision,
 )
 from yap.domain.rebalancing import MultipleCashBuffersError, TargetSumError
 from yap.domain.types import (
@@ -35,12 +34,6 @@ from yap.services.common import (
     get_owned,
     require_investor,
     require_text,
-)
-from yap.services.theses import (
-    activated_revisions,
-    can_read_revision,
-    get_readable_thesis,
-    readable_revisions,
 )
 from yap.services.timeline import EventType, add_event
 from yap.services.versioning import active_version
@@ -66,18 +59,16 @@ def create_policy(
     clock: Clock,
     *,
     name: str,
-    thesis_id: int,
+    thesis_title: str | None = None,
+    thesis_md: str = "",
 ) -> Policy:
-    """Creates a policy with an empty draft v1 pinning the thesis' latest readable,
-    activated revision (POL-01)."""
+    """Creates a policy whose draft v1 holds the given thesis and no positions (POL-01).
+    The thesis title defaults to the policy name."""
     require_investor(actor)
     name = require_text(name, "name", msg("name_required"))
     if session.scalar(select(Policy).where(Policy.owner_id == actor.id, Policy.name == name)):
         raise ConflictError(msg("policy_name_taken", name=name))
-    thesis = get_readable_thesis(session, actor, thesis_id)
-    revisions = activated_revisions(readable_revisions(session, actor, thesis))
-    if not revisions:
-        raise ValidationError.single(msg("thesis_not_activated"), "thesis_id")
+    title = (thesis_title or "").strip() or name
     now = clock.now()
     policy = Policy(owner_id=actor.id, name=name, created_at=now)
     session.add(policy)
@@ -86,7 +77,9 @@ def create_policy(
         PolicyVersion(
             policy_id=policy.id,
             version_no=1,
-            thesis_revision_id=revisions[-1].id,
+            thesis_title=title,
+            thesis_md=thesis_md,
+            updated_at=now,
             created_at=now,
         )
     )
@@ -127,7 +120,8 @@ def create_draft(session: Session, actor: Investor, clock: Clock, policy_id: int
     draft = PolicyVersion(
         policy_id=policy.id,
         version_no=latest.version_no + 1,
-        thesis_revision_id=latest.thesis_revision_id,
+        thesis_title=latest.thesis_title,
+        thesis_md=latest.thesis_md,
         updated_at=clock.now(),
         created_at=clock.now(),
         positions=[
@@ -174,6 +168,31 @@ def validate_position_specs(positions: list[PositionSpec], path: str = "position
         raise ValidationError(problems)
 
 
+@dataclass(frozen=True)
+class ThesisSpec:
+    """The thesis of a draft as entered or imported (THS-01); it has no status (THS-04)."""
+
+    title: str
+    content_md: str
+
+
+def update_thesis(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, thesis: ThesisSpec
+) -> PolicyVersion:
+    """Replaces the thesis of the draft."""
+    policy = get_policy(session, actor, policy_id)
+    draft = _require_draft(policy)
+    _set_thesis(draft, thesis)
+    draft.updated_at = clock.now()  # an earlier review is now outdated (REV-09)
+    session.flush()
+    return draft
+
+
+def _set_thesis(draft: PolicyVersion, thesis: ThesisSpec) -> None:
+    draft.thesis_title = require_text(thesis.title, "thesis_title", msg("title_required"))
+    draft.thesis_md = thesis.content_md
+
+
 def update_draft(
     session: Session,
     actor: Investor,
@@ -181,11 +200,14 @@ def update_draft(
     policy_id: int,
     *,
     positions: list[PositionSpec],
+    thesis: ThesisSpec | None = None,
 ) -> PolicyVersion:
-    """Replaces the target structure of the draft."""
+    """Replaces the target structure of the draft, and its thesis if given."""
     policy = get_policy(session, actor, policy_id)
     draft = _require_draft(policy)
     validate_position_specs(positions)
+    if thesis is not None:
+        _set_thesis(draft, thesis)
     assets = [
         get_or_create_asset(session, p.ticker, p.name, p.type, f"positions[{i}]")
         for i, p in enumerate(positions)
@@ -213,15 +235,71 @@ def update_draft(
     return draft
 
 
-def delete_draft(session: Session, actor: Investor, policy_id: int) -> None:
+def delete_draft(session: Session, actor: Investor, policy_id: int) -> bool:
+    """POL-16: discards the draft with its reviews; the policy is back to its active
+    version. A policy that was never activated is deleted with its draft. Returns whether
+    the policy was deleted."""
     policy = get_policy(session, actor, policy_id)
     draft = _require_draft(policy)
-    if draft.version_no == 1:
-        raise ConflictError(msg("policy_first_version_kept"))
     reviews.delete_with_draft(session, draft)
+    never_activated = all(v.activated_at is None for v in policy.versions)
     session.delete(draft)
     session.flush()
+    if never_activated:  # no portfolio can follow it (PTF-02), nothing refers to it
+        session.delete(policy)
+        session.flush()
+        return True
     session.refresh(policy)
+    return False
+
+
+def update_change_note(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, note: str | None
+) -> PolicyVersion:
+    """POL-14, POL-17: the change note of the draft, saved like every other change."""
+    policy = get_policy(session, actor, policy_id)
+    draft = _require_draft(policy)
+    draft.change_note = note.strip() if note and note.strip() else None
+    session.flush()
+    return draft
+
+
+SHARING_LEVELS = ("private", "text", "all")
+
+
+def rename_policy(session: Session, actor: Investor, policy_id: int, name: str) -> Policy:
+    """POL-21: the name of a policy and with it the labels of its versions (`<name>-v1`);
+    timeline entries keep the name they were written with."""
+    policy = get_policy(session, actor, policy_id)
+    name = require_text(name, "name", msg("name_required"))
+    taken = session.scalar(
+        select(Policy).where(
+            Policy.owner_id == actor.id, Policy.name == name, Policy.id != policy.id
+        )
+    )
+    if taken is not None:
+        raise ConflictError(msg("policy_name_taken", name=name))
+    policy.name = name
+    session.flush()
+    return policy
+
+
+def set_sharing(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, level: str
+) -> Policy:
+    """POL-18: private, text (the thesis of the active version) or all (thesis and target
+    structure). Only a policy whose active version has a review can be shared (REV-20)."""
+    policy = get_policy(session, actor, policy_id)
+    if level not in SHARING_LEVELS:
+        raise ValidationError.single(msg("sharing_level_unknown", level=level), "sharing")
+    if level != "private":
+        active = active_version(policy, clock.now())
+        review = reviews.current_review(active) if active is not None else None
+        if review is None or review.state != "done":
+            raise ConflictError(msg("sharing_needs_review", name=policy.name))
+    policy.sharing = level
+    session.flush()
+    return policy
 
 
 def portfolios_using(session: Session, policy: Policy) -> list[Portfolio]:
@@ -245,11 +323,13 @@ def activate_draft(
         raise ValidationError.single(TargetSumError(target_sum).message, "positions")
     if sum(1 for p in draft.positions if p.asset.type == AssetType.CASH_BUFFER.value) > 1:
         raise ValidationError.single(MultipleCashBuffersError().message, "positions")
-    note = change_note.strip() if change_note else None
+    # POL-17: the note given with the activation, or the one saved with the draft
+    given = change_note if change_note is not None else draft.change_note
+    note = given.strip() if given and given.strip() else None
     if draft.version_no > 1 and not note:
         raise ValidationError.single(msg("change_note_required_v2"), "change_note")
     now = clock.now()
-    reviews.prepare_activation(session, draft)
+    draft.mark = reviews.prepare_activation(session, draft, now)  # REV-11, REV-20
     draft.change_note = note
     draft.activated_at = now
     session.flush()
@@ -265,56 +345,6 @@ def activate_draft(
         policy_version_id=draft.id,
     )
     reviews.confirm_with_draft(session, draft, policy.owner_id, now)  # REV-11
-    return draft
-
-
-def newer_thesis_revision(
-    session: Session, actor: Investor, policy: Policy, at: datetime
-) -> ThesisRevision | None:
-    """POL-10: newest readable revision of the thesis, if newer than the active version's."""
-    version = active_version(policy, at)
-    if version is None:
-        return None
-    pinned = version.thesis_revision
-    candidates = activated_revisions(readable_revisions(session, actor, pinned.thesis))
-    newest = candidates[-1] if candidates else pinned
-    return newest if newest.revision_no > pinned.revision_no else None
-
-
-def adopt_newer_thesis_revision(
-    session: Session, actor: Investor, clock: Clock, policy_id: int
-) -> PolicyVersion:
-    """POL-10: one action creates (or updates) the draft to pin the newest revision."""
-    policy = get_policy(session, actor, policy_id)
-    newest = newer_thesis_revision(session, actor, policy, clock.now())
-    if newest is None:
-        raise ConflictError(msg("policy_thesis_current"))
-    draft = get_draft(policy) or create_draft(session, actor, clock, policy_id)
-    draft.thesis_revision_id = newest.id
-    draft.updated_at = clock.now()
-    session.flush()
-    session.refresh(draft)
-    return draft
-
-
-def set_draft_thesis_revision(
-    session: Session, actor: Investor, clock: Clock, policy_id: int, revision_id: int
-) -> PolicyVersion:
-    """The draft may pin another revision of the policy's thesis (the thesis stays the same)."""
-    policy = get_policy(session, actor, policy_id)
-    draft = _require_draft(policy)
-    revision = session.get(ThesisRevision, revision_id)
-    if (
-        revision is None
-        or revision.thesis_id != draft.thesis_revision.thesis_id
-        or revision.is_draft
-        or not can_read_revision(session, actor, revision)
-    ):
-        raise NotFoundError(msg("policy_thesis_revision_not_found", id=revision_id))
-    draft.thesis_revision_id = revision.id
-    draft.updated_at = clock.now()
-    session.flush()
-    session.refresh(draft)
     return draft
 
 
@@ -342,14 +372,16 @@ class PositionChange:
 @dataclass
 class VersionDiff:
     positions: list[PositionChange]
-    thesis_revision: tuple[int, int] | None
+    thesis_changed: bool  # title or text
+    thesis_diff: str  # unified diff of title and text, empty if they are the same
 
 
 _COMPARED_FIELDS = ("target_pct", "buy_threshold_pct", "sell_threshold_pct", "exit", "rationale_md")
 
 
 def compare_versions(old: PolicyVersion, new: PolicyVersion) -> VersionDiff:
-    """POL-09: changed positions, targets, thresholds, exit flags and thesis revision."""
+    """POL-09: changed positions, targets, thresholds, exit flags, and whether the thesis
+    changed."""
     old_rows = {p.asset.ticker: p for p in old.positions}
     new_rows = {p.asset.ticker: p for p in new.positions}
     changes: list[PositionChange] = []
@@ -366,11 +398,20 @@ def compare_versions(old: PolicyVersion, new: PolicyVersion) -> VersionDiff:
         if diff:
             changes.append(PositionChange(ticker, "changed", diff))
     changes.extend(PositionChange(t, "removed") for t in old_rows if t not in new_rows)
+
+    def text(v: PolicyVersion) -> list[str]:
+        return f"# {v.thesis_title}\n{v.thesis_md.rstrip()}\n".splitlines(keepends=True)
+
+    lines = difflib.unified_diff(
+        text(old),
+        text(new),
+        fromfile=f"v{old.version_no}",
+        tofile=f"v{new.version_no}",
+    )
     return VersionDiff(
         positions=changes,
-        thesis_revision=(old.thesis_revision.revision_no, new.thesis_revision.revision_no)
-        if old.thesis_revision_id != new.thesis_revision_id
-        else None,
+        thesis_changed=(old.thesis_title, old.thesis_md) != (new.thesis_title, new.thesis_md),
+        thesis_diff="".join(lines),
     )
 
 

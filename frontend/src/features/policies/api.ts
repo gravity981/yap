@@ -2,12 +2,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
-import { rawBody } from "@/features/theses/api";
 
 export type Policy = components["schemas"]["PolicyOut"];
 export type PolicySummary = components["schemas"]["PolicySummary"];
 export type Version = components["schemas"]["VersionOut"];
 export type PositionIn = components["schemas"]["PositionIn"];
+export type ThesisIn = components["schemas"]["ThesisIn"];
+
+/** A raw JSON file as request body (imports). */
+export function rawBody(text: string) {
+  return { body: text as never, bodySerializer: (b: unknown) => b as string };
+}
 
 export const policiesKey = ["policies"] as const;
 const path = (id: number) => ({ params: { path: { policy_id: id } } });
@@ -67,9 +72,17 @@ function usePolicyMutation<T, R>(fn: (arg: T) => Promise<R>) {
   });
 }
 
+/** POL-01: draft v1 holds the thesis template in the account's language. */
 export function useCreatePolicy() {
-  return usePolicyMutation((body: { name: string; thesis_id: number }) =>
+  return usePolicyMutation((body: { name: string; thesis_md: string }) =>
     unwrap(api.POST("/api/policies", { body })),
+  );
+}
+
+/** POL-21 */
+export function useRenamePolicy(id: number) {
+  return usePolicyMutation((name: string) =>
+    unwrap(api.PUT("/api/policies/{policy_id}/name", { ...path(id), body: { name } })),
   );
 }
 
@@ -78,11 +91,20 @@ export function usePolicyActions(id: number) {
     createDraft: usePolicyMutation(() =>
       unwrap(api.POST("/api/policies/{policy_id}/draft", path(id))),
     ),
-    saveDraft: usePolicyMutation((body: { positions: PositionIn[] }) =>
+    saveDraft: usePolicyMutation((body: { positions: PositionIn[]; thesis?: ThesisIn }) =>
       unwrap(api.PUT("/api/policies/{policy_id}/draft", { ...path(id), body })),
     ),
     deleteDraft: usePolicyMutation(() =>
       unwrap(api.DELETE("/api/policies/{policy_id}/draft", path(id))),
+    ),
+    // POL-14, POL-17: the change note is saved like every other change of the draft
+    saveChangeNote: usePolicyMutation((change_note: string | null) =>
+      unwrap(
+        api.PUT("/api/policies/{policy_id}/draft/change-note", {
+          ...path(id),
+          body: { change_note },
+        }),
+      ),
     ),
     activate: usePolicyMutation((change_note: string | null) =>
       unwrap(
@@ -91,9 +113,6 @@ export function usePolicyActions(id: number) {
           body: { change_note },
         }),
       ),
-    ),
-    adopt: usePolicyMutation(() =>
-      unwrap(api.POST("/api/policies/{policy_id}/adopt-thesis-revision", path(id))),
     ),
     archive: usePolicyMutation(() =>
       unwrap(api.POST("/api/policies/{policy_id}/archive", path(id))),
@@ -109,3 +128,30 @@ export const targetImport = {
   run: (text: string, policyId: number) =>
     unwrap(api.POST("/api/policies/{policy_id}/import", { ...path(policyId), ...rawBody(text) })),
 };
+
+/** IMP-01: a thesis file becomes a new policy, or the thesis of the policy's draft. */
+export const thesisImport = {
+  preview: (text: string, policyId?: number) =>
+    policyId === undefined
+      ? unwrap(api.POST("/api/policies/import-thesis/preview", rawBody(text)))
+      : unwrap(
+          api.POST("/api/policies/{policy_id}/import-thesis/preview", {
+            ...path(policyId),
+            ...rawBody(text),
+          }),
+        ),
+  /** A new policy whose draft v1 holds the thesis. */
+  runNew: (text: string) => unwrap(api.POST("/api/policies/import-thesis", rawBody(text))),
+  /** The thesis of the policy's draft (created if there is none). */
+  runIntoDraft: (text: string, policyId: number) =>
+    unwrap(
+      api.POST("/api/policies/{policy_id}/import-thesis", { ...path(policyId), ...rawBody(text) }),
+    ),
+};
+
+/** POL-18: private, text or all. */
+export function usePolicySharing(id: number) {
+  return usePolicyMutation((sharing: string) =>
+    unwrap(api.PUT("/api/policies/{policy_id}/sharing", { ...path(id), body: { sharing } })),
+  );
+}

@@ -20,6 +20,8 @@ export const en = {
     rebalance_confirmed: "Rebalance confirmed",
     thesis_review_confirmed: "Thesis review",
     policy_review_confirmed: "Policy review",
+    review_confirmed: "Review",
+    review_saved: "Review again",
     thesis_revised: "Thesis revised",
   },
   noEvents: "No events.",
@@ -40,8 +42,14 @@ export const en = {
     rebalance: "{{portfolio}}: rebalanced, sold {{sold}}, bought {{bought}}",
     rebalanceWithdrawal:
       "{{portfolio}}: rebalanced, sold {{sold}}, bought {{bought}}, withdrew {{withdrawal}}",
+    soldCompletely: "{{portfolio}}: sold completely, thesis broken",
+    soldCompletelyWithdrawal:
+      "{{portfolio}}: sold completely, thesis broken, withdrew {{withdrawal}}",
     thesisReview: "Thesis review of '{{title}}' revision {{revision}}: {{result}}",
+    thesisReviewOfVersion: "Thesis review of {{version}}: {{result}}",
     policyReview: "Policy review of {{version}}: {{result}}",
+    review: "Review of {{version}}: {{result}}",
+    reviewAgain: "Review of {{version}} (again): {{result}}",
     score: "{{total}} / 10",
     modified: "modified",
     thesisRevised:
@@ -69,6 +77,8 @@ export const de: Messages<typeof en> = {
     rebalance_confirmed: "Rebalancing bestätigt",
     thesis_review_confirmed: "Prüfung der Anlagethese",
     policy_review_confirmed: "Prüfung der Anlagestrategie",
+    review_confirmed: "Prüfung",
+    review_saved: "Erneute Prüfung",
     thesis_revised: "Anlagethese überarbeitet",
   },
   noEvents: "Keine Ereignisse.",
@@ -90,8 +100,14 @@ export const de: Messages<typeof en> = {
     rebalance: "{{portfolio}}: Rebalancing, verkauft {{sold}}, gekauft {{bought}}",
     rebalanceWithdrawal:
       "{{portfolio}}: Rebalancing, verkauft {{sold}}, gekauft {{bought}}, entnommen {{withdrawal}}",
+    soldCompletely: "{{portfolio}}: vollständig verkauft, Anlagethese gebrochen",
+    soldCompletelyWithdrawal:
+      "{{portfolio}}: vollständig verkauft, Anlagethese gebrochen, entnommen {{withdrawal}}",
     thesisReview: "Prüfung der Anlagethese «{{title}}» Revision {{revision}}: {{result}}",
+    thesisReviewOfVersion: "Prüfung der Anlagethese von {{version}}: {{result}}",
     policyReview: "Prüfung der Anlagestrategie {{version}}: {{result}}",
+    review: "Prüfung von {{version}}: {{result}}",
+    reviewAgain: "Prüfung von {{version}} (erneut): {{result}}",
     score: "{{total}} / 10",
     modified: "geändert",
     thesisRevised:

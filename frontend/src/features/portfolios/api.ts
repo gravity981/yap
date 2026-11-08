@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api, unwrap } from "@/api/client";
 import type { components } from "@/api/schema";
-import { rawBody } from "@/features/theses/api";
+import { rawBody } from "@/features/policies/api";
 
 export type PortfolioSummary = components["schemas"]["PortfolioSummary"];
 export type Portfolio = components["schemas"]["PortfolioOut"];

@@ -27,7 +27,6 @@ from yap.api.routers import (
     price_sources,
     rebalances,
     reviews,
-    theses,
     timeline,
 )
 from yap.api.settings import Settings
@@ -112,7 +111,6 @@ def create_app(
         price_sources.router,
         ai_reviewers.router,
         catalog.router,
-        theses.router,
         policies.router,
         policies.versions_router,
         portfolios.router,

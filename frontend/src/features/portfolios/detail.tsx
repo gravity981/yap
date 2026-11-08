@@ -7,6 +7,7 @@ import { FileImport } from "@/components/file-import";
 import { filePositions, ImportPriceSources } from "@/features/prices/import-price-sources";
 import { Field, FormError, fieldError } from "@/components/form";
 import { Badge } from "@/components/ui/badge";
+import { PolicySemaphore } from "@/features/reviews/semaphore";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,12 @@ export function PortfolioPage({ portfolioId }: { portfolioId: number }) {
             {t("portfolios.detail.active", { version: p.active_version_label ?? "–" })}{" "}
             {t("portfolios.detail.currency", { currency: p.currency })}
           </p>
+          {/* PTF-07 */}
+          <PolicySemaphore
+            policyId={p.policy_id}
+            semaphore={p.policy_semaphore}
+            reason={p.policy_semaphore_reason}
+          />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setDialog("settings")}>

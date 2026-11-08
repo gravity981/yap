@@ -15,7 +15,6 @@ const event = (id: number, type: string, summary: string, extra: Record<string, 
   policy_version_id: null,
   rebalance_id: null,
   review_id: null,
-  thesis_revision_id: null,
   ...extra,
 });
 
@@ -26,7 +25,8 @@ const events = [
     portfolio_id: 5,
     rebalance_id: 77,
   }),
-  event(4, "thesis_revised", "Thesis 'Core' has a new revision 2", { thesis_revision_id: 102 }),
+  // From before policies held their thesis: shown with its summary only
+  event(4, "thesis_revised", "Thesis 'Core' has a new revision 2"),
 ];
 
 const policies = [
@@ -36,9 +36,8 @@ const policies = [
     archived_at: null,
     active_version_label: "core-v2",
     has_draft: false,
-    newer_thesis_revision_id: 102,
     thesis_warning: false,
-    thesis_status: "intact",
+    semaphore: "good",
   },
   {
     id: 4,
@@ -46,9 +45,8 @@ const policies = [
     archived_at: null,
     active_version_label: "growth-v1",
     has_draft: false,
-    newer_thesis_revision_id: null,
     thesis_warning: true,
-    thesis_status: "needs_adaptation",
+    semaphore: "warning",
   },
 ];
 
@@ -64,6 +62,8 @@ function setup(handlers: Record<string, Handler> = {}) {
           name: "Main",
           policy_id: 3,
           policy_name: "core",
+          policy_semaphore: "broken",
+          policy_semaphore_reason: "A break condition is met.",
           archived_at: null,
           latest_snapshot: null,
         },
@@ -82,7 +82,8 @@ function setup(handlers: Record<string, Handler> = {}) {
     "GET /api/policies/3/compare": () =>
       json({
         positions: [{ ticker: "ETH", change: "changed", fields: { target_pct: ["20", "18"] } }],
-        thesis_revision: null,
+        thesis_changed: false,
+        thesis_diff: "",
       }),
     "GET /api/rebalances/77": () =>
       json({
@@ -98,17 +99,6 @@ function setup(handlers: Record<string, Handler> = {}) {
             executed_amount: "140",
           },
         ],
-      }),
-    "GET /api/thesis-revisions/102": () =>
-      json({
-        id: 102,
-        thesis_id: 7,
-        revision_no: 2,
-        title: "Core",
-        status: "broken",
-        change_note: "broken",
-        content_md: "",
-        created_at: "2026-04-01T10:00:00+00:00",
       }),
     ...handlers,
   });
@@ -147,7 +137,7 @@ describe("timeline", () => {
     });
   });
 
-  it("[TL-02] opens the details of an activation, a rebalance and a thesis revision", async () => {
+  it("[TL-02] opens the details of an activation and a rebalance", async () => {
     setup();
     renderApp("/timeline");
     await userEvent.click(await screen.findByText("core-v2 activated (Main): less ETH"));
@@ -157,9 +147,7 @@ describe("timeline", () => {
     await userEvent.click(screen.getByText("Main: rebalanced, sold 140, bought 150"));
     expect(await screen.findByText(/AAA Sell: 140/)).toBeInTheDocument();
     expect(screen.getByText(/calculated 150/)).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText("Thesis 'Core' has a new revision 2"));
-    expect(await screen.findByRole("link", { name: "Core" })).toHaveAttribute("href", "/theses/7");
+    expect(screen.getByText("Thesis 'Core' has a new revision 2")).toBeInTheDocument();
   });
 
   it("[TL-02] [REV-12] opens the result of a confirmed review", async () => {
@@ -172,15 +160,10 @@ describe("timeline", () => {
     setup({
       "GET /api/timeline": () =>
         json([
-          event(
-            5,
-            "thesis_review_confirmed",
-            "Thesis review of 'Core' revision 2: intact, 7 / 10",
-            {
-              review_id: 30,
-              thesis_revision_id: 102,
-            },
-          ),
+          event(5, "thesis_review_confirmed", "Thesis review of core-v2: intact, 7 / 10", {
+            review_id: 30,
+            policy_version_id: 202,
+          }),
         ]),
       "GET /api/reviews/30": () =>
         json({
@@ -196,7 +179,11 @@ describe("timeline", () => {
             aspect(6, 7),
           ],
           total: 6.5,
+          thesis_score: 6.5,
+          structure_score: null,
+          semaphore: "good",
           verdict: "intact",
+          verdict_reason: null,
           scoring_version: "2",
           method: "manual",
           model: "Gemini 3",
@@ -206,21 +193,84 @@ describe("timeline", () => {
         }),
     });
     renderApp("/timeline");
-    await userEvent.click(await screen.findByText(/Thesis review of 'Core' revision 2/));
-    expect(await screen.findByRole("img", { name: "Total score: 6.5 of 10" })).toBeInTheDocument();
+    await userEvent.click(await screen.findByText(/Thesis review of core-v2/));
+    expect(await screen.findByRole("img", { name: "Score: 6.5 of 10" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Aspect 1: 7.0 of 10" })).toBeInTheDocument();
     expect(screen.getByText("manual review with Gemini 3")).toBeInTheDocument(); // REV-17
-    expect(await screen.findByRole("link", { name: "Core" })).toHaveAttribute("href", "/theses/7");
+    expect(screen.getByText("good")).toBeInTheDocument(); // REV-06: intact
+    expect(await screen.findByRole("link", { name: "core-v2" })).toHaveAttribute(
+      "href",
+      "/policies/3",
+    );
   });
 
-  it("[CMP-09] [POL-11] shows portfolios, warnings and recent events on the dashboard", async () => {
+  it("[TL-02] [REV-02] [REV-17] opens the result of a confirmed review of the whole policy", async () => {
+    setup({
+      "GET /api/timeline": () =>
+        json([
+          event(6, "review_confirmed", "Review of core-v3: warning, 7 / 10", {
+            review_id: 31,
+            policy_version_id: 202,
+            params: { version: "core-v3", verdict: "warning", total: 7 },
+          }),
+        ]),
+      "GET /api/reviews/31": () =>
+        json({
+          id: 31,
+          kind: "full",
+          state: "done",
+          aspects: [
+            { code: "T1", name: "Belief", score: 6.5, reasoning_md: "" },
+            { code: "P1", name: "Coverage", score: 7.5, reasoning_md: "" },
+          ],
+          total: 7,
+          thesis_score: 6.5,
+          structure_score: 7.5,
+          semaphore: "warning",
+          verdict: "warning",
+          verdict_reason: "Warning signals",
+          scoring_version: "3",
+          method: "manual",
+          model: null,
+          ai_reviewer_name: null,
+          provider: "manual",
+          news_from: "2026-01-01T10:00:00+00:00",
+          news_to: "2026-03-01T10:00:00+00:00",
+          started_at: "2026-03-01T10:00:00+00:00",
+          completed_at: "2026-03-01T10:05:00+00:00",
+          legacy_modification: null,
+          outdated: false,
+          sources: [],
+          suggestions: [],
+          confirmed: true,
+        }),
+    });
+    renderApp("/timeline");
+    await userEvent.click(await screen.findByText("Review of core-v3: warning, 7 / 10"));
+    expect(await screen.findByRole("img", { name: "Score: 7.0 of 10" })).toBeInTheDocument();
+    expect(screen.getByText("Thesis · 6.5 · Target structure · 7.5")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Coverage: 7.5 of 10" })).toBeInTheDocument();
+    expect(screen.getByText("manual review")).toBeInTheDocument();
+    // REV-24: the full review is a click away
+    await userEvent.click(screen.getByRole("button", { name: "Read the full review →" }));
+    const dialog = await screen.findByRole("dialog", { name: "The full review" });
+    expect(within(dialog).getByText("Warning signals")).toBeInTheDocument();
+  });
+
+  it("[CMP-09] [POL-11] [THS-04] [PTF-07] shows portfolios, warnings and recent events on the dashboard", async () => {
     setup();
     renderApp("/");
     expect(await screen.findByRole("link", { name: "Main" })).toBeInTheDocument();
+    // PTF-07: the semaphore of the portfolio's policy, with the reason and a link
+    expect(screen.getByText("broken")).toBeInTheDocument();
+    expect(screen.getByText("A break condition is met.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the policy" })).toHaveAttribute(
+      "href",
+      "/policies/3",
+    );
     const alerts = await screen.findAllByRole("alert");
     expect(alerts.map((a) => a.textContent)).toEqual([
-      "core: its thesis has a newer revision.",
-      "growth: the thesis it uses is marked as needs adaptation.",
+      "growth: the semaphore of its thesis is warning.",
     ]);
     const recent = screen.getByRole("heading", { name: "Recent events" }).closest("section")!;
     expect(within(recent).getAllByRole("listitem")).toHaveLength(4);
@@ -228,35 +278,40 @@ describe("timeline", () => {
 });
 
 describe("export links", () => {
-  it("[IMP-10] offers JSON exports for revisions, versions and snapshots", async () => {
+  it("[IMP-10] offers JSON exports for theses, versions and snapshots", async () => {
     setup({
-      "GET /api/theses/7": () =>
+      "GET /api/policies/3": () =>
         json({
-          id: 7,
-          is_own: true,
-          visibility: "private",
+          id: 3,
+          name: "core",
+          archived_at: null,
           created_at: "2026-01-01T10:00:00+00:00",
-          revisions: [
+          versions: [
             {
-              id: 101,
-              revision_no: 1,
-              title: "T",
-              status: "intact",
+              id: 201,
+              version_no: 1,
+              label: "core-v1",
+              thesis_title: "T",
               change_note: null,
-              created_at: "2026-01-01T10:00:00+00:00",
+              active_from: "2026-01-01T10:00:00+00:00",
+              active_until: null,
+              is_draft: false,
+              review: null,
+              reviews: [],
             },
           ],
+          portfolios: [],
+          thesis_warning: false,
+          semaphore: null,
         }),
-      "GET /api/theses/7/revisions/1": () =>
+      "GET /api/policies/3/versions/1": () =>
         json({
-          id: 101,
-          thesis_id: 7,
-          revision_no: 1,
-          title: "T",
-          status: "intact",
-          change_note: null,
-          content_md: "x",
-          created_at: "2026-01-01T10:00:00+00:00",
+          id: 201,
+          version_no: 1,
+          label: "core-v1",
+          thesis_title: "T",
+          thesis_md: "x",
+          positions: [],
         }),
       "GET /api/snapshots/41": () =>
         json({
@@ -271,10 +326,10 @@ describe("export links", () => {
           rows: [],
         }),
     });
-    const { unmount } = renderApp("/theses/7");
-    expect(await screen.findByRole("link", { name: "Export revision 1 as JSON" })).toHaveAttribute(
+    const { unmount } = renderApp("/policies/3");
+    expect(await screen.findByRole("link", { name: "Export as JSON" })).toHaveAttribute(
       "href",
-      "/api/theses/7/revisions/1/export",
+      "/api/policies/3/versions/1/thesis/export",
     );
     unmount();
     renderApp("/snapshots/41");

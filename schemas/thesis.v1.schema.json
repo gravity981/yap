@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "thesis.v1.schema.json",
   "additionalProperties": false,
-  "description": "A thesis (IMP-01). Visibility only applies when a new thesis is created.",
+  "description": "A thesis (IMP-01). Visibility, status and change note are accepted and ignored: a\nthesis has no status (THS-04) and the sharing level belongs to the policy.",
   "properties": {
     "$schema": {
       "anyOf": [
@@ -43,14 +43,23 @@
       "type": "string"
     },
     "status": {
-      "default": "intact",
-      "enum": [
-        "intact",
-        "needs_adaptation",
-        "broken"
+      "anyOf": [
+        {
+          "enum": [
+            "intact",
+            "needs_adaptation",
+            "broken"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
       ],
-      "title": "Status",
-      "type": "string"
+      "default": null,
+      "deprecated": true,
+      "description": "Ignored: the semaphore of a thesis comes from its review (THS-04)",
+      "title": "Status"
     },
     "content_md": {
       "description": "Thesis content in markdown",

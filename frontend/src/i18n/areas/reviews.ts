@@ -3,15 +3,14 @@ import type { Messages } from "../messages";
 // AI reviews: start, result, score course (features/reviews).
 export const en = {
   section: {
+    title: "Review",
+    // Reviews from before stage 2 judged the thesis and the target structure separately
     thesis: "Thesis review",
     policy: "Policy review",
     notReviewed: "Not reviewed.",
   },
   start: {
-    dataThesis:
-      "To run it, the thesis text is sent to the provider of your AI reviewer, which searches the web for news. ",
-    dataPolicy:
-      "To run it, the thesis text and the target structure (percentages, thresholds, exit flags, rationales) are sent to the provider of your AI reviewer. ",
+    data: "To run it, the title, the thesis text and the target structure (percentages, thresholds, exit flags, rationales) are sent to the provider of your AI reviewer, which searches the web for news. ",
     dataNothingElse: "No amounts, portfolios or personal data are sent.",
     default: " (default)",
     newsDays: "News of the last … days",
@@ -26,32 +25,45 @@ export const en = {
     confirmed: "confirmed",
     notConfirmed: "not confirmed yet",
     outdated: "outdated: the draft changed since",
-    manual: "manual review with {{model}}",
+    manual: "manual review",
+    manualWith: "manual review with {{model}}",
+    matches: "matches the draft",
+    noLongerMatches: "no longer matches the draft",
+    noLongerMatchesHint:
+      "The thesis or target structure was edited after this review. Run the review again to review what is written now.",
+    draftNote:
+      "Running the review again replaces this one; it is kept with the version when you activate the draft.",
+    newsDays_one: "news of {{count}} day",
+    newsDays_other: "news of {{count}} days",
+    noStructure: "Target structure not scored: no positions",
     scoring: "scoring v{{version}}",
     news: "news {{from}} – {{to}}",
     notAdvice:
       "AI reviews can be wrong or incomplete, and are not financial advice. You decide what to change.",
   },
   score: {
-    totalLabel: "Total score",
+    totalLabel: "Score",
     outOf: "{{score}} / 10",
+    thesis: "Thesis · {{score}}",
+    structure: "Target structure · {{score}}",
+    thesisGroup: "Thesis",
+    structureGroup: "Target structure",
+    verdict: "Verdict.",
   },
   pane: {
-    noReview: "This draft has no review yet; it needs one to be activated.",
+    noReview:
+      "Not reviewed yet. You can activate the draft without a review; you will be asked to confirm.",
     method: "Review method",
     manual: "Manual (an AI of your choice)",
     defaultIn: "The default method is set in your <goto>settings</goto>.",
-    dataThesis:
-      "The prompt contains the review instructions and the thesis text, nothing else: no amounts, portfolios or personal data. You decide where to paste it.",
-    dataPolicy:
-      "The prompt contains the review instructions, the thesis text and the target structure (percentages, thresholds, exit flags, rationales), nothing else: no amounts, portfolios or personal data. You decide where to paste it.",
+    data: "The prompt contains the review instructions, the title, the thesis text and the target structure (percentages, thresholds, exit flags, rationales), nothing else: no amounts, portfolios or personal data. You decide where to paste it.",
+    step2:
+      "Paste it into the AI of your choice and let it answer. With web search on, it can check current news.",
     copy: "Copy review prompt",
     copied: "Copied. Paste it into your AI, then paste its whole answer below.",
     copyFailed: "Your browser did not allow copying; copy the prompt from here",
     manualForm: "Manual review",
-    model: "AI model used",
-    modelPlaceholder: "e.g. ChatGPT 5",
-    answer: "Answer of the AI",
+    answer: "Paste its whole answer",
     problems: "The answer cannot be used:",
     save: "Save review",
     tab: "Review",
@@ -63,7 +75,7 @@ export const en = {
     score: "{{name}}: {{score}}",
     note: "Why: {{note}}",
   },
-  // Scoring version 2: the sections of the thesis template (THS-07)
+  // Scoring versions 2 and 3: the sections of the thesis template (THS-07)
   aspects: {
     T1: "Belief",
     T2: "Fit and implementation",
@@ -87,6 +99,47 @@ export const en = {
     T5: "Fit and alternatives",
     T6: "Current evidence",
   },
+  full: {
+    open: "Read the full review →",
+    title: "The full review",
+    description: "Every aspect with its reasoning, the verdict and the sources.",
+    suggestionsInPane: "The suggestions are in the review pane, with Take over.",
+  },
+  semaphore: {
+    thesis: "Thesis:",
+    toPolicy: "Open the policy",
+  },
+  draftBox: {
+    title: "Review",
+    note: "You are working on the draft {{version}}; its thesis or target structure differs from the active version. The review is made in the editor and belongs to the draft until you activate it.",
+    openEditor: "Review the draft in the editor",
+    none: "The draft has no review yet.",
+    reviewOf: "Review of the draft",
+  },
+  again: {
+    title: "Review again",
+    note: "Reviews the active {{version}} as it is, with today's news. The result is added to the review log; no new version is created. The latest review sets the score and the semaphore.",
+    takenOver: "Taken over into the draft {{version}}.",
+    openDraft: "Open the draft",
+  },
+  log: {
+    title: "Review log",
+    empty: "No saved reviews yet.",
+    compare: "Compare",
+    pick: "Compare the review of {{date}} ({{version}})",
+    date: "Date",
+    version: "Version",
+    atActivation: "at activation",
+    again: "reviewed again",
+    reviewer: "Reviewer",
+    score: "Score",
+    semaphore: "Semaphore",
+    comparison: "{{from}} → {{to}}",
+    aspect: "Aspect",
+    change: "Change",
+    versionsDiffer:
+      "The two reviews use different scoring versions; their scores are not directly comparable.",
+  },
   sources: "Sources",
   suggestions: {
     title: "Suggestions",
@@ -94,6 +147,31 @@ export const en = {
     thesis_text: "Thesis text",
     thesis_status: "Thesis status",
     policy_position: "Position",
+    section: "Thesis · section {{section}}",
+    add: "Add {{ticker}} ({{name}})",
+    addDetail: "{{type}}, target {{target}}, band {{band}}",
+    remove: "Remove {{ticker}}",
+    fields: {
+      target_pct: "target",
+      buy_threshold_pct: "buy threshold",
+      sell_threshold_pct: "sell threshold",
+      exit: "exit",
+      rationale_md: "rationale",
+    },
+    exitYes: "exit",
+    exitNo: "no exit",
+    band: "{{buy}} / {{sell}}",
+    takeOver: "Take over",
+    dismiss: "Dismiss",
+    undo: "Undo",
+    takenOver: "Taken over",
+    dismissed: "Dismissed",
+    proposals: "Proposed target structures",
+    proposalsNote:
+      "Derived from your thesis. Taking one over fills the target structure; you can change it afterwards and review again.",
+    ticker: "Ticker",
+    target: "Target",
+    bandHeader: "Band",
   },
   states: {
     queued: "queued",
@@ -110,11 +188,11 @@ export const en = {
     outdated: "The draft changed after its review. Activate it with the outdated review?",
   },
   course: {
-    label: "Review score over the revisions",
-    caption: "Total review score per revision",
+    label: "Review score over the versions",
+    caption: "Score of the review per version",
     point: "{{label}}: {{score}} of 10",
     tooltip: ": {{score}} / 10",
-    tick: "r{{no}}",
+    tick: "v{{no}}",
     version: "v{{version}}",
     versionNote:
       "The scoring changed in between (dashed line); scores before and after are not directly comparable.",
@@ -124,15 +202,13 @@ export const en = {
 // German in Swiss spelling (ss, no ß), addressing the user with "du"; see src/i18n/README.md
 export const de: Messages<typeof en> = {
   section: {
+    title: "Prüfung",
     thesis: "Prüfung der Anlagethese",
     policy: "Prüfung der Anlagestrategie",
     notReviewed: "Nicht geprüft.",
   },
   start: {
-    dataThesis:
-      "Dafür wird der Text der Anlagethese an den Anbieter deines KI-Reviewers gesendet, der im Web nach Nachrichten sucht. ",
-    dataPolicy:
-      "Dafür werden der Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen) an den Anbieter deines KI-Reviewers gesendet. ",
+    data: "Dafür werden der Titel, der Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen) an den Anbieter deines KI-Reviewers gesendet, der im Web nach Nachrichten sucht. ",
     dataNothingElse: "Es werden keine Beträge, Portfolios oder persönlichen Daten gesendet.",
     default: " (Standard)",
     newsDays: "Nachrichten der letzten … Tage",
@@ -147,32 +223,45 @@ export const de: Messages<typeof en> = {
     confirmed: "bestätigt",
     notConfirmed: "noch nicht bestätigt",
     outdated: "veraltet: der Entwurf wurde seither geändert",
-    manual: "manuelle Prüfung mit {{model}}",
+    manual: "manuelle Prüfung",
+    manualWith: "manuelle Prüfung mit {{model}}",
+    matches: "passt zum Entwurf",
+    noLongerMatches: "passt nicht mehr zum Entwurf",
+    noLongerMatchesHint:
+      "Die Anlagethese oder die Zielstruktur wurde nach dieser Prüfung geändert. Starte die Prüfung erneut, um zu prüfen, was jetzt geschrieben steht.",
+    draftNote:
+      "Eine erneute Prüfung ersetzt diese; sie bleibt bei der Version, sobald du den Entwurf aktivierst.",
+    newsDays_one: "Nachrichten von {{count}} Tag",
+    newsDays_other: "Nachrichten von {{count}} Tagen",
+    noStructure: "Zielstruktur nicht bewertet: keine Positionen",
     scoring: "Bewertung v{{version}}",
     news: "Nachrichten {{from}} – {{to}}",
     notAdvice:
       "KI-Prüfungen können falsch oder unvollständig sein und sind keine Finanzberatung. Du entscheidest, was du änderst.",
   },
   score: {
-    totalLabel: "Gesamtbewertung",
+    totalLabel: "Bewertung",
     outOf: "{{score}} / 10",
+    thesis: "Anlagethese · {{score}}",
+    structure: "Zielstruktur · {{score}}",
+    thesisGroup: "Anlagethese",
+    structureGroup: "Zielstruktur",
+    verdict: "Urteil.",
   },
   pane: {
-    noReview: "Dieser Entwurf hat noch keine Prüfung; zum Aktivieren braucht er eine.",
+    noReview:
+      "Noch nicht geprüft. Du kannst den Entwurf auch ohne Prüfung aktivieren; du wirst dann um Bestätigung gebeten.",
     method: "Prüfmethode",
     manual: "Manuell (eine KI deiner Wahl)",
     defaultIn: "Die Standard-Prüfmethode legst du in deinen <goto>Einstellungen</goto> fest.",
-    dataThesis:
-      "Der Prompt enthält die Prüfanweisungen und den Text der Anlagethese, sonst nichts: keine Beträge, Portfolios oder persönlichen Daten. Du entscheidest, wo du ihn einfügst.",
-    dataPolicy:
-      "Der Prompt enthält die Prüfanweisungen, den Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen), sonst nichts: keine Beträge, Portfolios oder persönlichen Daten. Du entscheidest, wo du ihn einfügst.",
+    data: "Der Prompt enthält die Prüfanweisungen, den Titel, den Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen), sonst nichts: keine Beträge, Portfolios oder persönlichen Daten. Du entscheidest, wo du ihn einfügst.",
+    step2:
+      "Füge ihn in die KI deiner Wahl ein und lass sie antworten. Mit eingeschalteter Websuche kann sie aktuelle Nachrichten prüfen.",
     copy: "Prüf-Prompt kopieren",
     copied: "Kopiert. Füge ihn in deine KI ein und füge danach ihre ganze Antwort unten ein.",
     copyFailed: "Dein Browser hat das Kopieren nicht erlaubt; kopiere den Prompt von hier",
     manualForm: "Manuelle Prüfung",
-    model: "Verwendetes KI-Modell",
-    modelPlaceholder: "z. B. ChatGPT 5",
-    answer: "Antwort der KI",
+    answer: "Füge ihre ganze Antwort ein",
     problems: "Die Antwort kann nicht verwendet werden:",
     save: "Prüfung speichern",
     tab: "Prüfung",
@@ -206,6 +295,47 @@ export const de: Messages<typeof en> = {
     T5: "Eignung und Alternativen",
     T6: "Aktuelle Belege",
   },
+  full: {
+    open: "Ganze Prüfung lesen →",
+    title: "Die ganze Prüfung",
+    description: "Jeder Aspekt mit seiner Begründung, das Urteil und die Quellen.",
+    suggestionsInPane: "Die Vorschläge sind im Prüfungsbereich, mit Übernehmen.",
+  },
+  semaphore: {
+    thesis: "Anlagethese:",
+    toPolicy: "Anlagestrategie öffnen",
+  },
+  draftBox: {
+    title: "Prüfung",
+    note: "Du arbeitest am Entwurf {{version}}; seine Anlagethese oder Zielstruktur weicht von der aktiven Version ab. Die Prüfung machst du im Editor, und sie gehört zum Entwurf, bis du ihn aktivierst.",
+    openEditor: "Entwurf im Editor prüfen",
+    none: "Der Entwurf hat noch keine Prüfung.",
+    reviewOf: "Prüfung des Entwurfs",
+  },
+  again: {
+    title: "Erneut prüfen",
+    note: "Prüft die aktive {{version}} so, wie sie ist, mit den heutigen Nachrichten. Das Ergebnis kommt ins Prüfprotokoll; es entsteht keine neue Version. Die neueste Prüfung bestimmt Bewertung und Ampel.",
+    takenOver: "In den Entwurf {{version}} übernommen.",
+    openDraft: "Entwurf öffnen",
+  },
+  log: {
+    title: "Prüfprotokoll",
+    empty: "Noch keine gespeicherten Prüfungen.",
+    compare: "Vergleichen",
+    pick: "Die Prüfung vom {{date}} ({{version}}) vergleichen",
+    date: "Datum",
+    version: "Version",
+    atActivation: "bei Aktivierung",
+    again: "erneut geprüft",
+    reviewer: "Prüfer",
+    score: "Bewertung",
+    semaphore: "Ampel",
+    comparison: "{{from}} → {{to}}",
+    aspect: "Aspekt",
+    change: "Änderung",
+    versionsDiffer:
+      "Die beiden Prüfungen verwenden verschiedene Bewertungsversionen; ihre Bewertungen sind nicht direkt vergleichbar.",
+  },
   sources: "Quellen",
   suggestions: {
     title: "Vorschläge",
@@ -213,6 +343,31 @@ export const de: Messages<typeof en> = {
     thesis_text: "Text der Anlagethese",
     thesis_status: "Status der Anlagethese",
     policy_position: "Position",
+    section: "Anlagethese · Abschnitt {{section}}",
+    add: "{{ticker}} hinzufügen ({{name}})",
+    addDetail: "{{type}}, Ziel {{target}}, Band {{band}}",
+    remove: "{{ticker}} entfernen",
+    fields: {
+      target_pct: "Ziel",
+      buy_threshold_pct: "Kaufschwelle",
+      sell_threshold_pct: "Verkaufsschwelle",
+      exit: "Exit",
+      rationale_md: "Begründung",
+    },
+    exitYes: "Exit",
+    exitNo: "kein Exit",
+    band: "{{buy}} / {{sell}}",
+    takeOver: "Übernehmen",
+    dismiss: "Verwerfen",
+    undo: "Rückgängig",
+    takenOver: "Übernommen",
+    dismissed: "Verworfen",
+    proposals: "Vorgeschlagene Zielstrukturen",
+    proposalsNote:
+      "Aus deiner Anlagethese abgeleitet. Übernimmst du eine, füllt sie die Zielstruktur; du kannst sie danach ändern und erneut prüfen lassen.",
+    ticker: "Ticker",
+    target: "Ziel",
+    bandHeader: "Band",
   },
   states: {
     queued: "wartet",
@@ -230,11 +385,11 @@ export const de: Messages<typeof en> = {
       "Der Entwurf wurde nach seiner Prüfung geändert. Mit der veralteten Prüfung aktivieren?",
   },
   course: {
-    label: "Bewertung der Prüfungen über die Revisionen",
-    caption: "Gesamtbewertung der Prüfung pro Revision",
+    label: "Bewertung der Prüfung über die Versionen",
+    caption: "Bewertung der Prüfung pro Version",
     point: "{{label}}: {{score}} von 10",
     tooltip: ": {{score}} / 10",
-    tick: "r{{no}}",
+    tick: "v{{no}}",
     version: "v{{version}}",
     versionNote:
       "Die Bewertung hat sich dazwischen geändert (gestrichelte Linie); Bewertungen davor und danach sind nicht direkt vergleichbar.",

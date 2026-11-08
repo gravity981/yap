@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 from sqlalchemy.orm import Session
@@ -21,15 +22,13 @@ from yap.db.models import (
     Portfolio,
     Review,
     ReviewAspect,
-    Thesis,
-    ThesisRevision,
+    ReviewSuggestion,
 )
 from yap.domain.reviews import SCORING_VERSION
-from yap.domain.types import Visibility
 from yap.llm import LlmConfig, LlmError
 from yap.llm.base import LlmRequest
 from yap.messages import msg
-from yap.services import policies, portfolios, theses
+from yap.services import policies, portfolios
 from yap.services.policies import PositionSpec
 from yap.services.secrets import KeyBox
 
@@ -64,7 +63,7 @@ def db_url(migrated_template: Path, tmp_path: Path) -> str:
 
 @pytest.fixture
 def session(db_url: str) -> Iterator[Session]:
-    engine = make_engine(db_url)
+    engine = make_engine(db_url, writer_transactions=False)
     with make_session_factory(engine)() as s:
         yield s
     engine.dispose()
@@ -104,49 +103,27 @@ class Factory:
     def admin(self) -> Investor:
         return self.investor(f"admin{self._next()}", admin=True, investor=False)
 
-    def thesis(
+    def policy_draft(
         self,
         owner: Investor,
         *,
-        title: str = "Core thesis",
-        shared: bool = False,
-        activate: bool = True,
-    ) -> Thesis:
-        """A thesis with revision 1; activated unless `activate` is False (THS-02)."""
-        thesis = theses.create_thesis(
+        name: str | None = None,
+        thesis_title: str = "Core thesis",
+        thesis_md: str = "# Thesis",
+        positions: list[PositionSpec] | None = None,
+    ) -> Policy:
+        """A policy with only its draft v1: the thesis and, if given, positions (POL-01)."""
+        policy = policies.create_policy(
             self.session,
             owner,
             self.clock,
-            title=title,
-            content_md="# Thesis",
-            visibility=Visibility.SHARED if shared else Visibility.PRIVATE,
+            name=name or f"policy{self._next()}",
+            thesis_title=thesis_title,
+            thesis_md=thesis_md,
         )
-        if activate:
-            theses.activate_draft(self.session, owner, self.clock, thesis.id, None)
-        return thesis
-
-    def revise_thesis(
-        self,
-        owner: Investor,
-        thesis: Thesis,
-        *,
-        title: str | None = None,
-        content_md: str = "# Thesis",
-        status: str = "intact",
-        change_note: str = "change",
-    ) -> ThesisRevision:
-        """A new activated revision: draft, save, activate."""
-        theses.create_draft(self.session, owner, self.clock, thesis.id)
-        theses.update_draft(
-            self.session,
-            owner,
-            self.clock,
-            thesis.id,
-            title=title or theses.latest_revision(thesis).title,
-            content_md=content_md,
-            status=status,
-        )
-        return theses.activate_draft(self.session, owner, self.clock, thesis.id, change_note)
+        if positions is not None:
+            policies.update_draft(self.session, owner, self.clock, policy.id, positions=positions)
+        return policy
 
     def ai_reviewer(
         self,
@@ -177,22 +154,27 @@ class Factory:
     def review(
         self,
         owner: Investor,
-        draft: ThesisRevision | PolicyVersion,
+        draft: PolicyVersion,
         *,
+        kind: str = "full",
         half_points: tuple[int, ...] = (14, 12, 16, 10, 14, 13),
-        verdict: str | None = "intact",
+        verdict: str | None = "good",
         scoring_version: str = SCORING_VERSION,
     ) -> Review:
-        """A finished review of a draft, stored directly (no provider involved)."""
-        thesis = isinstance(draft, ThesisRevision)
-        codes = [f"{'T' if thesis else 'P'}{i}" for i in range(1, 7)]
+        """A finished review of a version, stored directly (no provider): of the whole
+        policy (T1-T6, and P1-P6 if `half_points` has twelve scores), or one from before
+        stage 2 of kind `thesis` or `policy`."""
+        if kind == "policy":
+            codes = [f"P{i}" for i in range(1, 7)]
+        else:
+            codes = [f"T{i}" for i in range(1, 7)] + [f"P{i}" for i in range(1, 7)]
+            codes = codes[: len(half_points)]
         review = Review(
-            kind="thesis" if thesis else "policy",
-            thesis_revision_id=draft.id if thesis else None,
-            policy_version_id=None if thesis else draft.id,
+            kind=kind,
+            policy_version_id=draft.id,
             started_by=owner.id,
             state="done",
-            verdict=verdict if thesis else None,
+            verdict=verdict if kind != "policy" else None,
             scoring_version=scoring_version,
             provider="anthropic",
             model="claude-x",
@@ -207,29 +189,50 @@ class Factory:
         self.session.flush()
         return review
 
+    def suggestion(
+        self,
+        review: Review,
+        kind: str = "thesis_section",
+        change: dict[str, Any] | None = None,
+        content_md: str = "Make it measurable.",
+    ) -> ReviewSuggestion:
+        """An open suggestion of a review (REV-07); by default a new text of section 7."""
+        suggestion = ReviewSuggestion(
+            review_id=review.id,
+            kind=kind,
+            content_md=content_md,
+            change=change if change is not None else {"section": 7, "text": "- GDP below 2 %"},
+            state="open",
+        )
+        self.session.add(suggestion)
+        self.session.flush()
+        self.session.refresh(review)
+        return suggestion
+
     def active_policy(
         self,
         owner: Investor,
         positions: list[PositionSpec] | None = None,
         *,
         name: str | None = None,
-        thesis: Thesis | None = None,
+        thesis_title: str = "Core thesis",
+        verdict: str | None = None,
     ) -> Policy:
-        thesis = thesis or self.thesis(owner)
-        policy = policies.create_policy(
-            self.session,
-            owner,
-            self.clock,
-            name=name or f"policy{self._next()}",
-            thesis_id=thesis.id,
-        )
+        """A policy whose v1 is active, with the given (or the default) positions; with a
+        verdict, v1 was activated with a review that gives it this semaphore (THS-04)."""
+        policy = self.policy_draft(owner, name=name, thesis_title=thesis_title)
         policies.update_draft(
             self.session,
             owner,
             self.clock,
             policy.id,
             positions=positions if positions is not None else default_positions(),
+            thesis=policies.ThesisSpec(thesis_title, "# Thesis"),
         )
+        if verdict is not None:
+            draft = policies.get_draft(policy)
+            assert draft is not None
+            self.review(owner, draft, verdict=verdict)
         policies.activate_draft(self.session, owner, self.clock, policy.id, None)
         self.session.refresh(policy)
         return policy
