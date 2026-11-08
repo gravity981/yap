@@ -288,11 +288,10 @@ def _sell_all_withdrawal(
     contribution."""
     if to_sell <= 0:
         return
-    for r in results:
-        if r.position.is_cash_buffer:
-            r.withdrawal_sell = min(to_sell, values[id(r)])
-            values[id(r)] -= r.withdrawal_sell
-            return
+    # At most one cash buffer (RB-04 refuses more, POL-05)
+    for r in [r for r in results if r.position.is_cash_buffer]:
+        r.withdrawal_sell = min(to_sell, values[id(r)])
+        values[id(r)] -= r.withdrawal_sell
 
 
 def _phase1a_dip_buying(
