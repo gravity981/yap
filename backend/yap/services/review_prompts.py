@@ -17,18 +17,24 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from yap.db.models import PolicyVersion
-from yap.domain.reviews import ASPECTS, ReviewKind, Verdict, to_half_points
+from yap.domain.reviews import POLICY_ASPECTS, THESIS_ASPECTS, Aspect, Verdict, to_half_points
 from yap.llm import LlmError
 from yap.llm.base import LlmRequest
 from yap.messages import Message, msg
 
-SUGGESTION_KINDS = ("thesis_text", "thesis_status", "policy_position")
+# Replaced by structured suggestions in step 2.3 (REV-07)
+SUGGESTION_KINDS = ("thesis_text", "policy_position")
 
 SCORING_RULES = (
     "Score each aspect from 0 to 10 in steps of 0.5 (e.g. 6.5); 10 is the best. "
     "Give each aspect a short reasoning of two to four sentences. Be critical and "
     "concrete; refer to the text you assess. Write in English."
 )
+
+
+def aspects(with_positions: bool) -> tuple[Aspect, ...]:
+    """T1-T6, and P1-P6 if there is a target structure to judge (REV-02)."""
+    return THESIS_ASPECTS + POLICY_ASPECTS if with_positions else THESIS_ASPECTS
 
 
 # --- Answer format ---------------------------------------------------------------------
@@ -51,25 +57,20 @@ class SourceAnswer(_Model):
 
 
 class SuggestionAnswer(_Model):
-    kind: Literal["thesis_text", "thesis_status", "policy_position"]
+    kind: Literal["thesis_text", "policy_position"]
     content: str
 
 
-class ThesisAnswer(_Model):
+class Answer(_Model):
     prompt_id: str
     aspects: list[AspectAnswer]
     verdict: Verdict
+    verdict_reason: str
     sources: list[SourceAnswer]
     suggestions: list[SuggestionAnswer]
 
 
-class PolicyAnswer(_Model):
-    prompt_id: str
-    aspects: list[AspectAnswer]
-    suggestions: list[SuggestionAnswer]
-
-
-def _schema(kind: ReviewKind, prompt_id: str) -> dict[str, Any]:
+def _schema(with_positions: bool, prompt_id: str) -> dict[str, Any]:
     """JSON Schema of the answer, in the subset all three providers accept in strict
     mode: every property required, no additional properties, no numeric bounds."""
 
@@ -81,41 +82,52 @@ def _schema(kind: ReviewKind, prompt_id: str) -> dict[str, Any]:
             "additionalProperties": False,
         }
 
-    codes = [a.code for a in ASPECTS[kind]]
-    aspect = obj(
+    codes = [a.code for a in aspects(with_positions)]
+    return obj(
         {
-            "code": {"type": "string", "enum": codes},
-            "score": {"type": "number", "description": "0 to 10 in steps of 0.5"},
-            "reasoning": {"type": "string"},
+            "prompt_id": {"type": "string", "enum": [prompt_id]},
+            "aspects": {
+                "type": "array",
+                "items": obj(
+                    {
+                        "code": {"type": "string", "enum": codes},
+                        "score": {"type": "number", "description": "0 to 10 in steps of 0.5"},
+                        "reasoning": {"type": "string"},
+                    }
+                ),
+            },
+            "verdict": {"type": "string", "enum": [v.value for v in Verdict]},
+            "verdict_reason": {
+                "type": "string",
+                "description": "Why this verdict, in one to three sentences",
+            },
+            "sources": {
+                "type": "array",
+                "items": obj(
+                    {
+                        "title": {"type": "string"},
+                        "published_on": {
+                            "type": ["string", "null"],
+                            "description": "ISO date YYYY-MM-DD, null if unknown",
+                        },
+                        "url": {"type": "string"},
+                    }
+                ),
+            },
+            "suggestions": {
+                "type": "array",
+                "items": obj(
+                    {
+                        "kind": {"type": "string", "enum": list(SUGGESTION_KINDS)},
+                        "content": {
+                            "type": "string",
+                            "description": "The suggested change, in markdown",
+                        },
+                    }
+                ),
+            },
         }
     )
-    suggestion = obj(
-        {
-            "kind": {"type": "string", "enum": list(SUGGESTION_KINDS)},
-            "content": {"type": "string", "description": "The suggested change, in markdown"},
-        }
-    )
-    properties: dict[str, Any] = {
-        "prompt_id": {"type": "string", "enum": [prompt_id]},
-        "aspects": {"type": "array", "items": aspect},
-    }
-    if kind == ReviewKind.THESIS:
-        properties["verdict"] = {"type": "string", "enum": [v.value for v in Verdict]}
-        properties["sources"] = {
-            "type": "array",
-            "items": obj(
-                {
-                    "title": {"type": "string"},
-                    "published_on": {
-                        "type": ["string", "null"],
-                        "description": "ISO date YYYY-MM-DD, null if unknown",
-                    },
-                    "url": {"type": "string"},
-                }
-            ),
-        }
-    properties["suggestions"] = {"type": "array", "items": suggestion}
-    return obj(properties)
 
 
 @dataclass(frozen=True)
@@ -128,7 +140,8 @@ class ParsedAspect:
 @dataclass(frozen=True)
 class ParsedReview:
     aspects: list[ParsedAspect]
-    verdict: Verdict | None
+    verdict: Verdict
+    verdict_reason: str
     sources: list[SourceAnswer]
     suggestions: list[SuggestionAnswer]
 
@@ -160,19 +173,16 @@ def answer_prompt_id(text: str) -> str | None:
 
 
 def check_answer(
-    kind: ReviewKind, text: str, prompt_id: str
+    text: str, prompt_id: str, with_positions: bool
 ) -> tuple[ParsedReview | None, list[Message]]:
     """The parsed answer, or every problem found in it, each saying where it is (REV-18).
-    The answer must repeat the ID of its prompt (REV-19)."""
+    The answer must repeat the ID of its prompt (REV-19) and score P1-P6 exactly when the
+    reviewed content has positions (REV-02)."""
     data, problem = _json_object(text)
     if problem:
         return None, [problem]
     try:
-        answer: ThesisAnswer | PolicyAnswer = (
-            ThesisAnswer.model_validate(data)
-            if kind == ReviewKind.THESIS
-            else PolicyAnswer.model_validate(data)
-        )
+        answer = Answer.model_validate(data)
     except ValidationError as e:
         return None, [
             msg(
@@ -185,26 +195,34 @@ def check_answer(
     problems: list[Message] = []
     if answer.prompt_id.strip() != prompt_id:
         problems.append(msg("answer_prompt_id_wrong", prompt_id=prompt_id))
-    expected = [a.code for a in ASPECTS[kind]]
-    if sorted(a.code for a in answer.aspects) != expected:
+    expected = [a.code for a in aspects(with_positions)]
+    if sorted(a.code for a in answer.aspects) != sorted(expected):
         problems.append(msg("answer_aspects_wrong", aspects=", ".join(expected)))
     problems.extend(
         msg("score_invalid", score=a.score) for a in answer.aspects if not _valid_score(a.score)
     )
     if problems:
         return None, problems
-    aspects = [
+    order = {code: i for i, code in enumerate(expected)}
+    parsed = [
         ParsedAspect(a.code, to_half_points(a.score), a.reasoning.strip())
-        for a in sorted(answer.aspects, key=lambda a: a.code)
+        for a in sorted(answer.aspects, key=lambda a: order[a.code])
     ]
-    if isinstance(answer, ThesisAnswer):
-        return ParsedReview(aspects, answer.verdict, answer.sources, answer.suggestions), []
-    return ParsedReview(aspects, None, [], answer.suggestions), []
+    return (
+        ParsedReview(
+            parsed,
+            answer.verdict,
+            answer.verdict_reason.strip(),
+            answer.sources,
+            answer.suggestions,
+        ),
+        [],
+    )
 
 
-def parse_answer(kind: ReviewKind, text: str, prompt_id: str) -> ParsedReview:
+def parse_answer(text: str, prompt_id: str, with_positions: bool) -> ParsedReview:
     """The answer of an AI reviewer; an invalid one fails the review (REV-08)."""
-    parsed, problems = check_answer(kind, text, prompt_id)
+    parsed, problems = check_answer(text, prompt_id, with_positions)
     if parsed is None:
         raise LlmError(problems[0])
     return parsed
@@ -213,25 +231,24 @@ def parse_answer(kind: ReviewKind, text: str, prompt_id: str) -> ParsedReview:
 # --- Prompt ID -------------------------------------------------------------------------
 
 _ISSUED = "%Y%m%dT%H%M%SZ"
-_PROMPT_ID = re.compile(r"^([TP])(\d+)-(\d{8}T\d{6}Z)-(\d+)-([0-9a-f]{6})$")
+_PROMPT_ID = re.compile(r"^R(\d+)-(\d{8}T\d{6}Z)-(\d+)-([0-9a-f]{6})$")
 
 
 @dataclass(frozen=True)
 class PromptRef:
-    """What a prompt ID stands for (REV-19): the reviewed draft, when the prompt was made
-    from it (a later change of the draft makes the review outdated, REV-09) and the news
-    period of a thesis review."""
+    """What a prompt ID stands for (REV-19): the reviewed version, when the prompt was
+    made from it (a later change of the draft makes the review outdated, REV-09) and the
+    news period (REV-04)."""
 
-    kind: ReviewKind
-    draft_id: int
+    version_id: int
     issued_at: datetime
-    news_days: int  # 0 for policy reviews
+    news_days: int
 
     @property
     def prompt_id(self) -> str:
         body = (
-            f"{'T' if self.kind == ReviewKind.THESIS else 'P'}{self.draft_id}"
-            f"-{self.issued_at.astimezone(UTC).strftime(_ISSUED)}-{self.news_days}"
+            f"R{self.version_id}-{self.issued_at.astimezone(UTC).strftime(_ISSUED)}"
+            f"-{self.news_days}"
         )
         return f"{body}-{_checksum(body)}"
 
@@ -250,17 +267,17 @@ def _checksum(body: str) -> str:
 
 
 def parse_prompt_id(prompt_id: str) -> PromptRef | None:
-    """The reference of a prompt ID, or None if it is not one."""
+    """The reference of a prompt ID, or None if it is not one. IDs of prompts from before
+    scoring version 3 (thesis or policy reviews) are not accepted any more."""
     match = _PROMPT_ID.match(prompt_id.strip())
     if not match:
         return None
-    letter, draft_id, issued, news_days, check = match.groups()
-    body = f"{letter}{draft_id}-{issued}-{news_days}"
+    version_id, issued, news_days, check = match.groups()
+    body = f"R{version_id}-{issued}-{news_days}"
     if _checksum(body) != check:
         return None
     return PromptRef(
-        kind=ReviewKind.THESIS if letter == "T" else ReviewKind.POLICY,
-        draft_id=int(draft_id),
+        version_id=int(version_id),
         issued_at=datetime.strptime(issued, _ISSUED).replace(tzinfo=UTC),
         news_days=int(news_days),
     )
@@ -275,16 +292,16 @@ class ReviewPrompt:
 
     prompt_id: str
     instructions: str
-    content: str  # what is reviewed: thesis, and for a policy review its target structure
+    content: str  # what is reviewed: title, thesis and target structure (REV-05)
     json_schema: dict[str, Any]
-    web_search: bool
+    with_positions: bool  # P1-P6 are scored (REV-02)
 
     def llm_request(self) -> LlmRequest:
         return LlmRequest(
             system=self.instructions,
             prompt=self.content,
             json_schema=self.json_schema,
-            web_search=self.web_search,
+            web_search=True,  # T6 and the verdict use news (REV-04)
         )
 
     def text(self) -> str:
@@ -310,62 +327,11 @@ def _answer_format(prompt_id: str) -> str:
 Repeat this prompt ID exactly in the field prompt_id: {prompt_id}"""
 
 
-# --- Requests --------------------------------------------------------------------------
+# --- Request --------------------------------------------------------------------------
 
 
-def _aspect_list(kind: ReviewKind) -> str:
-    return "\n".join(f"- {a.code} {a.name}: {a.guide}" for a in ASPECTS[kind])
-
-
-def _thesis_text(version: PolicyVersion) -> str:
-    return (
-        f"Title: {version.thesis_title}\nStatus set by the investor: {version.thesis_status}\n\n"
-        f"<thesis>\n{version.thesis_md}\n</thesis>"
-    )
-
-
-def thesis_prompt(version: PolicyVersion, ref: PromptRef) -> ReviewPrompt:
-    """REV-02 to REV-04: aspects T1-T6 and a verdict, with current news."""
-    news_from, news_to = ref.news_from, ref.news_to
-    instructions = f"""You review an investment thesis written by a private investor.
-Today is {news_to.isoformat()}.
-
-The thesis follows a template with eight sections: 1 Belief, 2 Investor Fit,
-3 Implementation, 4 Opportunity, 5 Downside, 6 Invalidation, 7 Early Warnings,
-8 Monitoring. Aspects T1 to T5 judge the text itself, section by section; if the thesis
-does not use the template, judge the same content wherever it is.
-
-Aspect T6 and the verdict judge the thesis against current news: search the web for news
-from {news_from.isoformat()} to {news_to.isoformat()} on the assets the thesis is about
-(take them from the thesis text), in particular on its value drivers, risks, break
-conditions and warning signals. If you cannot search the web, say so in the reasoning of
-T6, score T6 only on what you know, and leave the sources empty.
-
-Aspects:
-{_aspect_list(ReviewKind.THESIS)}
-
-{SCORING_RULES}
-
-Verdict, independent of the scores:
-- broken: the news shows that a break condition of the thesis is met.
-- needs_adaptation: warning signals are observed, or parts of the thesis are outdated.
-- intact: neither of the above.
-
-List every news article you rely on under sources (title, publication date, link).
-Every statement based on news refers to its source as [n], the position in that list
-starting at 1. Do not invent sources.
-
-Suggestions are optional: concrete changes to the thesis text (thesis_text) or its
-status (thesis_status). Make none if nothing needs to change.
-
-{_answer_format(ref.prompt_id)}"""
-    return ReviewPrompt(
-        prompt_id=ref.prompt_id,
-        instructions=instructions,
-        content=_thesis_text(version),
-        json_schema=_schema(ReviewKind.THESIS, ref.prompt_id),
-        web_search=True,
-    )
+def _aspect_list(items: tuple[Aspect, ...]) -> str:
+    return "\n".join(f"- {a.code} {a.name}: {a.guide}" for a in items)
 
 
 def _structure(version: PolicyVersion) -> str:
@@ -384,34 +350,78 @@ def _structure(version: PolicyVersion) -> str:
     return "\n".join(rows) + (f"\n\nRationales per position:\n\n{rationales}" if rationales else "")
 
 
-def policy_prompt(version: PolicyVersion, ref: PromptRef) -> ReviewPrompt:
-    """REV-02, REV-05: aspects P1-P6 from thesis and target structure; no web search."""
-    instructions = f"""You review the target structure of an investment policy written by a
-private investor: does it match the investment thesis it is based on? 0 means the
-structure does not match the thesis at all, 10 a perfect match. Judge only the thesis
-and the structure given here; do not search for news.
+def _content(version: PolicyVersion) -> str:
+    """REV-05, REV-19: the title, the thesis and the target structure; nothing else."""
+    structure = _structure(version) if version.positions else "(no positions yet)"
+    return (
+        f"Title: {version.thesis_title}\n\n<thesis>\n{version.thesis_md}\n</thesis>\n\n"
+        f"<target_structure>\n{structure}\n</target_structure>"
+    )
+
+
+def _structure_part(with_positions: bool) -> str:
+    if not with_positions:
+        return """The policy has no positions yet, so its target structure is not scored: score
+only T1 to T6."""
+    return f"""Aspects P1 to P6 judge whether the target structure matches the thesis: 0 means
+it does not match the thesis at all, 10 a perfect match. They judge only the thesis and
+the target structure given here, not the news.
 
 Thresholds are relative to the target: absolute threshold = target x (1 + threshold/100).
 Example: target 40 %, sell threshold +25 % -> sell above 50 %. Positions with exit = yes
 are sold completely in the next rebalancing. Sell proceeds are always reinvested. A
 position of type cash_buffer holds cash for buying dips.
 
-Aspects:
-{_aspect_list(ReviewKind.POLICY)}
+Target-structure aspects:
+{_aspect_list(POLICY_ASPECTS)}"""
+
+
+def review_prompt(version: PolicyVersion, ref: PromptRef) -> ReviewPrompt:
+    """REV-02 to REV-05, REV-19: one review of the whole policy: aspects T1-T6 and the
+    verdict with current news, and P1-P6 if it has positions."""
+    news_from, news_to = ref.news_from, ref.news_to
+    with_positions = bool(version.positions)
+    instructions = f"""You review an investment policy written by a private investor: its
+investment thesis and the target structure that follows from it. Today is
+{news_to.isoformat()}.
+
+The thesis follows a template with eight sections: 1 Belief, 2 Investor Fit,
+3 Implementation, 4 Opportunity, 5 Downside, 6 Invalidation, 7 Early Warnings,
+8 Monitoring. Aspects T1 to T5 judge the text itself, section by section; if the thesis
+does not use the template, judge the same content wherever it is.
+
+Aspect T6 and the verdict judge the thesis against current news: search the web for news
+from {news_from.isoformat()} to {news_to.isoformat()} on the assets the thesis is about
+(take them from the thesis text), in particular on its value drivers, risks, break
+conditions and warning signals. If you cannot search the web, say so in the reasoning of
+T6 and in the verdict reason, judge T6 and the verdict only on what you know, and leave
+the sources empty. Only T6 and the verdict use news.
+
+Thesis aspects:
+{_aspect_list(THESIS_ASPECTS)}
+
+{_structure_part(with_positions)}
 
 {SCORING_RULES}
 
-Suggestions are optional: concrete changes to target allocations, thresholds or exit
-flags of positions (policy_position). Make none if nothing needs to change.
+Verdict on the thesis, independent of the scores, with a short reason:
+- broken: the news shows that a break condition of the thesis is met.
+- warning: warning signals are observed, or parts of the thesis are outdated.
+- good: neither of the above.
+
+List every news article you rely on under sources (title, publication date, link).
+Every statement based on news refers to its source as [n], the position in that list
+starting at 1. Do not invent sources.
+
+Suggestions are optional: concrete changes to the thesis text (thesis_text) or to the
+target allocations, thresholds, exit flags or rationales of positions (policy_position).
+Make none if nothing needs to change.
 
 {_answer_format(ref.prompt_id)}"""
-    content = (
-        f"{_thesis_text(version)}\n\n<target_structure>\n{_structure(version)}\n</target_structure>"
-    )
     return ReviewPrompt(
         prompt_id=ref.prompt_id,
         instructions=instructions,
-        content=content,
-        json_schema=_schema(ReviewKind.POLICY, ref.prompt_id),
-        web_search=False,
+        content=_content(version),
+        json_schema=_schema(with_positions, ref.prompt_id),
+        with_positions=with_positions,
     )

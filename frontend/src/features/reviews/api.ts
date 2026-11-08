@@ -5,7 +5,6 @@ import type { components } from "@/api/schema";
 
 export type Review = components["schemas"]["ReviewOut"];
 export type ReviewBrief = components["schemas"]["ReviewBrief"];
-export type ReviewKind = "thesis" | "policy";
 
 const POLL_MS = 3000;
 export const usageKey = ["reviews", "usage"] as const;
@@ -66,27 +65,21 @@ export function useReviewerOptions() {
 
 export interface StartReview {
   reviewerId: number;
-  newsDays?: number; // thesis reviews only
+  newsDays?: number; // REV-04
 }
 
-export function useStartReview(kind: ReviewKind, ownerId: number) {
+/** REV-01: one review of the whole draft: thesis and target structure. */
+export function useStartReview(policyId: number) {
   const client = useQueryClient();
   const invalidate = useInvalidateOwners();
   return useMutation({
     mutationFn: ({ reviewerId, newsDays }: StartReview) =>
-      kind === "thesis"
-        ? unwrap(
-            api.POST("/api/policies/{policy_id}/draft/thesis-review", {
-              params: { path: { policy_id: ownerId } },
-              body: { ai_reviewer_id: reviewerId, ...(newsDays && { news_days: newsDays }) },
-            }),
-          )
-        : unwrap(
-            api.POST("/api/policies/{policy_id}/draft/review", {
-              params: { path: { policy_id: ownerId } },
-              body: { ai_reviewer_id: reviewerId },
-            }),
-          ),
+      unwrap(
+        api.POST("/api/policies/{policy_id}/draft/review", {
+          params: { path: { policy_id: policyId } },
+          body: { ai_reviewer_id: reviewerId, ...(newsDays && { news_days: newsDays }) },
+        }),
+      ),
     onSuccess: (review) => {
       client.setQueryData(reviewKey(review.id), review);
       void client.invalidateQueries({ queryKey: usageKey });
@@ -96,50 +89,32 @@ export function useStartReview(kind: ReviewKind, ownerId: number) {
 }
 
 /** REV-19: the review prompt of the draft as it is saved now; nothing is stored. */
-export function useReviewPrompt(kind: ReviewKind, ownerId: number) {
+export function useReviewPrompt(policyId: number) {
   return useMutation({
     mutationFn: ({ newsDays }: { newsDays?: number }) =>
-      kind === "thesis"
-        ? unwrap(
-            api.GET("/api/policies/{policy_id}/draft/thesis-review-prompt", {
-              params: {
-                path: { policy_id: ownerId },
-                query: newsDays ? { news_days: newsDays } : {},
-              },
-            }),
-          )
-        : unwrap(
-            api.GET("/api/policies/{policy_id}/draft/review-prompt", {
-              params: { path: { policy_id: ownerId } },
-            }),
-          ),
+      unwrap(
+        api.GET("/api/policies/{policy_id}/draft/review-prompt", {
+          params: {
+            path: { policy_id: policyId },
+            query: newsDays ? { news_days: newsDays } : {},
+          },
+        }),
+      ),
   });
 }
 
-export interface ManualAnswer {
-  answer: string;
-  model: string;
-}
-
 /** REV-18: stores the answer of an AI outside the app as the review of the draft. */
-export function useSubmitManualReview(kind: ReviewKind, ownerId: number) {
+export function useSubmitManualReview(policyId: number) {
   const client = useQueryClient();
   const invalidate = useInvalidateOwners();
   return useMutation({
-    mutationFn: (body: ManualAnswer) =>
-      kind === "thesis"
-        ? unwrap(
-            api.POST("/api/policies/{policy_id}/draft/thesis-review/manual", {
-              params: { path: { policy_id: ownerId } },
-              body,
-            }),
-          )
-        : unwrap(
-            api.POST("/api/policies/{policy_id}/draft/review/manual", {
-              params: { path: { policy_id: ownerId } },
-              body,
-            }),
-          ),
+    mutationFn: (answer: string) =>
+      unwrap(
+        api.POST("/api/policies/{policy_id}/draft/review/manual", {
+          params: { path: { policy_id: policyId } },
+          body: { answer },
+        }),
+      ),
     onSuccess: (review) => {
       client.setQueryData(reviewKey(review.id), review);
       return invalidate();

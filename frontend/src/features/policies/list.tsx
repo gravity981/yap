@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { statusLabel } from "@/features/theses/status";
 import { thesisTemplate } from "@/features/theses/template";
 
 import { policiesKey, thesisImport, useCreatePolicy, usePolicies } from "./api";
@@ -90,7 +89,7 @@ export function PoliciesPage() {
             <p>
               <Trans
                 i18nKey="policies.list.importThesisPreview"
-                values={{ title: preview.title, status: statusLabel(preview.status) }}
+                values={{ title: preview.title }}
                 components={{ strong: <strong /> }}
               />
             </p>

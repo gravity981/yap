@@ -154,20 +154,25 @@ class Factory:
         owner: Investor,
         draft: PolicyVersion,
         *,
-        kind: str = "thesis",
+        kind: str = "full",
         half_points: tuple[int, ...] = (14, 12, 16, 10, 14, 13),
-        verdict: str | None = "intact",
+        verdict: str | None = "good",
         scoring_version: str = SCORING_VERSION,
     ) -> Review:
-        """A finished thesis or policy review of a version, stored directly (no provider)."""
-        thesis = kind == "thesis"
-        codes = [f"{'T' if thesis else 'P'}{i}" for i in range(1, 7)]
+        """A finished review of a version, stored directly (no provider): of the whole
+        policy (T1-T6, and P1-P6 if `half_points` has twelve scores), or one from before
+        stage 2 of kind `thesis` or `policy`."""
+        if kind == "policy":
+            codes = [f"P{i}" for i in range(1, 7)]
+        else:
+            codes = [f"T{i}" for i in range(1, 7)] + [f"P{i}" for i in range(1, 7)]
+            codes = codes[: len(half_points)]
         review = Review(
             kind=kind,
             policy_version_id=draft.id,
             started_by=owner.id,
             state="done",
-            verdict=verdict if thesis else None,
+            verdict=verdict if kind != "policy" else None,
             scoring_version=scoring_version,
             provider="anthropic",
             model="claude-x",
@@ -189,9 +194,10 @@ class Factory:
         *,
         name: str | None = None,
         thesis_title: str = "Core thesis",
-        thesis_status: str = "intact",
+        verdict: str | None = None,
     ) -> Policy:
-        """A policy whose v1 is active, with the given (or the default) positions."""
+        """A policy whose v1 is active, with the given (or the default) positions; with a
+        verdict, v1 was activated with a review that gives it this semaphore (THS-04)."""
         policy = self.policy_draft(owner, name=name, thesis_title=thesis_title)
         policies.update_draft(
             self.session,
@@ -199,8 +205,12 @@ class Factory:
             self.clock,
             policy.id,
             positions=positions if positions is not None else default_positions(),
-            thesis=policies.ThesisSpec(thesis_title, "# Thesis", thesis_status),
+            thesis=policies.ThesisSpec(thesis_title, "# Thesis"),
         )
+        if verdict is not None:
+            draft = policies.get_draft(policy)
+            assert draft is not None
+            self.review(owner, draft, verdict=verdict)
         policies.activate_draft(self.session, owner, self.clock, policy.id, None)
         self.session.refresh(policy)
         return policy

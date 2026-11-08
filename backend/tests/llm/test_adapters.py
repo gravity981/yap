@@ -418,12 +418,12 @@ def test_fake_provider_is_refused_in_production(monkeypatch: pytest.MonkeyPatch)
 
 
 def test_fake_provider_answers_in_the_expected_format() -> None:
-    from yap.domain.reviews import ReviewKind
     from yap.llm.fake import FakeAdapter
     from yap.services.review_prompts import _schema, parse_answer
 
     fake = FakeAdapter(LlmConfig(Provider.ANTHROPIC, "m", KEY))
-    for kind in ReviewKind:
-        schema = _schema(kind, "ID-1")
-        request = LlmRequest("s", "p", schema, web_search=kind == ReviewKind.THESIS)
-        assert len(parse_answer(kind, fake.generate(request), "ID-1").aspects) == 6
+    for with_positions, count in ((True, 12), (False, 6)):
+        schema = _schema(with_positions, "ID-1")
+        request = LlmRequest("s", "p", schema, web_search=True)
+        parsed = parse_answer(fake.generate(request), "ID-1", with_positions)
+        assert len(parsed.aspects) == count and parsed.verdict == "good"

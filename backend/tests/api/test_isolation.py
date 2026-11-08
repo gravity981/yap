@@ -115,12 +115,8 @@ BODIES: dict[tuple[str, str], Any] = {
         "is_investor": True,
         "base_currency": "CHF",
     },
-    ("POST", "/api/policies/{policy_id}/draft/thesis-review"): {"news_days": 30},
-    ("POST", "/api/policies/{policy_id}/draft/thesis-review/manual"): {
-        "answer": "{}",
-        "model": "m",
-    },
-    ("POST", "/api/policies/{policy_id}/draft/review/manual"): {"answer": "{}", "model": "m"},
+    ("POST", "/api/policies/{policy_id}/draft/review"): {"news_days": 30},
+    ("POST", "/api/policies/{policy_id}/draft/review/manual"): {"answer": "{}"},
     ("PUT", "/api/admin/price-providers/{provider_id}"): {"provider": "yahoo"},
     ("PUT", "/api/admin/ai-reviewers/{reviewer_id}"): {
         "name": "x",
@@ -230,8 +226,6 @@ def test_every_route_is_covered(app: Any) -> None:
                 "/deactivate",
                 "/reactivate",
                 "/test",
-                "/policies/{policy_id}/draft/review",
-                "/policies/{policy_id}/draft/thesis-review",
             )
         ):
             assert (method, path) in BODIES, f"Add an example body for {method} {path}"

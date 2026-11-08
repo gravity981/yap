@@ -13,12 +13,6 @@ class AssetType(StrEnum):
     CASH_BUFFER = "cash_buffer"
 
 
-class ThesisStatus(StrEnum):
-    INTACT = "intact"
-    NEEDS_ADAPTATION = "needs_adaptation"
-    BROKEN = "broken"
-
-
 class Visibility(StrEnum):
     PRIVATE = "private"
     SHARED = "shared"

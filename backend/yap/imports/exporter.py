@@ -48,7 +48,6 @@ def thesis(version: PolicyVersion) -> str:
         "schema_version": SCHEMA_VERSION,
         "title": version.thesis_title,
         "visibility": "private",
-        "status": version.thesis_status,
         "content_md": version.thesis_md,
         "change_note": version.change_note,
     }

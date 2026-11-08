@@ -7,19 +7,15 @@ import { Stars, formatScore } from "@/components/stars";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { statusLabel } from "@/features/theses/status";
 import { currentLanguage } from "@/i18n";
 import { formatDate, formatDateTime } from "@/lib/format";
 
-import { isRunning, useReview, type Review, type ReviewBrief, type ReviewKind } from "./api";
+import { isRunning, useReview, type Review, type ReviewBrief } from "./api";
+import { SemaphoreBadge, semaphoreLabel, toSemaphore } from "./semaphore";
 
+// thesis_status only in reviews from before stage 2
 const SUGGESTION_KINDS = ["thesis_text", "thesis_status", "policy_position"] as const;
 const ASPECT_CODES = ["T1", "T2", "T3", "T4", "T5", "T6", "P1", "P2", "P3", "P4", "P5", "P6"];
-
-/** REV-03: the verdict uses the thesis status labels. */
-export function verdictLabel(verdict: string) {
-  return statusLabel(verdict);
-}
 
 function suggestionLabel(kind: string) {
   return (SUGGESTION_KINDS as readonly string[]).includes(kind)
@@ -39,18 +35,19 @@ function aspectName(aspect: { code: string; name: string }, version: string) {
   return i18n.t(`reviews.aspects.${aspect.code as "T1"}`);
 }
 
-function VerdictBadge({ verdict }: { verdict: string }) {
-  const variant =
-    verdict === "broken" ? "destructive" : verdict === "needs_adaptation" ? "warning" : "success";
-  return <Badge variant={variant}>{verdictLabel(verdict)}</Badge>;
+/** "Review", or for a review from before stage 2 which part it judged. */
+export function reviewTitle(kind: string | undefined) {
+  if (kind === "thesis") return i18n.t("reviews.section.thesis");
+  if (kind === "policy") return i18n.t("reviews.section.policy");
+  return i18n.t("reviews.section.title");
 }
 
-/** The review of one revision or version, read-only: its progress (REV-08) and result.
- * Reviews are started in the draft editor (REV-01, features/reviews/pane.tsx). */
-export function ReviewSection({ kind, brief }: { kind: ReviewKind; brief: ReviewBrief | null }) {
+/** A review of a version, read-only: its progress (REV-08) and result. Reviews are
+ * started in the draft editor (REV-01, features/reviews/pane.tsx). */
+export function ReviewSection({ brief }: { brief: ReviewBrief | null }) {
   const { t } = useTranslation();
   const review = useReview(brief?.id);
-  const title = kind === "thesis" ? t("reviews.section.thesis") : t("reviews.section.policy");
+  const title = reviewTitle(brief?.kind);
   return (
     <section className="grid gap-3" aria-label={title}>
       <h2 className="text-lg font-semibold">{title}</h2>
@@ -94,7 +91,7 @@ export function ReviewResult({ review }: { review: Review }) {
           {review.outdated && <Badge variant="warning">{t("reviews.result.outdated")}</Badge>}
           <span className="text-muted-foreground">
             {review.method === "manual" ? (
-              t("reviews.result.manual", { model: review.model })
+              reviewerLabel(review)
             ) : (
               <>
                 {review.ai_reviewer_name && `${review.ai_reviewer_name}: `}
@@ -115,6 +112,7 @@ export function ReviewResult({ review }: { review: Review }) {
         </div>
 
         <Total review={review} />
+        <Verdict review={review} />
         <Aspects review={review} />
         <LegacyModification review={review} />
         <Sources review={review} />
@@ -126,17 +124,41 @@ export function ReviewResult({ review }: { review: Review }) {
   );
 }
 
+/** REV-02: the score as stars, the semaphore, and the thesis and target-structure scores
+ * of a review of the whole policy. */
 function Total({ review }: { review: Review }) {
   const { t } = useTranslation();
   if (review.total === null) return null;
+  const parts = review.kind === "full";
   return (
-    <div className="flex flex-wrap items-center gap-3" aria-label={t("reviews.score.totalLabel")}>
-      <Stars score={review.total} label={t("reviews.score.totalLabel")} />
-      <span className="text-lg font-semibold tabular-nums">
-        {t("reviews.score.outOf", { score: formatScore(review.total) })}
-      </span>
-      {review.verdict && <VerdictBadge verdict={review.verdict} />}
+    <div className="grid gap-1">
+      <div className="flex flex-wrap items-center gap-3" aria-label={t("reviews.score.totalLabel")}>
+        <Stars score={review.total} label={t("reviews.score.totalLabel")} />
+        <span className="text-lg font-semibold tabular-nums">
+          {t("reviews.score.outOf", { score: formatScore(review.total) })}
+        </span>
+        {review.semaphore && <SemaphoreBadge semaphore={review.semaphore} />}
+      </div>
+      {parts && (
+        <p className="text-sm text-muted-foreground">
+          {review.thesis_score !== null &&
+            t("reviews.score.thesis", { score: formatScore(review.thesis_score) })}
+          {review.structure_score !== null &&
+            ` · ${t("reviews.score.structure", { score: formatScore(review.structure_score) })}`}
+        </p>
+      )}
     </div>
+  );
+}
+
+/** REV-03: the reason for the verdict, since scoring version 3. */
+function Verdict({ review }: { review: Review }) {
+  const { t } = useTranslation();
+  if (!review.verdict_reason) return null;
+  return (
+    <p className="text-sm">
+      <span className="font-medium">{t("reviews.score.verdict")}</span> {review.verdict_reason}
+    </p>
   );
 }
 
@@ -153,7 +175,9 @@ function LegacyModification({ review }: { review: Review }) {
       <p className="font-medium">{t("reviews.legacy.title")}</p>
       <ul className="grid gap-0.5">
         {legacy.verdict && (
-          <li>{t("reviews.legacy.verdict", { verdict: verdictLabel(legacy.verdict) })}</li>
+          <li>
+            {t("reviews.legacy.verdict", { verdict: semaphoreLabel(toSemaphore(legacy.verdict)) })}
+          </li>
         )}
         {Object.entries(legacy.scores).map(([code, score]) => (
           <li key={code}>
@@ -169,10 +193,31 @@ function LegacyModification({ review }: { review: Review }) {
   );
 }
 
+/** REV-02, REV-24: every aspect with its score and reasoning, grouped by thesis and target
+ * structure. */
 function Aspects({ review }: { review: Review }) {
+  const { t } = useTranslation();
+  const thesis = review.aspects.filter((a) => a.code.startsWith("T"));
+  const structure = review.aspects.filter((a) => a.code.startsWith("P"));
+  if (review.kind !== "full") return <AspectList review={review} aspects={review.aspects} />;
+  return (
+    <div className="grid gap-3">
+      <h3 className="font-medium">{t("reviews.score.thesisGroup")}</h3>
+      <AspectList review={review} aspects={thesis} />
+      {structure.length > 0 && (
+        <>
+          <h3 className="font-medium">{t("reviews.score.structureGroup")}</h3>
+          <AspectList review={review} aspects={structure} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function AspectList({ review, aspects }: { review: Review; aspects: Review["aspects"] }) {
   return (
     <ol className="grid gap-3">
-      {review.aspects.map((a) => (
+      {aspects.map((a) => (
         <li key={a.code} className="grid gap-1 rounded-md border p-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="font-medium">
@@ -243,14 +288,20 @@ function reviewState(state: string): string {
     : state;
 }
 
-/** REV-17: who made a review, e.g. "Standard (claude-x)" or "manual review with GPT 5". */
+/** REV-17: who made a review, e.g. "Standard (claude-x)" or "manual review"; manual
+ * reviews from before stage 2 name the model the investor gave. */
 export function reviewerLabel(review: {
   method: string;
-  model: string;
+  model: string | null;
   ai_reviewer_name?: string | null;
 }): string {
-  if (review.method === "manual") return i18n.t("reviews.result.manual", { model: review.model });
-  return review.ai_reviewer_name ? `${review.ai_reviewer_name} (${review.model})` : review.model;
+  if (review.method === "manual") {
+    return review.model
+      ? i18n.t("reviews.result.manualWith", { model: review.model })
+      : i18n.t("reviews.result.manual");
+  }
+  const model = review.model ?? "";
+  return review.ai_reviewer_name ? `${review.ai_reviewer_name} (${model})` : model;
 }
 
 /** A review in one line, e.g. in a history list (THS-08). */
@@ -268,7 +319,7 @@ export function ReviewBriefLine({ brief }: { brief: ReviewBrief | null | undefin
     <span className="flex flex-wrap items-center gap-2 text-sm">
       <Stars score={brief.total} label={t("reviews.brief.label")} />
       <span className="tabular-nums">{formatScore(brief.total)}</span>
-      {brief.verdict && <VerdictBadge verdict={brief.verdict} />}
+      {brief.semaphore && <SemaphoreBadge semaphore={brief.semaphore} />}
       <span className="text-muted-foreground">{reviewerLabel(brief)}</span>
     </span>
   );

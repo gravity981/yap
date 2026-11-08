@@ -15,6 +15,7 @@ from yap.db.models import (
     Asset,
     PolicyPosition,
     PolicyVersion,
+    Review,
     Snapshot,
     SnapshotValue,
     TimelineEvent,
@@ -42,37 +43,53 @@ class AssetOut(BaseModel):
 
 
 class ReviewBrief(BaseModel):
-    """A review of a version, in short (THS-08, REV-11)."""
+    """A review of a version, in short (THS-08, REV-02, REV-11)."""
 
     id: int
+    kind: str  # full; thesis | policy for reviews from before stage 2
     state: str
-    total: float | None
-    verdict: str | None
+    total: float | None  # the review's score (REV-02)
+    thesis_score: float | None
+    structure_score: float | None  # null without positions
+    semaphore: str | None  # good | warning | broken; old verdicts mapped (REV-03, REV-06)
     scoring_version: str  # REV-06: scores of different versions are not comparable
     method: str  # REV-17: ai | manual, with the model and the AI reviewer's name
-    model: str
+    model: str | None  # null for a manual review
     ai_reviewer_name: str | None
     outdated: bool
 
     @classmethod
-    def of(cls, draft: PolicyVersion, kind: str) -> ReviewBrief | None:
+    def of(cls, version: PolicyVersion, review: Review) -> ReviewBrief:
         from yap.services import reviews
 
-        review = next((r for r in draft.reviews if r.kind == kind), None)
-        if review is None:
-            return None
-        total = reviews.total(review)
+        scores = reviews.scores(review)
+        semaphore = reviews.review_semaphore(review)
         return cls(
             id=review.id,
+            kind=review.kind,
             state=review.state,
-            total=total / 2 if total is not None else None,
-            verdict=review.verdict,
+            total=half(scores.total),
+            thesis_score=half(scores.thesis),
+            structure_score=half(scores.structure),
+            semaphore=semaphore.value if semaphore else None,
             scoring_version=review.scoring_version,
             method=review.method,
             model=review.model,
             ai_reviewer_name=review.ai_reviewer_name,
-            outdated=reviews.outdated(review, draft),
+            outdated=reviews.outdated(review, version),
         )
+
+    @classmethod
+    def current(cls, version: PolicyVersion) -> ReviewBrief | None:
+        """The review that gives the version its score and semaphore (REV-21)."""
+        from yap.services import reviews
+
+        review = reviews.current_review(version)
+        return cls.of(version, review) if review else None
+
+
+def half(half_points: int | None) -> float | None:
+    return half_points / 2 if half_points is not None else None
 
 
 # --- Policies -----------------------------------------------------------------
@@ -84,13 +101,11 @@ class NewPolicy(BaseModel):
     name: str
     thesis_title: str | None = None  # null: the name
     thesis_md: str = ""
-    thesis_status: str = "intact"
 
 
 class ThesisIn(BaseModel):
     title: str
     content_md: str
-    status: str = "intact"
 
 
 class PositionIn(BaseModel):
@@ -149,13 +164,14 @@ class VersionSummary(BaseModel):
     version_no: int
     label: str
     thesis_title: str
-    thesis_status: str
     change_note: str | None
     active_from: datetime | None
     active_until: datetime | None
     is_draft: bool
-    thesis_review: ReviewBrief | None
-    review: ReviewBrief | None  # the policy review
+    # The review that gives the version its score and semaphore (THS-04, REV-21)
+    review: ReviewBrief | None
+    # All reviews of the version; more than one only for versions from before stage 2
+    reviews: list[ReviewBrief]
 
 
 class VersionOut(VersionSummary):
@@ -181,13 +197,12 @@ def version_summary(
         version_no=version.version_no,
         label=version.label,
         thesis_title=version.thesis_title,
-        thesis_status=version.thesis_status,
         change_note=version.change_note,
         active_from=active_from,
         active_until=active_until,
         is_draft=version.activated_at is None,
-        thesis_review=ReviewBrief.of(version, "thesis"),
-        review=ReviewBrief.of(version, "policy"),
+        review=ReviewBrief.current(version),
+        reviews=[ReviewBrief.of(version, r) for r in version.reviews],
     )
 
 
@@ -210,9 +225,9 @@ class PolicyOut(BaseModel):
     created_at: datetime
     versions: list[VersionSummary]
     portfolios: list[PortfolioRef]
-    # POL-11: the thesis of the active version needs adaptation or is broken
+    # POL-11, THS-04: the semaphore of the active version is warning or broken
     thesis_warning: bool
-    thesis_status: str | None  # of the active version
+    semaphore: str | None  # of the active version; null: not reviewed
 
 
 class PolicySummary(BaseModel):
@@ -222,7 +237,7 @@ class PolicySummary(BaseModel):
     active_version_label: str | None
     has_draft: bool
     thesis_warning: bool
-    thesis_status: str | None
+    semaphore: str | None
 
 
 class PositionChangeOut(BaseModel):
@@ -486,7 +501,6 @@ class ThesisImportPreview(BaseModel):
     creates_new_policy: bool
     version_no: int
     title: str
-    status: str
 
 
 class CurrentStructurePreviewOut(BaseModel):

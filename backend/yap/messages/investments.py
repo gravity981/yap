@@ -4,7 +4,6 @@ catalog, rebalancing inputs and the JSON import (IMP-06)."""
 MESSAGES: dict[str, str] = {
     # Theses
     "title_required": "Title must not be empty",
-    "thesis_status_unknown": "Unknown status {status}",
     # Policies
     "name_required": "Name must not be empty",
     "policy_name_taken": "A policy named {name} already exists",

@@ -5,8 +5,12 @@ from yap.domain.reviews import (
     SCORING_VERSION,
     THESIS_ASPECTS,
     ReviewKind,
+    Scores,
+    Verdict,
     aspects_of,
     score,
+    scores_of,
+    semaphore,
     to_half_points,
     total_half_points,
 )
@@ -52,7 +56,7 @@ def test_six_aspects_per_review_kind() -> None:
 
 @pytest.mark.req("REV-06", "THS-07")
 def test_thesis_aspects_follow_the_template_and_old_versions_keep_their_names() -> None:
-    assert SCORING_VERSION == "2"
+    assert SCORING_VERSION == "3"
     assert [a.name for a in THESIS_ASPECTS] == [
         "Belief",
         "Fit and implementation",
@@ -61,9 +65,50 @@ def test_thesis_aspects_follow_the_template_and_old_versions_keep_their_names() 
         "Invalidation, warnings and monitoring",
         "Current evidence",
     ]
-    assert aspects_of(ReviewKind.THESIS, SCORING_VERSION) == THESIS_ASPECTS
+    # Version 3 reviews thesis and target structure together
+    assert aspects_of(ReviewKind.FULL, SCORING_VERSION) == THESIS_ASPECTS + POLICY_ASPECTS
+    assert aspects_of(ReviewKind.THESIS, "2") == THESIS_ASPECTS
     old = aspects_of(ReviewKind.THESIS, "1")
     assert [a.name for a in old][:2] == ["Core claim", "Value drivers"]
     # The policy aspects did not change
     assert aspects_of(ReviewKind.POLICY, "1") == POLICY_ASPECTS
     assert aspects_of(ReviewKind.THESIS, "unknown") == THESIS_ASPECTS
+
+
+@pytest.mark.req("REV-02")
+@pytest.mark.parametrize(
+    ("thesis", "structure", "expected"),
+    [
+        ((7, 6, 8, 5, 7, 6.5), (8, 7, 6, 9, 7.5, 8), (6.5, 7.5, 7)),
+        ((8, 8, 7, 7.5, 6, 8), (8, 7.5, 6, 7, 7, 6.5), (7.5, 7, 7.5)),  # 7.25 -> 7.5
+        ((6, 6, 6, 6, 6, 6), (), (6, None, 6)),  # without positions: the thesis score
+        ((), (8, 7, 6, 9, 7.5, 8), (None, 7.5, 7.5)),  # a policy review before stage 2
+        ((), (), (None, None, None)),
+    ],
+)
+def test_thesis_target_structure_and_review_scores(
+    thesis: tuple[float, ...],
+    structure: tuple[float, ...],
+    expected: tuple[float | None, float | None, float | None],
+) -> None:
+    half = {f"T{i}": to_half_points(s) for i, s in enumerate(thesis, 1)}
+    half |= {f"P{i}": to_half_points(s) for i, s in enumerate(structure, 1)}
+    result = scores_of(half)
+    assert isinstance(result, Scores)
+    assert tuple(None if v is None else score(v) for v in vars(result).values()) == expected
+
+
+@pytest.mark.req("REV-03", "REV-06", "THS-04")
+@pytest.mark.parametrize(
+    ("verdict", "expected"),
+    [
+        ("good", Verdict.GOOD),
+        ("warning", Verdict.WARNING),
+        ("broken", Verdict.BROKEN),
+        ("intact", Verdict.GOOD),
+        ("needs_adaptation", Verdict.WARNING),
+        (None, None),
+    ],
+)
+def test_old_verdicts_are_shown_as_semaphores(verdict: str | None, expected: object) -> None:
+    assert semaphore(verdict) == expected

@@ -12,7 +12,7 @@ export const en = {
     importThesisDescription:
       "A JSON file with a thesis becomes a new policy: its draft v1 holds the thesis, without positions.",
     importThesisPreview:
-      "Creates the policy <strong>{{title}}</strong> with a draft of its thesis (status {{status}}).",
+      "Creates the policy <strong>{{title}}</strong> with a draft of its thesis.",
     empty: "No policies yet.",
     policy: "Policy",
     activeVersion: "Active version",
@@ -34,13 +34,12 @@ export const en = {
     draftVersion: "draft v{{no}}",
     archived: "archived",
     importThesis: "Import thesis",
-    importThesisPreview:
-      'Replaces the thesis of the draft v{{no}} with "{{title}}" (status {{status}}).',
+    importThesisPreview: 'Replaces the thesis of the draft v{{no}} with "{{title}}".',
     importTarget: "Import target structure",
     editDraft: "Edit draft",
     activateDraft: "Activate draft",
     newDraft: "New draft",
-    thesisWarningBefore: "The thesis of the active version is marked as ",
+    thesisWarningBefore: "The review of the active version rates its thesis ",
     thesisWarningAfter:
       ". Rebalancing is not affected; adapt the thesis, or set exit flags in a new version to leave positions.",
     tabThesis: "Thesis",
@@ -147,7 +146,7 @@ export const de: Messages<typeof en> = {
     importThesisDescription:
       "Eine JSON-Datei mit einer Anlagethese wird zu einer neuen Anlagestrategie: ihr Entwurf v1 enthält die Anlagethese, ohne Positionen.",
     importThesisPreview:
-      "Erstellt die Anlagestrategie <strong>{{title}}</strong> mit einem Entwurf ihrer Anlagethese (Status {{status}}).",
+      "Erstellt die Anlagestrategie <strong>{{title}}</strong> mit einem Entwurf ihrer Anlagethese.",
     empty: "Noch keine Anlagestrategien.",
     policy: "Anlagestrategie",
     activeVersion: "Aktive Version",
@@ -169,15 +168,14 @@ export const de: Messages<typeof en> = {
     draftVersion: "Entwurf v{{no}}",
     archived: "archiviert",
     importThesis: "Anlagethese importieren",
-    importThesisPreview:
-      "Ersetzt die Anlagethese des Entwurfs v{{no}} durch «{{title}}» (Status {{status}}).",
+    importThesisPreview: "Ersetzt die Anlagethese des Entwurfs v{{no}} durch «{{title}}».",
     importTarget: "Zielstruktur importieren",
     editDraft: "Entwurf bearbeiten",
     activateDraft: "Entwurf aktivieren",
     newDraft: "Neuer Entwurf",
-    thesisWarningBefore: "Die Anlagethese der aktiven Version ist als ",
+    thesisWarningBefore: "Die Prüfung der aktiven Version bewertet ihre Anlagethese als ",
     thesisWarningAfter:
-      " markiert. Das Rebalancing ist davon nicht betroffen; passe die Anlagethese an oder setze in einer neuen Version Exit-Markierungen, um Positionen aufzulösen.",
+      ". Das Rebalancing ist davon nicht betroffen; passe die Anlagethese an oder setze in einer neuen Version Exit-Markierungen, um Positionen aufzulösen.",
     tabThesis: "Anlagethese",
     tabStructure: "Zielstruktur",
     tabVersions: "Versionen",

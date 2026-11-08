@@ -1,4 +1,4 @@
-"""Thesis and policy reviews (REV-01 to REV-19)."""
+"""Reviews of policy drafts (REV-01 to REV-19)."""
 
 from datetime import datetime
 
@@ -6,8 +6,8 @@ from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 
 from yap.api.deps import AppClock, AppKeys, CurrentUser, DbSession, LlmAdapters
+from yap.api.schemas import half
 from yap.db.models import Review
-from yap.domain.reviews import ReviewKind
 from yap.messages import Message, msg
 from yap.services import policies, reviews
 from yap.services.common import NotFoundError
@@ -43,14 +43,14 @@ class LegacyModificationOut(BaseModel):
 
 class ReviewOut(BaseModel):
     id: int
-    kind: str
+    kind: str  # full; thesis | policy for reviews from before stage 2
     state: str  # queued | running | done | failed
     error: str | None
     policy_version_id: int | None
     method: str  # ai | manual (REV-18)
     ai_reviewer_name: str | None  # REV-17; null for manual reviews and those before reviewers
     provider: str  # "manual" for a manual review
-    model: str  # for a manual review: the model the investor named (REV-17)
+    model: str | None  # null for a manual review (REV-17); named by the investor before
     prompt_id: str | None  # REV-19; null for reviews before it
     scoring_version: str  # REV-06
     news_from: datetime | None
@@ -58,8 +58,12 @@ class ReviewOut(BaseModel):
     started_at: datetime
     completed_at: datetime | None
     aspects: list[AspectOut]
-    total: float | None
-    verdict: str | None  # thesis reviews only
+    total: float | None  # the review's score (REV-02)
+    thesis_score: float | None
+    structure_score: float | None  # null without positions
+    semaphore: str | None  # the verdict as good | warning | broken (REV-03, REV-06)
+    verdict: str | None  # as stored; before scoring version 3 intact | needs_adaptation
+    verdict_reason: str | None  # null before scoring version 3
     legacy_modification: LegacyModificationOut | None
     outdated: bool  # REV-09: the draft changed after the review was started
     confirmed: bool  # REV-11: the draft was activated
@@ -69,7 +73,8 @@ class ReviewOut(BaseModel):
 
 def _out(session: DbSession, review: Review) -> ReviewOut:
     names = reviews.aspect_names(review.kind, review.scoring_version)
-    total = reviews.total(review)
+    scores = reviews.scores(review)
+    semaphore = reviews.review_semaphore(review)
     legacy = reviews.legacy_modification(review)
     return ReviewOut(
         id=review.id,
@@ -96,8 +101,12 @@ def _out(session: DbSession, review: Review) -> ReviewOut:
             )
             for a in review.aspects
         ],
-        total=total / 2 if total is not None else None,
+        total=half(scores.total),
+        thesis_score=half(scores.thesis),
+        structure_score=half(scores.structure),
+        semaphore=semaphore.value if semaphore else None,
         verdict=review.verdict,
+        verdict_reason=review.verdict_reason,
         legacy_modification=(
             LegacyModificationOut(note=legacy.note, verdict=legacy.verdict, scores=legacy.scores)
             if legacy
@@ -129,12 +138,8 @@ class Usage(BaseModel):
     unavailable_params: dict[str, str | int | float]
 
 
-class StartThesisReview(BaseModel):
-    news_days: int = reviews.NEWS_DAYS_DEFAULT
-    ai_reviewer_id: int | None = None  # USR-08: null = the investor's default
-
-
-class StartPolicyReview(BaseModel):
+class StartReview(BaseModel):
+    news_days: int = reviews.NEWS_DAYS_DEFAULT  # REV-04
     ai_reviewer_id: int | None = None  # USR-08: null = the investor's default
 
 
@@ -176,10 +181,9 @@ def get_usage(
     )
 
 
-@router.post("/policies/{policy_id}/draft/thesis-review", status_code=202)
-def start_thesis_review(
+@router.post("/policies/{policy_id}/draft/review", status_code=202)
+def start_review(
     policy_id: int,
-    body: StartThesisReview,
     request: Request,
     background: BackgroundTasks,
     session: DbSession,
@@ -187,40 +191,21 @@ def start_thesis_review(
     keys: AppKeys,
     adapters: LlmAdapters,
     user: CurrentUser,
+    body: StartReview | None = None,
 ) -> ReviewOut:
-    """REV-01, REV-04: starts a review of the thesis of the policy draft; it runs in the
-    background."""
-    review = reviews.start_thesis_review(
+    """REV-01, REV-04: starts a review of the policy draft; it runs in the background."""
+    body = body or StartReview()
+    review = reviews.start_review(
         session, user, clock, keys, policy_id, body.news_days, body.ai_reviewer_id
     )
     _schedule(request, background, session, clock, keys, adapters, review)
     return _out(session, review)
 
 
-@router.post("/policies/{policy_id}/draft/review", status_code=202)
-def start_policy_review(
-    policy_id: int,
-    request: Request,
-    background: BackgroundTasks,
-    session: DbSession,
-    clock: AppClock,
-    keys: AppKeys,
-    adapters: LlmAdapters,
-    user: CurrentUser,
-    body: StartPolicyReview | None = None,
-) -> ReviewOut:
-    """REV-01, REV-05: starts a review of the policy draft; it runs in the background."""
-    reviewer_id = body.ai_reviewer_id if body else None
-    review = reviews.start_policy_review(session, user, clock, keys, policy_id, reviewer_id)
-    _schedule(request, background, session, clock, keys, adapters, review)
-    return _out(session, review)
-
-
 class ManualAnswer(BaseModel):
-    """REV-18: the answer of an AI outside the app, and which model wrote it (REV-17)."""
+    """REV-18: the answer of an AI outside the app; the model is not asked for (REV-17)."""
 
     answer: str
-    model: str
 
 
 class ReviewPromptOut(BaseModel):
@@ -230,47 +215,25 @@ class ReviewPromptOut(BaseModel):
     text: str
 
 
-@router.get("/policies/{policy_id}/draft/thesis-review-prompt")
-def get_thesis_review_prompt(
+@router.get("/policies/{policy_id}/draft/review-prompt")
+def get_review_prompt(
     policy_id: int,
     session: DbSession,
     clock: AppClock,
     user: CurrentUser,
     news_days: int = reviews.NEWS_DAYS_DEFAULT,
 ) -> ReviewPromptOut:
-    """REV-19: the prompt of the draft's thesis as it is saved now; changes nothing."""
-    prompt = reviews.thesis_review_prompt(session, user, clock, policy_id, news_days)
-    return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
-
-
-@router.get("/policies/{policy_id}/draft/review-prompt")
-def get_policy_review_prompt(
-    policy_id: int, session: DbSession, clock: AppClock, user: CurrentUser
-) -> ReviewPromptOut:
     """REV-19: the prompt of the policy draft as it is saved now; changes nothing."""
-    prompt = reviews.policy_review_prompt(session, user, clock, policy_id)
+    prompt = reviews.review_prompt(session, user, clock, policy_id, news_days)
     return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
-
-
-@router.post("/policies/{policy_id}/draft/thesis-review/manual", status_code=201)
-def submit_manual_thesis_review(
-    policy_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
-) -> ReviewOut:
-    """REV-18: stores the pasted answer as the review of the draft's thesis."""
-    review = reviews.submit_manual_thesis_review(
-        session, user, clock, policy_id, body.answer, body.model
-    )
-    return _out(session, review)
 
 
 @router.post("/policies/{policy_id}/draft/review/manual", status_code=201)
-def submit_manual_policy_review(
+def submit_manual_review(
     policy_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
 ) -> ReviewOut:
     """REV-18: stores the pasted answer as the review of the policy draft."""
-    review = reviews.submit_manual_policy_review(
-        session, user, clock, policy_id, body.answer, body.model
-    )
+    review = reviews.submit_manual_review(session, user, clock, policy_id, body.answer)
     return _out(session, review)
 
 
@@ -287,13 +250,10 @@ def _found(review: Review | None, missing: Message) -> Review:
 
 @router.get("/policies/{policy_id}/versions/{version_no}/review")
 def get_version_review(
-    policy_id: int,
-    version_no: int,
-    session: DbSession,
-    user: CurrentUser,
-    kind: ReviewKind = ReviewKind.POLICY,
+    policy_id: int, version_no: int, session: DbSession, user: CurrentUser
 ) -> ReviewOut:
-    """The thesis or policy review of a version: confirmed (REV-12) or of the draft."""
+    """The review that gives a version its score and semaphore: confirmed (REV-12) or of
+    the draft."""
     policy = policies.get_policy(session, user, policy_id)
     version = next((v for v in policy.versions if v.version_no == version_no), None)
     if version is None:
@@ -301,4 +261,4 @@ def get_version_review(
             msg("review_version_not_found", version_no=version_no, policy=policy.name)
         )
     missing = msg("review_version_no_review", version=version.label)
-    return _out(session, _found(reviews.draft_review(session, version, kind), missing))
+    return _out(session, _found(reviews.current_review(version), missing))

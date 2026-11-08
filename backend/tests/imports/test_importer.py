@@ -68,7 +68,7 @@ def test_thesis_import_without_selection_creates_a_new_policy(
         importer.import_thesis(session, owner, factory.clock, thesis_json())
 
 
-@pytest.mark.req("IMP-01")
+@pytest.mark.req("IMP-01", "THS-04")
 def test_thesis_import_with_selection_creates_a_draft_and_never_activates(
     session: Session, factory: Factory
 ) -> None:
@@ -82,13 +82,15 @@ def test_thesis_import_with_selection_creates_a_draft_and_never_activates(
         selected_policy_id=policy.id,
     )
     assert (draft.version_no, draft.activated_at) == (2, None)
-    assert (draft.thesis_title, draft.thesis_status) == ("Imported thesis", "needs_adaptation")
+    # The status of older files is accepted and ignored: a thesis has none (THS-04)
+    assert draft.thesis_title == "Imported thesis"
+    assert not hasattr(draft, "thesis_status")
     assert [p.asset.ticker for p in draft.positions] == ["AAA", "BBB"]  # kept
     # A second import replaces the thesis of the same draft
     again = importer.import_thesis(
-        session, owner, factory.clock, thesis_json(status="broken"), policy.id
+        session, owner, factory.clock, thesis_json(status="broken", title="Again"), policy.id
     )
-    assert (again.id, again.thesis_status) == (draft.id, "broken")
+    assert (again.id, again.thesis_title) == (draft.id, "Again")
     assert [v.version_no for v in policy.versions] == [1, 2]
 
 
@@ -110,7 +112,7 @@ def test_selected_policy_must_be_own(session: Session, factory: Factory) -> None
         ("{not json", "$", "Invalid JSON"),
         (thesis_json(schema_version="2.0"), "$.schema_version", "not supported"),
         (thesis_json(schema_version=None), "$", "'schema_version' is a required property"),
-        (thesis_json(status="soft"), "$.status", "is not one of"),
+        (thesis_json(status="soft"), "$.status", "is not valid under any of"),
         (thesis_json(unknown=1), "$", "Additional properties are not allowed"),
         (thesis_json(title=" "), "$.title", "does not match"),
     ],

@@ -13,7 +13,6 @@ import { NativeSelect } from "@/components/ui/select";
 import { PriceSourceControl } from "@/features/prices/price-source";
 import type { ReviewBrief } from "@/features/reviews/api";
 import { ReviewPane } from "@/features/reviews/pane";
-import { THESIS_STATUSES, statusLabel } from "@/features/theses/status";
 import { formatPct } from "@/lib/format";
 
 import {
@@ -89,7 +88,6 @@ export function DraftEditorPage({ policyId }: { policyId: number }) {
       policyId={policyId}
       policyName={policy.data.name}
       version={version.data}
-      thesisBrief={draft?.thesis_review}
       brief={draft?.review}
     />
   );
@@ -99,13 +97,11 @@ function DraftForm({
   policyId,
   policyName,
   version,
-  thesisBrief,
   brief,
 }: {
   policyId: number;
   policyName: string;
   version: Version;
-  thesisBrief: ReviewBrief | null | undefined;
   brief: ReviewBrief | null | undefined;
 }) {
   const { t } = useTranslation();
@@ -116,7 +112,6 @@ function DraftForm({
     version.positions.length ? rowsOf(version) : [emptyRow()],
   );
   const [title, setTitle] = useState(version.thesis_title);
-  const [status, setStatus] = useState(version.thesis_status);
   const [content, setContent] = useState(version.thesis_md);
   const known = new Map((assets.data ?? []).map((a) => [a.ticker, a]));
 
@@ -154,7 +149,7 @@ function DraftForm({
       });
   const body = () => ({
     positions: positions(),
-    thesis: { title, content_md: content, status },
+    thesis: { title, content_md: content },
   });
   const submit = () => saveDraft.mutate(body(), { onSuccess: back });
 
@@ -168,37 +163,16 @@ function DraftForm({
         <p className="text-sm text-muted-foreground">{t("policies.editor.hint")}</p>
       </div>
 
-      {/* THS-01, THS-04: the thesis of the draft, with its review next to it (REV-01) */}
+      {/* THS-01: the thesis of the draft, with the review of the whole draft next to it
+          (REV-01); the thesis has no status, its semaphore comes from the review (THS-04) */}
       <section className="grid gap-3" aria-label={t("policies.detail.tabThesis")}>
-        <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
-          <Field
-            id="thesis-title"
-            label={t("theses.editor.title")}
-            error={fieldError(saveDraft.error, "thesis_title")}
-          >
-            <Input id="thesis-title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </Field>
-          <Field
-            id="thesis-status"
-            label={t("theses.editor.status")}
-            error={fieldError(saveDraft.error, "thesis_status")}
-          >
-            <NativeSelect
-              id="thesis-status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              {THESIS_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {statusLabel(s)}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-        </div>
-        {status !== "intact" && status !== version.thesis_status && (
-          <p className="text-sm text-muted-foreground">{t("theses.editor.statusHint")}</p>
-        )}
+        <Field
+          id="thesis-title"
+          label={t("theses.editor.title")}
+          error={fieldError(saveDraft.error, "thesis_title")}
+        >
+          <Input id="thesis-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </Field>
         <MarkdownEditor
           value={content}
           onChange={setContent}
@@ -206,9 +180,8 @@ function DraftForm({
             label: t("reviews.pane.tab"),
             content: (
               <ReviewPane
-                kind="thesis"
-                ownerId={policyId}
-                brief={thesisBrief}
+                policyId={policyId}
+                brief={brief}
                 save={() => saveDraft.mutateAsync(body())}
               />
             ),
@@ -364,16 +337,6 @@ function DraftForm({
         <Button type="button" onClick={submit} disabled={saveDraft.isPending}>
           {t("policies.editor.saveDraft")}
         </Button>
-      </div>
-      {/* REV-01: a review saves the draft first, so it sees what is in the editor */}
-      <div className="grid gap-3 border-t pt-4">
-        <h2 className="text-lg font-semibold">{t("reviews.section.policy")}</h2>
-        <ReviewPane
-          kind="policy"
-          ownerId={policyId}
-          brief={brief}
-          save={() => saveDraft.mutateAsync(body())}
-        />
       </div>
     </div>
   );

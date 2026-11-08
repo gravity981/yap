@@ -5,7 +5,6 @@ import type { MessageCode } from "./index";
 export const de = {
   // Theses
   title_required: "Der Titel darf nicht leer sein",
-  thesis_status_unknown: "Unbekannter Status {{status}}",
   // Policies
   name_required: "Der Name darf nicht leer sein",
   policy_name_taken: "Es gibt bereits eine Anlagestrategie namens {{name}}",

@@ -924,6 +924,7 @@
           "rebalance_confirmed",
           "thesis_review_confirmed",
           "policy_review_confirmed",
+          "review_confirmed",
           "thesis_revised"
         ],
         "title": "EventType",
@@ -1296,20 +1297,15 @@
         "type": "object"
       },
       "ManualAnswer": {
-        "description": "REV-18: the answer of an AI outside the app, and which model wrote it (REV-17).",
+        "description": "REV-18: the answer of an AI outside the app; the model is not asked for (REV-17).",
         "properties": {
           "answer": {
             "title": "Answer",
             "type": "string"
-          },
-          "model": {
-            "title": "Model",
-            "type": "string"
           }
         },
         "required": [
-          "answer",
-          "model"
+          "answer"
         ],
         "title": "ManualAnswer",
         "type": "object"
@@ -1449,11 +1445,6 @@
           "thesis_md": {
             "default": "",
             "title": "Thesis Md",
-            "type": "string"
-          },
-          "thesis_status": {
-            "default": "intact",
-            "title": "Thesis Status",
             "type": "string"
           },
           "thesis_title": {
@@ -1669,7 +1660,7 @@
             "title": "Portfolios",
             "type": "array"
           },
-          "thesis_status": {
+          "semaphore": {
             "anyOf": [
               {
                 "type": "string"
@@ -1678,7 +1669,7 @@
                 "type": "null"
               }
             ],
-            "title": "Thesis Status"
+            "title": "Semaphore"
           },
           "thesis_warning": {
             "title": "Thesis Warning",
@@ -1700,7 +1691,7 @@
           "versions",
           "portfolios",
           "thesis_warning",
-          "thesis_status"
+          "semaphore"
         ],
         "title": "PolicyOut",
         "type": "object"
@@ -1742,7 +1733,7 @@
             "title": "Name",
             "type": "string"
           },
-          "thesis_status": {
+          "semaphore": {
             "anyOf": [
               {
                 "type": "string"
@@ -1751,7 +1742,7 @@
                 "type": "null"
               }
             ],
-            "title": "Thesis Status"
+            "title": "Semaphore"
           },
           "thesis_warning": {
             "title": "Thesis Warning",
@@ -1765,7 +1756,7 @@
           "active_version_label",
           "has_draft",
           "thesis_warning",
-          "thesis_status"
+          "semaphore"
         ],
         "title": "PolicySummary",
         "type": "object"
@@ -3178,7 +3169,7 @@
         "type": "object"
       },
       "ReviewBrief": {
-        "description": "A review of a version, in short (THS-08, REV-11).",
+        "description": "A review of a version, in short (THS-08, REV-02, REV-11).",
         "properties": {
           "ai_reviewer_name": {
             "anyOf": [
@@ -3195,13 +3186,24 @@
             "title": "Id",
             "type": "integer"
           },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
           "method": {
             "title": "Method",
             "type": "string"
           },
           "model": {
-            "title": "Model",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
           },
           "outdated": {
             "title": "Outdated",
@@ -3211,9 +3213,42 @@
             "title": "Scoring Version",
             "type": "string"
           },
+          "semaphore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semaphore"
+          },
           "state": {
             "title": "State",
             "type": "string"
+          },
+          "structure_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Score"
+          },
+          "thesis_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thesis Score"
           },
           "total": {
             "anyOf": [
@@ -3225,24 +3260,16 @@
               }
             ],
             "title": "Total"
-          },
-          "verdict": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Verdict"
           }
         },
         "required": [
           "id",
+          "kind",
           "state",
           "total",
-          "verdict",
+          "thesis_score",
+          "structure_score",
+          "semaphore",
           "scoring_version",
           "method",
           "model",
@@ -3251,14 +3278,6 @@
         ],
         "title": "ReviewBrief",
         "type": "object"
-      },
-      "ReviewKind": {
-        "enum": [
-          "thesis",
-          "policy"
-        ],
-        "title": "ReviewKind",
-        "type": "string"
       },
       "ReviewOut": {
         "properties": {
@@ -3330,8 +3349,15 @@
             "type": "string"
           },
           "model": {
-            "title": "Model",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
           },
           "news_from": {
             "anyOf": [
@@ -3391,6 +3417,17 @@
             "title": "Scoring Version",
             "type": "string"
           },
+          "semaphore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semaphore"
+          },
           "sources": {
             "items": {
               "$ref": "#/components/schemas/SourceOut"
@@ -3407,12 +3444,34 @@
             "title": "State",
             "type": "string"
           },
+          "structure_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Score"
+          },
           "suggestions": {
             "items": {
               "$ref": "#/components/schemas/SuggestionOut"
             },
             "title": "Suggestions",
             "type": "array"
+          },
+          "thesis_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thesis Score"
           },
           "total": {
             "anyOf": [
@@ -3435,6 +3494,17 @@
               }
             ],
             "title": "Verdict"
+          },
+          "verdict_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict Reason"
           }
         },
         "required": [
@@ -3455,7 +3525,11 @@
           "completed_at",
           "aspects",
           "total",
+          "thesis_score",
+          "structure_score",
+          "semaphore",
           "verdict",
+          "verdict_reason",
           "legacy_modification",
           "outdated",
           "confirmed",
@@ -3715,24 +3789,7 @@
         "title": "SourceOut",
         "type": "object"
       },
-      "StartPolicyReview": {
-        "properties": {
-          "ai_reviewer_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ai Reviewer Id"
-          }
-        },
-        "title": "StartPolicyReview",
-        "type": "object"
-      },
-      "StartThesisReview": {
+      "StartReview": {
         "properties": {
           "ai_reviewer_id": {
             "anyOf": [
@@ -3751,7 +3808,7 @@
             "type": "integer"
           }
         },
-        "title": "StartThesisReview",
+        "title": "StartReview",
         "type": "object"
       },
       "SuggestionOut": {
@@ -3779,10 +3836,6 @@
             "title": "Creates New Policy",
             "type": "boolean"
           },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -3795,8 +3848,7 @@
         "required": [
           "creates_new_policy",
           "version_no",
-          "title",
-          "status"
+          "title"
         ],
         "title": "ThesisImportPreview",
         "type": "object"
@@ -3805,11 +3857,6 @@
         "properties": {
           "content_md": {
             "title": "Content Md",
-            "type": "string"
-          },
-          "status": {
-            "default": "intact",
-            "title": "Status",
             "type": "string"
           },
           "title": {
@@ -4162,22 +4209,15 @@
               }
             ]
           },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewBrief"
+            },
+            "title": "Reviews",
+            "type": "array"
+          },
           "thesis_md": {
             "title": "Thesis Md",
-            "type": "string"
-          },
-          "thesis_review": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ReviewBrief"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "thesis_status": {
-            "title": "Thesis Status",
             "type": "string"
           },
           "thesis_title": {
@@ -4194,13 +4234,12 @@
           "version_no",
           "label",
           "thesis_title",
-          "thesis_status",
           "change_note",
           "active_from",
           "active_until",
           "is_draft",
-          "thesis_review",
           "review",
+          "reviews",
           "thesis_md",
           "positions"
         ],
@@ -4282,22 +4321,15 @@
               }
             ]
           },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewBrief"
+            },
+            "title": "Reviews",
+            "type": "array"
+          },
           "thesis_md": {
             "title": "Thesis Md",
-            "type": "string"
-          },
-          "thesis_review": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ReviewBrief"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "thesis_status": {
-            "title": "Thesis Status",
             "type": "string"
           },
           "thesis_title": {
@@ -4314,13 +4346,12 @@
           "version_no",
           "label",
           "thesis_title",
-          "thesis_status",
           "change_note",
           "active_from",
           "active_until",
           "is_draft",
-          "thesis_review",
           "review",
+          "reviews",
           "thesis_md",
           "positions",
           "policy_id",
@@ -4388,19 +4419,12 @@
               }
             ]
           },
-          "thesis_review": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ReviewBrief"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "thesis_status": {
-            "title": "Thesis Status",
-            "type": "string"
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewBrief"
+            },
+            "title": "Reviews",
+            "type": "array"
           },
           "thesis_title": {
             "title": "Thesis Title",
@@ -4416,13 +4440,12 @@
           "version_no",
           "label",
           "thesis_title",
-          "thesis_status",
           "change_note",
           "active_from",
           "active_until",
           "is_draft",
-          "thesis_review",
-          "review"
+          "review",
+          "reviews"
         ],
         "title": "VersionSummary",
         "type": "object"
@@ -6729,8 +6752,8 @@
     },
     "/api/policies/{policy_id}/draft/review": {
       "post": {
-        "description": "REV-01, REV-05: starts a review of the policy draft; it runs in the background.",
-        "operationId": "start_policy_review_api_policies__policy_id__draft_review_post",
+        "description": "REV-01, REV-04: starts a review of the policy draft; it runs in the background.",
+        "operationId": "start_review_api_policies__policy_id__draft_review_post",
         "parameters": [
           {
             "in": "path",
@@ -6764,7 +6787,7 @@
               "schema": {
                 "anyOf": [
                   {
-                    "$ref": "#/components/schemas/StartPolicyReview"
+                    "$ref": "#/components/schemas/StartReview"
                   },
                   {
                     "type": "null"
@@ -6797,7 +6820,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Start Policy Review",
+        "summary": "Start Review",
         "tags": [
           "reviews"
         ]
@@ -6806,204 +6829,7 @@
     "/api/policies/{policy_id}/draft/review-prompt": {
       "get": {
         "description": "REV-19: the prompt of the policy draft as it is saved now; changes nothing.",
-        "operationId": "get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "policy_id",
-            "required": true,
-            "schema": {
-              "title": "Policy Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "itk_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Itk Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewPromptOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Policy Review Prompt",
-        "tags": [
-          "reviews"
-        ]
-      }
-    },
-    "/api/policies/{policy_id}/draft/review/manual": {
-      "post": {
-        "description": "REV-18: stores the pasted answer as the review of the policy draft.",
-        "operationId": "submit_manual_policy_review_api_policies__policy_id__draft_review_manual_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "policy_id",
-            "required": true,
-            "schema": {
-              "title": "Policy Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "itk_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Itk Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ManualAnswer"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Submit Manual Policy Review",
-        "tags": [
-          "reviews"
-        ]
-      }
-    },
-    "/api/policies/{policy_id}/draft/thesis-review": {
-      "post": {
-        "description": "REV-01, REV-04: starts a review of the thesis of the policy draft; it runs in the\nbackground.",
-        "operationId": "start_thesis_review_api_policies__policy_id__draft_thesis_review_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "policy_id",
-            "required": true,
-            "schema": {
-              "title": "Policy Id",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "itk_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Itk Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartThesisReview"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewOut"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Start Thesis Review",
-        "tags": [
-          "reviews"
-        ]
-      }
-    },
-    "/api/policies/{policy_id}/draft/thesis-review-prompt": {
-      "get": {
-        "description": "REV-19: the prompt of the draft's thesis as it is saved now; changes nothing.",
-        "operationId": "get_thesis_review_prompt_api_policies__policy_id__draft_thesis_review_prompt_get",
+        "operationId": "get_review_prompt_api_policies__policy_id__draft_review_prompt_get",
         "parameters": [
           {
             "in": "path",
@@ -7063,16 +6889,16 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Get Thesis Review Prompt",
+        "summary": "Get Review Prompt",
         "tags": [
           "reviews"
         ]
       }
     },
-    "/api/policies/{policy_id}/draft/thesis-review/manual": {
+    "/api/policies/{policy_id}/draft/review/manual": {
       "post": {
-        "description": "REV-18: stores the pasted answer as the review of the draft's thesis.",
-        "operationId": "submit_manual_thesis_review_api_policies__policy_id__draft_thesis_review_manual_post",
+        "description": "REV-18: stores the pasted answer as the review of the policy draft.",
+        "operationId": "submit_manual_review_api_policies__policy_id__draft_review_manual_post",
         "parameters": [
           {
             "in": "path",
@@ -7132,7 +6958,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Submit Manual Thesis Review",
+        "summary": "Submit Manual Review",
         "tags": [
           "reviews"
         ]
@@ -7505,7 +7331,7 @@
     },
     "/api/policies/{policy_id}/versions/{version_no}/review": {
       "get": {
-        "description": "The thesis or policy review of a version: confirmed (REV-12) or of the draft.",
+        "description": "The review that gives a version its score and semaphore: confirmed (REV-12) or of\nthe draft.",
         "operationId": "get_version_review_api_policies__policy_id__versions__version_no__review_get",
         "parameters": [
           {
@@ -7524,15 +7350,6 @@
             "schema": {
               "title": "Version No",
               "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "kind",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/ReviewKind",
-              "default": "policy"
             }
           },
           {

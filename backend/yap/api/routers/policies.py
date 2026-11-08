@@ -21,10 +21,10 @@ from yap.api.schemas import (
     version_summary,
 )
 from yap.db.models import Investor, Policy, PolicyVersion
-from yap.domain.types import ThesisStatus
+from yap.domain.reviews import Verdict
 from yap.imports import importer
 from yap.messages import msg
-from yap.services import policies
+from yap.services import policies, reviews
 from yap.services.common import Clock, NotFoundError
 from yap.services.policies import PositionSpec, ThesisSpec, VersionDiff
 from yap.services.versioning import active_version, version_periods
@@ -51,11 +51,13 @@ def _policy(session: DbSession, user: Investor, clock: Clock, policy: Policy) ->
 
 
 def _thesis_warning(active: PolicyVersion | None) -> dict[str, Any]:
-    """POL-11: warn when the thesis of the active version needs adaptation or is broken."""
-    status = active.thesis_status if active else None
+    """POL-11, THS-04: the semaphore of the active version, and whether it warns."""
+    semaphore = (
+        reviews.review_semaphore(reviews.current_review(active)) if active is not None else None
+    )
     return {
-        "thesis_warning": status is not None and status != ThesisStatus.INTACT.value,
-        "thesis_status": status,
+        "thesis_warning": semaphore in (Verdict.WARNING, Verdict.BROKEN),
+        "semaphore": semaphore.value if semaphore else None,
     }
 
 
@@ -100,7 +102,6 @@ def create_policy(
         name=body.name,
         thesis_title=body.thesis_title,
         thesis_md=body.thesis_md,
-        thesis_status=body.thesis_status,
     )
     return _policy(session, user, clock, policy)
 
@@ -164,9 +165,7 @@ def update_draft(
         clock,
         policy_id,
         positions=[PositionSpec(**p.model_dump()) for p in body.positions],
-        thesis=ThesisSpec(body.thesis.title, body.thesis.content_md, body.thesis.status)
-        if body.thesis
-        else None,
+        thesis=ThesisSpec(body.thesis.title, body.thesis.content_md) if body.thesis else None,
     )
     return _version(draft.policy, draft)
 

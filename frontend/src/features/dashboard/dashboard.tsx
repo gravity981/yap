@@ -7,7 +7,7 @@ import { Alert } from "@/components/ui/alert";
 import { usePolicies } from "@/features/policies/api";
 import { usePortfolios } from "@/features/portfolios/api";
 import { PortfolioCards } from "@/features/portfolios/list";
-import { statusLabel } from "@/features/theses/status";
+import { semaphoreLabel } from "@/features/reviews/semaphore";
 import { EventList } from "@/features/timeline/timeline";
 import { useTimeline } from "@/features/timeline/api";
 
@@ -45,7 +45,7 @@ export function DashboardPage() {
                 {p.name}
               </Link>
               {t("portfolios.dashboard.thesisMarked", {
-                status: statusLabel(p.thesis_status ?? ""),
+                status: semaphoreLabel(p.semaphore),
               })}
             </Alert>
           ))}

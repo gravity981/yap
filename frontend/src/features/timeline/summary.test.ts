@@ -78,8 +78,9 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
       total: 7,
       modified: true,
     }),
-    "Thesis review of 'Core thesis' revision 2: needs adaptation, 7 / 10, modified",
-    "Prüfung der Anlagethese «Core thesis» Revision 2: Anpassung nötig, 7 / 10, geändert",
+    // REV-06: verdicts from before scoring version 3 are shown as their semaphore
+    "Thesis review of 'Core thesis' revision 2: warning, 7 / 10, modified",
+    "Prüfung der Anlagethese «Core thesis» Revision 2: Warnung, 7 / 10, geändert",
   ],
   [
     event("thesis_review_confirmed", { version: "core-v3", verdict: "broken", total: 4.5 }),
@@ -95,6 +96,16 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
     }),
     "Policy review of core-v2: 7.5 / 10",
     "Prüfung der Anlagestrategie core-v2: 7.5 / 10",
+  ],
+  [
+    event("review_confirmed", { version: "core-v4", verdict: "warning", total: 6.5 }),
+    "Review of core-v4: warning, 6.5 / 10",
+    "Prüfung von core-v4: Warnung, 6.5 / 10",
+  ],
+  [
+    event("review_confirmed", { version: "core-v5", verdict: "good", total: 8 }),
+    "Review of core-v5: good, 8 / 10",
+    "Prüfung von core-v5: gut, 8 / 10",
   ],
   [
     event("thesis_revised", { title: "Growth", revision: 3, version: "core-v1", used_revision: 2 }),

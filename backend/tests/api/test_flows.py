@@ -35,6 +35,15 @@ def positions(*rows: tuple[str, int]) -> list[dict[str, object]]:
     ]
 
 
+def _manual_review(client: TestClient, pid: int, verdict: str) -> None:
+    """A manual review of the policy's draft with the given verdict (REV-18)."""
+    from tests.reviews.answers import answer
+
+    prompt = ok(client.get(f"/api/policies/{pid}/draft/review-prompt"))["prompt_id"]
+    text = answer(verdict=verdict, prompt_id=prompt)
+    ok(client.post(f"/api/policies/{pid}/draft/review/manual", json={"answer": text}), 201)
+
+
 @pytest.mark.req("POL-01", "POL-02", "POL-06", "POL-09", "POL-11", "POL-12", "THS-01")
 def test_policy_flow(alice: TestClient) -> None:
     policy = ok(
@@ -86,13 +95,15 @@ def test_policy_flow(alice: TestClient) -> None:
     assert diff["positions"][0]["fields"] == {"target_pct": ["60", "50"]}
     assert diff["thesis_changed"] is False
 
-    # The thesis changes with a new version; a broken one is shown as a warning (POL-11)
+    # The thesis changes with a new version; a broken semaphore is shown as a warning
+    # (POL-11, THS-04)
     ok(alice.post(f"/api/policies/{pid}/draft"), 201)
     body = {
         "positions": positions(("AAA", 50), ("CCC", 50)),
-        "thesis": {"title": "Core", "content_md": "# Broken now", "status": "broken"},
+        "thesis": {"title": "Core", "content_md": "# Broken now"},
     }
     assert ok(alice.put(f"/api/policies/{pid}/draft", json=body))["thesis_md"] == "# Broken now"
+    _manual_review(alice, pid, "broken")
     assert ok(alice.get(f"/api/policies/{pid}"))["thesis_warning"] is False  # still a draft
     ok(alice.post(f"/api/policies/{pid}/draft/activate", json={"change_note": "new thesis"}))
     thesis_diff = ok(alice.get(f"/api/policies/{pid}/compare?from_version=2&to_version=3"))
@@ -105,7 +116,7 @@ def test_policy_flow(alice: TestClient) -> None:
         ("core-v2", False),
         ("core-v3", True),
     ]
-    assert ok(alice.get(f"/api/policies/{pid}/versions/3"))["thesis_status"] == "broken"
+    assert ok(alice.get(f"/api/policies/{pid}/versions/3"))["review"]["semaphore"] == "broken"
     assert ok(alice.get("/api/policies"))[0]["active_version_label"] == "core-v3"
 
 
@@ -370,7 +381,7 @@ def test_rebalance_flow(alice: TestClient) -> None:
     assert alice.post(f"/api/portfolios/{pfid}/simulate", json={"cycles": 0}).status_code == 422
 
 
-@pytest.mark.req("TL-02", "POL-11")
+@pytest.mark.req("TL-02", "POL-11", "THS-04")
 def test_lookups_for_timeline_details_and_warnings(alice: TestClient) -> None:
     pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_md": "v1"}), 201)["id"]
     ok(alice.put(f"/api/policies/{pid}/draft", json={"positions": positions(("AAA", 100))}))
@@ -387,13 +398,13 @@ def test_lookups_for_timeline_details_and_warnings(alice: TestClient) -> None:
     )
     assert (version["positions"][0]["ticker"], version["thesis_md"]) == ("AAA", "v1")
 
-    ok(alice.post(f"/api/policies/{pid}/draft"), 201)
-    thesis = {"title": "core", "content_md": "v2", "status": "broken"}
-    body = {"positions": positions(("AAA", 100)), "thesis": thesis}
-    ok(alice.put(f"/api/policies/{pid}/draft", json=body))
-    ok(alice.post(f"/api/policies/{pid}/draft/activate", json={"change_note": "broken"}))
-    summary = ok(alice.get("/api/policies"))[0]
-    assert (summary["thesis_warning"], summary["thesis_status"]) == (True, "broken")
+    assert ok(alice.get("/api/policies"))[0]["semaphore"] is None  # not reviewed (THS-04)
+    for verdict, warns in (("warning", True), ("good", False), ("broken", True)):
+        ok(alice.post(f"/api/policies/{pid}/draft"), 201)
+        _manual_review(alice, pid, verdict)
+        ok(alice.post(f"/api/policies/{pid}/draft/activate", json={"change_note": verdict}))
+        summary = ok(alice.get("/api/policies"))[0]
+        assert (summary["thesis_warning"], summary["semaphore"]) == (warns, verdict)
 
 
 @pytest.mark.req("IMP-10", "RB-19")

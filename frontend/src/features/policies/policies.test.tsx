@@ -13,13 +13,29 @@ const version = (n: number, extra: Record<string, unknown> = {}) => ({
   version_no: n,
   label: `core-v${n}`,
   thesis_title: "Core thesis",
-  thesis_status: "intact",
   change_note: n === 1 ? null : `note ${n}`,
   active_from: `2026-0${n}-01T10:00:00+00:00`,
   active_until: null,
   is_draft: false,
-  thesis_review: null,
   review: null,
+  reviews: [],
+  ...extra,
+});
+
+/** A review brief of the whole policy (REV-02). */
+const reviewBrief = (extra: Record<string, unknown> = {}) => ({
+  id: 9,
+  kind: "full",
+  state: "done",
+  total: 7,
+  thesis_score: 6.5,
+  structure_score: 7.5,
+  semaphore: "good",
+  scoring_version: "3",
+  method: "ai",
+  model: "m",
+  ai_reviewer_name: null,
+  outdated: false,
   ...extra,
 });
 
@@ -50,7 +66,7 @@ const policy = (extra: Record<string, unknown> = {}) => ({
   ],
   portfolios: [{ id: 5, name: "Main" }],
   thesis_warning: false,
-  thesis_status: "intact",
+  semaphore: null,
   ...extra,
 });
 
@@ -139,11 +155,13 @@ describe("policies", () => {
     );
   });
 
-  it("[THS-01] [POL-02] shows the thesis of a version", async () => {
+  it("[THS-01] [POL-02] [THS-04] shows the thesis of a version with its semaphore", async () => {
     setup();
     renderApp("/policies/3");
     expect(await screen.findByRole("heading", { name: "Global growth" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Core thesis" })).toBeInTheDocument();
+    const heading = screen.getByRole("heading", { name: "Core thesis" });
+    // THS-04: a version without a review shows "not reviewed" instead of a semaphore
+    expect(within(heading.parentElement!).getByText("not reviewed")).toBeInTheDocument();
     expect(screen.getByText("Index funds follow the economy.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Export as JSON" })).toHaveAttribute(
       "href",
@@ -196,14 +214,28 @@ describe("policies", () => {
     expect(screen.getByText("+# New")).toBeInTheDocument();
   });
 
-  it("[POL-11] warns about a broken thesis of the active version", async () => {
+  it("[POL-11] [THS-04] warns about a broken thesis of the active version, from its review", async () => {
+    const broken = reviewBrief({ semaphore: "broken" });
     setup({
-      "GET /api/policies/3": () => json(policy({ thesis_warning: true, thesis_status: "broken" })),
+      "GET /api/policies/3": () =>
+        json(
+          policy({
+            thesis_warning: true,
+            semaphore: "broken",
+            versions: [
+              version(1, { active_until: "2026-02-01T10:00:00+00:00" }),
+              version(2, { review: broken, reviews: [broken] }),
+              version(3, { is_draft: true, active_from: null, change_note: null }),
+            ],
+          }),
+        ),
     });
     renderApp("/policies/3");
     expect(
-      await screen.findByText(/The thesis of the active version is marked as/),
+      await screen.findByText(/The review of the active version rates its thesis/),
     ).toHaveTextContent("broken");
+    const heading = await screen.findByRole("heading", { name: "Core thesis" });
+    expect(within(heading.parentElement!).getByText("broken")).toBeInTheDocument();
   });
 
   it("[POL-06] [POL-08] activates the draft with a change note, naming the portfolios", async () => {
@@ -227,17 +259,7 @@ describe("policies", () => {
   });
 
   it("[REV-11] activates without a question when the draft has a current review", async () => {
-    const brief = {
-      id: 9,
-      state: "done",
-      total: 7,
-      verdict: null,
-      scoring_version: "2",
-      method: "ai",
-      model: "m",
-      ai_reviewer_name: null,
-      outdated: false,
-    };
+    const brief = reviewBrief({ outdated: false });
     setup({
       "GET /api/policies/3": () =>
         json(
@@ -249,8 +271,8 @@ describe("policies", () => {
                 is_draft: true,
                 active_from: null,
                 change_note: null,
-                thesis_review: brief,
                 review: brief,
+                reviews: [brief],
               }),
             ],
           }),
@@ -264,17 +286,7 @@ describe("policies", () => {
   });
 
   it("[REV-11] warns when the review is older than the last change of the draft", async () => {
-    const brief = {
-      id: 9,
-      state: "done",
-      total: 7,
-      verdict: null,
-      scoring_version: "2",
-      method: "ai",
-      model: "m",
-      ai_reviewer_name: null,
-      outdated: true,
-    };
+    const brief = reviewBrief({ outdated: true });
     setup({
       "GET /api/policies/3": () =>
         json(
@@ -285,8 +297,8 @@ describe("policies", () => {
                 is_draft: true,
                 active_from: null,
                 change_note: null,
-                thesis_review: brief,
                 review: brief,
+                reviews: [brief],
               }),
             ],
           }),
@@ -340,29 +352,32 @@ describe("policies", () => {
     ]);
   });
 
-  it("[REV-01] [REV-05] [REV-19] reviews the policy draft in its editor, saving it first", async () => {
+  it("[REV-01] [REV-05] [REV-19] reviews the whole draft in its editor, saving it first", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     const calls = setup({
       "PUT /api/policies/3/draft": () => json({ ...version(3, { is_draft: true }), positions: [] }),
       "GET /api/ai-reviewers": () => json([]),
       "GET /api/policies/3/draft/review-prompt": () =>
-        json({ prompt_id: "P203-20260301T100000Z-0-abcdef", text: "POLICY PROMPT" }),
+        json({ prompt_id: "R203-20260301T100000Z-90-abcdef", text: "POLICY PROMPT" }),
     });
     renderApp("/policies/3/draft");
-    const section = await screen.findByRole("region", { name: "Policy review" });
-    expect(within(section).getByText(/has no review yet; it needs one/)).toBeInTheDocument();
-    // Without AI reviewers, manual is preselected (REV-16); a policy review has no news
+    await userEvent.click(await screen.findByRole("tab", { name: "Review" }));
+    // One review of thesis and target structure; no separate policy review below
+    expect(screen.getAllByRole("region", { name: /review/i })).toHaveLength(1);
+    const section = screen.getByRole("region", { name: "Review" });
+    expect(within(section).getByText(/Not reviewed yet/)).toBeInTheDocument();
+    // Without AI reviewers, manual is preselected (REV-16); the news period applies (REV-04)
     await waitFor(() =>
       expect(within(section).getByLabelText("Review method")).toHaveValue("manual"),
     );
-    expect(within(section).queryByLabelText("News of the last … days")).toBeNull();
+    expect(within(section).getByLabelText("News of the last … days")).toHaveValue(90);
     expect(within(section).getByText(/and the target structure \(percentages/)).toBeInTheDocument();
     await userEvent.click(within(section).getByRole("button", { name: "Copy review prompt" }));
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("POLICY PROMPT"));
     const order = calls.map((c) => `${c.method} ${c.path}`);
     expect(order.indexOf("PUT /api/policies/3/draft")).toBeLessThan(
-      order.indexOf("GET /api/policies/3/draft/review-prompt"),
+      order.indexOf("GET /api/policies/3/draft/review-prompt?news_days=90"),
     );
     expect(screen.getByRole("heading", { name: /core/ })).toBeInTheDocument(); // still editing
   });
@@ -457,25 +472,26 @@ describe("policies", () => {
     expect(title).toHaveValue("Core thesis");
     await userEvent.clear(title);
     await userEvent.type(title, "Growth");
-    await userEvent.selectOptions(screen.getByLabelText("Status"), "broken");
-    expect(screen.getByText(/does not change any rebalancing by itself/)).toBeInTheDocument();
-    // The thesis review is a tab next to the editor (REV-01)
+    // THS-04: a thesis has no status set by the investor
+    expect(screen.queryByLabelText("Status")).toBeNull();
+    // The review is a tab next to the editor (REV-01)
     await userEvent.click(screen.getByRole("tab", { name: "Review" }));
-    expect(screen.getByRole("region", { name: "Thesis review" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Review" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
-    expect(calls.find((c) => c.method === "PUT")?.body).toMatchObject({
-      thesis: { title: "Growth", content_md: "# Draft thesis", status: "broken" },
+    expect((calls.find((c) => c.method === "PUT")?.body as { thesis: unknown }).thesis).toEqual({
+      title: "Growth",
+      content_md: "# Draft thesis",
     });
   });
 
   it("[IMP-01] [IMP-07] imports a thesis as a new policy, or into the draft of a policy", async () => {
     const calls = setup({
       "POST /api/policies/import-thesis/preview": () =>
-        json({ creates_new_policy: true, version_no: 1, title: "Imported", status: "intact" }),
+        json({ creates_new_policy: true, version_no: 1, title: "Imported" }),
       "POST /api/policies/import-thesis": () => json(policy(), 201),
       "POST /api/policies/3/import-thesis/preview": () =>
-        json({ creates_new_policy: false, version_no: 3, title: "Imported", status: "broken" }),
+        json({ creates_new_policy: false, version_no: 3, title: "Imported" }),
       "POST /api/policies/3/import-thesis": () =>
         json({ ...version(3, { is_draft: true }), thesis_md: "x", positions: [] }, 201),
     });

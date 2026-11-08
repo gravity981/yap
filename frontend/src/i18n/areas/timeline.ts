@@ -20,6 +20,7 @@ export const en = {
     rebalance_confirmed: "Rebalance confirmed",
     thesis_review_confirmed: "Thesis review",
     policy_review_confirmed: "Policy review",
+    review_confirmed: "Review",
     thesis_revised: "Thesis revised",
   },
   noEvents: "No events.",
@@ -43,6 +44,7 @@ export const en = {
     thesisReview: "Thesis review of '{{title}}' revision {{revision}}: {{result}}",
     thesisReviewOfVersion: "Thesis review of {{version}}: {{result}}",
     policyReview: "Policy review of {{version}}: {{result}}",
+    review: "Review of {{version}}: {{result}}",
     score: "{{total}} / 10",
     modified: "modified",
     thesisRevised:
@@ -70,6 +72,7 @@ export const de: Messages<typeof en> = {
     rebalance_confirmed: "Rebalancing bestätigt",
     thesis_review_confirmed: "Prüfung der Anlagethese",
     policy_review_confirmed: "Prüfung der Anlagestrategie",
+    review_confirmed: "Prüfung",
     thesis_revised: "Anlagethese überarbeitet",
   },
   noEvents: "Keine Ereignisse.",
@@ -94,6 +97,7 @@ export const de: Messages<typeof en> = {
     thesisReview: "Prüfung der Anlagethese «{{title}}» Revision {{revision}}: {{result}}",
     thesisReviewOfVersion: "Prüfung der Anlagethese von {{version}}: {{result}}",
     policyReview: "Prüfung der Anlagestrategie {{version}}: {{result}}",
+    review: "Prüfung von {{version}}: {{result}}",
     score: "{{total}} / 10",
     modified: "geändert",
     thesisRevised:

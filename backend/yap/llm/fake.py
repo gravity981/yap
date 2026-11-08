@@ -7,7 +7,8 @@ from typing import Any
 
 from yap.llm.base import LlmConfig, LlmRequest
 
-SCORES = (7, 6, 8, 5, 7, 6.5)  # total 6.5
+# Thesis 6.5 (39.5 / 6 = 6.58), target structure 7.5 (45.5 / 6 = 7.58), review 7 (7.0)
+SCORES = (7, 6, 8, 5, 7, 6.5, 8, 7, 6, 9, 7.5, 8)
 
 # Plausible but generic texts, so that screenshots of the app look real (docs/features.md)
 REASONING = {
@@ -20,7 +21,7 @@ REASONING = {
     "P1": "Every asset the thesis relies on has a position; nothing important is missing.",
     "P2": "Target weights follow the conviction the thesis describes for each asset.",
     "P3": "The bands are wide enough to avoid frequent trades without letting weights drift far.",
-    "P4": "Exit flags agree with the thesis status; no exit is pending.",
+    "P4": "Exit flags agree with the break conditions; no exit is pending.",
     "P5": "No single position dominates; the largest one is a broadly diversified fund.",
     "P6": "The rationales repeat the thesis well, one of them could be more specific.",
 }
@@ -36,29 +37,36 @@ class FakeAdapter:
     def generate(self, request: LlmRequest) -> str:
         properties = request.json_schema["properties"]
         codes = properties["aspects"]["items"]["properties"]["code"]["enum"]
-        thesis = "verdict" in properties
         answer: dict[str, Any] = {
             "prompt_id": properties["prompt_id"]["enum"][0],
             "aspects": [
                 {"code": code, "score": score, "reasoning": REASONING[code]}
-                for code, score in zip(codes, SCORES, strict=True)
+                for code, score in zip(codes, SCORES, strict=False)
             ],
-            "suggestions": [
-                {
-                    "kind": "thesis_text" if thesis else "policy_position",
-                    "content": "Make the warning signals measurable, e.g. with a threshold."
-                    if thesis
-                    else "Explain in the rationale why the bond share is not higher.",
-                }
-            ],
-        }
-        if thesis:
-            answer["verdict"] = "intact"
-            answer["sources"] = [
+            "verdict": "good",
+            "verdict_reason": "Recent news supports the thesis; no break condition is met [1].",
+            "sources": [
                 {
                     "title": "Example news: global equity funds see steady inflows",
                     "published_on": None,
                     "url": "https://example.com/news",
                 }
-            ]
+            ],
+            "suggestions": [
+                {
+                    "kind": "thesis_text",
+                    "content": "Make the warning signals measurable, e.g. with a threshold.",
+                },
+                *(
+                    [
+                        {
+                            "kind": "policy_position",
+                            "content": "Explain in the rationale why the bond share is not higher.",
+                        }
+                    ]
+                    if "P1" in codes
+                    else []
+                ),
+            ],
+        }
         return json.dumps(answer)

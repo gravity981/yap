@@ -10,7 +10,7 @@ from yap.services.common import ConflictError, NotFoundError, ValidationError
 from yap.services.timeline import EventType, list_events
 
 
-@pytest.mark.req("POL-01", "POL-02", "THS-01")
+@pytest.mark.req("POL-01", "POL-02", "THS-01", "THS-04")
 def test_a_new_policy_starts_as_draft_v1_with_its_thesis(
     session: Session, factory: Factory
 ) -> None:
@@ -20,32 +20,27 @@ def test_a_new_policy_starts_as_draft_v1_with_its_thesis(
     )
     (draft,) = policy.versions
     assert (policy.name, draft.version_no, draft.activated_at) == ("core", 1, None)
-    assert (draft.thesis_title, draft.thesis_md, draft.thesis_status) == (
+    assert (draft.thesis_title, draft.thesis_md) == (
         "core",  # the title defaults to the name
         "# Investment Thesis",
-        "intact",
     )
     assert draft.positions == []
-    with pytest.raises(ValidationError):
-        policies.create_policy(session, owner, factory.clock, name="x", thesis_status="soft")
+    # A thesis has no status set by the investor (THS-04)
+    assert not hasattr(draft, "thesis_status")
 
 
-@pytest.mark.req("POL-02", "THS-01", "THS-04")
+@pytest.mark.req("POL-02", "THS-01")
 def test_the_draft_holds_the_thesis_and_activation_freezes_it(
     session: Session, factory: Factory
 ) -> None:
     owner = factory.investor()
     policy = factory.policy_draft(owner, positions=[spec("AAA", 100)])
-    thesis = policies.ThesisSpec("Growth", "# New text", "needs_adaptation")
+    thesis = policies.ThesisSpec("Growth", "# New text")
     draft = policies.update_thesis(session, owner, factory.clock, policy.id, thesis)
-    assert (draft.thesis_title, draft.thesis_md, draft.thesis_status) == (
-        "Growth",
-        "# New text",
-        "needs_adaptation",
-    )
+    assert (draft.thesis_title, draft.thesis_md) == ("Growth", "# New text")
     with pytest.raises(ValidationError) as err:
         policies.update_thesis(
-            session, owner, factory.clock, policy.id, policies.ThesisSpec(" ", "", "intact")
+            session, owner, factory.clock, policy.id, policies.ThesisSpec(" ", "")
         )
     assert err.value.problems[0][0] == "thesis_title"
     policies.activate_draft(session, owner, factory.clock, policy.id, None)
@@ -220,7 +215,7 @@ def test_compare_versions(session: Session, factory: Factory) -> None:
         owner,
         factory.clock,
         policy.id,
-        policies.ThesisSpec("Core thesis", "# New", "intact"),
+        policies.ThesisSpec("Core thesis", "# New"),
     )
     diff = policies.compare_versions(v1, v2)
     assert diff.thesis_changed is True

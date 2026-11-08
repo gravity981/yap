@@ -629,10 +629,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Start Policy Review
-         * @description REV-01, REV-05: starts a review of the policy draft; it runs in the background.
+         * Start Review
+         * @description REV-01, REV-04: starts a review of the policy draft; it runs in the background.
          */
-        post: operations["start_policy_review_api_policies__policy_id__draft_review_post"];
+        post: operations["start_review_api_policies__policy_id__draft_review_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -647,10 +647,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Policy Review Prompt
+         * Get Review Prompt
          * @description REV-19: the prompt of the policy draft as it is saved now; changes nothing.
          */
-        get: operations["get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get"];
+        get: operations["get_review_prompt_api_policies__policy_id__draft_review_prompt_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -669,71 +669,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Submit Manual Policy Review
+         * Submit Manual Review
          * @description REV-18: stores the pasted answer as the review of the policy draft.
          */
-        post: operations["submit_manual_policy_review_api_policies__policy_id__draft_review_manual_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/policies/{policy_id}/draft/thesis-review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Thesis Review
-         * @description REV-01, REV-04: starts a review of the thesis of the policy draft; it runs in the
-         *     background.
-         */
-        post: operations["start_thesis_review_api_policies__policy_id__draft_thesis_review_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/policies/{policy_id}/draft/thesis-review-prompt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Thesis Review Prompt
-         * @description REV-19: the prompt of the draft's thesis as it is saved now; changes nothing.
-         */
-        get: operations["get_thesis_review_prompt_api_policies__policy_id__draft_thesis_review_prompt_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/policies/{policy_id}/draft/thesis-review/manual": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Submit Manual Thesis Review
-         * @description REV-18: stores the pasted answer as the review of the draft's thesis.
-         */
-        post: operations["submit_manual_thesis_review_api_policies__policy_id__draft_thesis_review_manual_post"];
+        post: operations["submit_manual_review_api_policies__policy_id__draft_review_manual_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -854,7 +793,8 @@ export interface paths {
         };
         /**
          * Get Version Review
-         * @description The thesis or policy review of a version: confirmed (REV-12) or of the draft.
+         * @description The review that gives a version its score and semaphore: confirmed (REV-12) or of
+         *     the draft.
          */
         get: operations["get_version_review_api_policies__policy_id__versions__version_no__review_get"];
         put?: never;
@@ -1672,7 +1612,7 @@ export interface components {
          * EventType
          * @enum {string}
          */
-        EventType: "policy_activated" | "portfolio_assigned" | "rebalance_confirmed" | "thesis_review_confirmed" | "policy_review_confirmed" | "thesis_revised";
+        EventType: "policy_activated" | "portfolio_assigned" | "rebalance_confirmed" | "thesis_review_confirmed" | "policy_review_confirmed" | "review_confirmed" | "thesis_revised";
         /** ExecutedIn */
         ExecutedIn: {
             /** Amount */
@@ -1788,13 +1728,11 @@ export interface components {
         };
         /**
          * ManualAnswer
-         * @description REV-18: the answer of an AI outside the app, and which model wrote it (REV-17).
+         * @description REV-18: the answer of an AI outside the app; the model is not asked for (REV-17).
          */
         ManualAnswer: {
             /** Answer */
             answer: string;
-            /** Model */
-            model: string;
         };
         /** Me */
         Me: {
@@ -1850,11 +1788,6 @@ export interface components {
              * @default
              */
             thesis_md?: string;
-            /**
-             * Thesis Status
-             * @default intact
-             */
-            thesis_status?: string;
             /** Thesis Title */
             thesis_title?: string | null;
         };
@@ -1937,8 +1870,8 @@ export interface components {
             name: string;
             /** Portfolios */
             portfolios: components["schemas"]["PortfolioRef"][];
-            /** Thesis Status */
-            thesis_status: string | null;
+            /** Semaphore */
+            semaphore: string | null;
             /** Thesis Warning */
             thesis_warning: boolean;
             /** Versions */
@@ -1956,8 +1889,8 @@ export interface components {
             id: number;
             /** Name */
             name: string;
-            /** Thesis Status */
-            thesis_status: string | null;
+            /** Semaphore */
+            semaphore: string | null;
             /** Thesis Warning */
             thesis_warning: boolean;
         };
@@ -2411,33 +2344,34 @@ export interface components {
         };
         /**
          * ReviewBrief
-         * @description A review of a version, in short (THS-08, REV-11).
+         * @description A review of a version, in short (THS-08, REV-02, REV-11).
          */
         ReviewBrief: {
             /** Ai Reviewer Name */
             ai_reviewer_name: string | null;
             /** Id */
             id: number;
+            /** Kind */
+            kind: string;
             /** Method */
             method: string;
             /** Model */
-            model: string;
+            model: string | null;
             /** Outdated */
             outdated: boolean;
             /** Scoring Version */
             scoring_version: string;
+            /** Semaphore */
+            semaphore: string | null;
             /** State */
             state: string;
+            /** Structure Score */
+            structure_score: number | null;
+            /** Thesis Score */
+            thesis_score: number | null;
             /** Total */
             total: number | null;
-            /** Verdict */
-            verdict: string | null;
         };
-        /**
-         * ReviewKind
-         * @enum {string}
-         */
-        ReviewKind: "thesis" | "policy";
         /** ReviewOut */
         ReviewOut: {
             /** Ai Reviewer Name */
@@ -2458,7 +2392,7 @@ export interface components {
             /** Method */
             method: string;
             /** Model */
-            model: string;
+            model: string | null;
             /** News From */
             news_from: string | null;
             /** News To */
@@ -2473,6 +2407,8 @@ export interface components {
             provider: string;
             /** Scoring Version */
             scoring_version: string;
+            /** Semaphore */
+            semaphore: string | null;
             /** Sources */
             sources: components["schemas"]["SourceOut"][];
             /**
@@ -2482,12 +2418,18 @@ export interface components {
             started_at: string;
             /** State */
             state: string;
+            /** Structure Score */
+            structure_score: number | null;
             /** Suggestions */
             suggestions: components["schemas"]["SuggestionOut"][];
+            /** Thesis Score */
+            thesis_score: number | null;
             /** Total */
             total: number | null;
             /** Verdict */
             verdict: string | null;
+            /** Verdict Reason */
+            verdict_reason: string | null;
         };
         /**
          * ReviewPromptOut
@@ -2574,13 +2516,8 @@ export interface components {
             /** Url */
             url: string;
         };
-        /** StartPolicyReview */
-        StartPolicyReview: {
-            /** Ai Reviewer Id */
-            ai_reviewer_id?: number | null;
-        };
-        /** StartThesisReview */
-        StartThesisReview: {
+        /** StartReview */
+        StartReview: {
             /** Ai Reviewer Id */
             ai_reviewer_id?: number | null;
             /**
@@ -2603,8 +2540,6 @@ export interface components {
         ThesisImportPreview: {
             /** Creates New Policy */
             creates_new_policy: boolean;
-            /** Status */
-            status: string;
             /** Title */
             title: string;
             /** Version No */
@@ -2614,11 +2549,6 @@ export interface components {
         ThesisIn: {
             /** Content Md */
             content_md: string;
-            /**
-             * Status
-             * @default intact
-             */
-            status?: string;
             /** Title */
             title: string;
         };
@@ -2717,11 +2647,10 @@ export interface components {
             /** Positions */
             positions: components["schemas"]["PositionOut"][];
             review: components["schemas"]["ReviewBrief"] | null;
+            /** Reviews */
+            reviews: components["schemas"]["ReviewBrief"][];
             /** Thesis Md */
             thesis_md: string;
-            thesis_review: components["schemas"]["ReviewBrief"] | null;
-            /** Thesis Status */
-            thesis_status: string;
             /** Thesis Title */
             thesis_title: string;
             /** Version No */
@@ -2751,11 +2680,10 @@ export interface components {
             /** Positions */
             positions: components["schemas"]["PositionOut"][];
             review: components["schemas"]["ReviewBrief"] | null;
+            /** Reviews */
+            reviews: components["schemas"]["ReviewBrief"][];
             /** Thesis Md */
             thesis_md: string;
-            thesis_review: components["schemas"]["ReviewBrief"] | null;
-            /** Thesis Status */
-            thesis_status: string;
             /** Thesis Title */
             thesis_title: string;
             /** Version No */
@@ -2776,9 +2704,8 @@ export interface components {
             /** Label */
             label: string;
             review: components["schemas"]["ReviewBrief"] | null;
-            thesis_review: components["schemas"]["ReviewBrief"] | null;
-            /** Thesis Status */
-            thesis_status: string;
+            /** Reviews */
+            reviews: components["schemas"]["ReviewBrief"][];
             /** Thesis Title */
             thesis_title: string;
             /** Version No */
@@ -4148,7 +4075,7 @@ export interface operations {
             };
         };
     };
-    start_policy_review_api_policies__policy_id__draft_review_post: {
+    start_review_api_policies__policy_id__draft_review_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4161,7 +4088,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["StartPolicyReview"] | null;
+                "application/json": components["schemas"]["StartReview"] | null;
             };
         };
         responses: {
@@ -4185,114 +4112,7 @@ export interface operations {
             };
         };
     };
-    get_policy_review_prompt_api_policies__policy_id__draft_review_prompt_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                policy_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewPromptOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_manual_policy_review_api_policies__policy_id__draft_review_manual_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                policy_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ManualAnswer"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    start_thesis_review_api_policies__policy_id__draft_thesis_review_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                policy_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StartThesisReview"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_thesis_review_prompt_api_policies__policy_id__draft_thesis_review_prompt_get: {
+    get_review_prompt_api_policies__policy_id__draft_review_prompt_get: {
         parameters: {
             query?: {
                 news_days?: number;
@@ -4327,7 +4147,7 @@ export interface operations {
             };
         };
     };
-    submit_manual_thesis_review_api_policies__policy_id__draft_thesis_review_manual_post: {
+    submit_manual_review_api_policies__policy_id__draft_review_manual_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4566,9 +4386,7 @@ export interface operations {
     };
     get_version_review_api_policies__policy_id__versions__version_no__review_get: {
         parameters: {
-            query?: {
-                kind?: components["schemas"]["ReviewKind"];
-            };
+            query?: never;
             header?: never;
             path: {
                 policy_id: number;

@@ -172,10 +172,10 @@ def import_thesis(
 ) -> PolicyVersion:
     """IMP-01: replaces the thesis of the selected policy's draft (created if there is
     none), otherwise creates a new policy, named after the title, whose draft v1 holds the
-    thesis. Never activates a version; the visibility and change note of a file are
-    ignored."""
+    thesis. Never activates a version; the visibility, status and change note of a file
+    are ignored (THS-04)."""
     file = parse(text, ThesisFile)
-    thesis = ThesisSpec(file.title, file.content_md, file.status)
+    thesis = ThesisSpec(file.title, file.content_md)
 
     def run() -> PolicyVersion:
         if selected_policy_id is not None:
@@ -190,7 +190,6 @@ def import_thesis(
             name=file.title,
             thesis_title=file.title,
             thesis_md=file.content_md,
-            thesis_status=file.status,
         )
         return policy.versions[0]
 
@@ -268,7 +267,6 @@ class ThesisPreview:
     creates_new_policy: bool
     version_no: int  # the draft that takes the thesis
     title: str
-    status: str
 
 
 def preview_thesis(
@@ -276,11 +274,11 @@ def preview_thesis(
 ) -> ThesisPreview:
     file = parse(text, ThesisFile)
     if selected_policy_id is None:
-        return ThesisPreview(True, 1, file.title, file.status)
+        return ThesisPreview(True, 1, file.title)
     policy = policies.get_policy(session, actor, selected_policy_id)
     draft = policies.get_draft(policy)
     version_no = draft.version_no if draft else policy.versions[-1].version_no + 1
-    return ThesisPreview(False, version_no, file.title, file.status)
+    return ThesisPreview(False, version_no, file.title)
 
 
 def preview_target_structure(
@@ -294,7 +292,6 @@ def preview_target_structure(
     candidate = PolicyVersion(
         thesis_title=latest.thesis_title,
         thesis_md=latest.thesis_md,
-        thesis_status=latest.thesis_status,
     )
     for i, p in enumerate(file.positions):
         asset = find_asset(session, p.ticker) or Asset(

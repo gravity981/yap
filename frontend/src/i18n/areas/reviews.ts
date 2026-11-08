@@ -3,15 +3,14 @@ import type { Messages } from "../messages";
 // AI reviews: start, result, score course (features/reviews).
 export const en = {
   section: {
+    title: "Review",
+    // Reviews from before stage 2 judged the thesis and the target structure separately
     thesis: "Thesis review",
     policy: "Policy review",
     notReviewed: "Not reviewed.",
   },
   start: {
-    dataThesis:
-      "To run it, the thesis text is sent to the provider of your AI reviewer, which searches the web for news. ",
-    dataPolicy:
-      "To run it, the thesis text and the target structure (percentages, thresholds, exit flags, rationales) are sent to the provider of your AI reviewer. ",
+    data: "To run it, the title, the thesis text and the target structure (percentages, thresholds, exit flags, rationales) are sent to the provider of your AI reviewer, which searches the web for news. ",
     dataNothingElse: "No amounts, portfolios or personal data are sent.",
     default: " (default)",
     newsDays: "News of the last … days",
@@ -26,32 +25,36 @@ export const en = {
     confirmed: "confirmed",
     notConfirmed: "not confirmed yet",
     outdated: "outdated: the draft changed since",
-    manual: "manual review with {{model}}",
+    manual: "manual review",
+    manualWith: "manual review with {{model}}",
     scoring: "scoring v{{version}}",
     news: "news {{from}} – {{to}}",
     notAdvice:
       "AI reviews can be wrong or incomplete, and are not financial advice. You decide what to change.",
   },
   score: {
-    totalLabel: "Total score",
+    totalLabel: "Score",
     outOf: "{{score}} / 10",
+    thesis: "Thesis · {{score}}",
+    structure: "Target structure · {{score}}",
+    thesisGroup: "Thesis",
+    structureGroup: "Target structure",
+    verdict: "Verdict.",
   },
   pane: {
-    noReview: "This draft has no review yet; it needs one to be activated.",
+    noReview:
+      "Not reviewed yet. You can activate the draft without a review; you will be asked to confirm.",
     method: "Review method",
     manual: "Manual (an AI of your choice)",
     defaultIn: "The default method is set in your <goto>settings</goto>.",
-    dataThesis:
-      "The prompt contains the review instructions and the thesis text, nothing else: no amounts, portfolios or personal data. You decide where to paste it.",
-    dataPolicy:
-      "The prompt contains the review instructions, the thesis text and the target structure (percentages, thresholds, exit flags, rationales), nothing else: no amounts, portfolios or personal data. You decide where to paste it.",
+    data: "The prompt contains the review instructions, the title, the thesis text and the target structure (percentages, thresholds, exit flags, rationales), nothing else: no amounts, portfolios or personal data. You decide where to paste it.",
+    step2:
+      "Paste it into the AI of your choice and let it answer. With web search on, it can check current news.",
     copy: "Copy review prompt",
     copied: "Copied. Paste it into your AI, then paste its whole answer below.",
     copyFailed: "Your browser did not allow copying; copy the prompt from here",
     manualForm: "Manual review",
-    model: "AI model used",
-    modelPlaceholder: "e.g. ChatGPT 5",
-    answer: "Answer of the AI",
+    answer: "Paste its whole answer",
     problems: "The answer cannot be used:",
     save: "Save review",
     tab: "Review",
@@ -63,7 +66,7 @@ export const en = {
     score: "{{name}}: {{score}}",
     note: "Why: {{note}}",
   },
-  // Scoring version 2: the sections of the thesis template (THS-07)
+  // Scoring versions 2 and 3: the sections of the thesis template (THS-07)
   aspects: {
     T1: "Belief",
     T2: "Fit and implementation",
@@ -110,8 +113,8 @@ export const en = {
     outdated: "The draft changed after its review. Activate it with the outdated review?",
   },
   course: {
-    label: "Thesis review score over the versions",
-    caption: "Total score of the thesis review per version",
+    label: "Review score over the versions",
+    caption: "Score of the review per version",
     point: "{{label}}: {{score}} of 10",
     tooltip: ": {{score}} / 10",
     tick: "v{{no}}",
@@ -124,15 +127,13 @@ export const en = {
 // German in Swiss spelling (ss, no ß), addressing the user with "du"; see src/i18n/README.md
 export const de: Messages<typeof en> = {
   section: {
+    title: "Prüfung",
     thesis: "Prüfung der Anlagethese",
     policy: "Prüfung der Anlagestrategie",
     notReviewed: "Nicht geprüft.",
   },
   start: {
-    dataThesis:
-      "Dafür wird der Text der Anlagethese an den Anbieter deines KI-Reviewers gesendet, der im Web nach Nachrichten sucht. ",
-    dataPolicy:
-      "Dafür werden der Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen) an den Anbieter deines KI-Reviewers gesendet. ",
+    data: "Dafür werden der Titel, der Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen) an den Anbieter deines KI-Reviewers gesendet, der im Web nach Nachrichten sucht. ",
     dataNothingElse: "Es werden keine Beträge, Portfolios oder persönlichen Daten gesendet.",
     default: " (Standard)",
     newsDays: "Nachrichten der letzten … Tage",
@@ -147,32 +148,36 @@ export const de: Messages<typeof en> = {
     confirmed: "bestätigt",
     notConfirmed: "noch nicht bestätigt",
     outdated: "veraltet: der Entwurf wurde seither geändert",
-    manual: "manuelle Prüfung mit {{model}}",
+    manual: "manuelle Prüfung",
+    manualWith: "manuelle Prüfung mit {{model}}",
     scoring: "Bewertung v{{version}}",
     news: "Nachrichten {{from}} – {{to}}",
     notAdvice:
       "KI-Prüfungen können falsch oder unvollständig sein und sind keine Finanzberatung. Du entscheidest, was du änderst.",
   },
   score: {
-    totalLabel: "Gesamtbewertung",
+    totalLabel: "Bewertung",
     outOf: "{{score}} / 10",
+    thesis: "Anlagethese · {{score}}",
+    structure: "Zielstruktur · {{score}}",
+    thesisGroup: "Anlagethese",
+    structureGroup: "Zielstruktur",
+    verdict: "Urteil.",
   },
   pane: {
-    noReview: "Dieser Entwurf hat noch keine Prüfung; zum Aktivieren braucht er eine.",
+    noReview:
+      "Noch nicht geprüft. Du kannst den Entwurf auch ohne Prüfung aktivieren; du wirst dann um Bestätigung gebeten.",
     method: "Prüfmethode",
     manual: "Manuell (eine KI deiner Wahl)",
     defaultIn: "Die Standard-Prüfmethode legst du in deinen <goto>Einstellungen</goto> fest.",
-    dataThesis:
-      "Der Prompt enthält die Prüfanweisungen und den Text der Anlagethese, sonst nichts: keine Beträge, Portfolios oder persönlichen Daten. Du entscheidest, wo du ihn einfügst.",
-    dataPolicy:
-      "Der Prompt enthält die Prüfanweisungen, den Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen), sonst nichts: keine Beträge, Portfolios oder persönlichen Daten. Du entscheidest, wo du ihn einfügst.",
+    data: "Der Prompt enthält die Prüfanweisungen, den Titel, den Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen), sonst nichts: keine Beträge, Portfolios oder persönlichen Daten. Du entscheidest, wo du ihn einfügst.",
+    step2:
+      "Füge ihn in die KI deiner Wahl ein und lass sie antworten. Mit eingeschalteter Websuche kann sie aktuelle Nachrichten prüfen.",
     copy: "Prüf-Prompt kopieren",
     copied: "Kopiert. Füge ihn in deine KI ein und füge danach ihre ganze Antwort unten ein.",
     copyFailed: "Dein Browser hat das Kopieren nicht erlaubt; kopiere den Prompt von hier",
     manualForm: "Manuelle Prüfung",
-    model: "Verwendetes KI-Modell",
-    modelPlaceholder: "z. B. ChatGPT 5",
-    answer: "Antwort der KI",
+    answer: "Füge ihre ganze Antwort ein",
     problems: "Die Antwort kann nicht verwendet werden:",
     save: "Prüfung speichern",
     tab: "Prüfung",
@@ -230,8 +235,8 @@ export const de: Messages<typeof en> = {
       "Der Entwurf wurde nach seiner Prüfung geändert. Mit der veralteten Prüfung aktivieren?",
   },
   course: {
-    label: "Bewertung der Prüfung der Anlagethese über die Versionen",
-    caption: "Gesamtbewertung der Prüfung der Anlagethese pro Version",
+    label: "Bewertung der Prüfung über die Versionen",
+    caption: "Bewertung der Prüfung pro Version",
     point: "{{label}}: {{score}} von 10",
     tooltip: ": {{score}} / 10",
     tick: "v{{no}}",

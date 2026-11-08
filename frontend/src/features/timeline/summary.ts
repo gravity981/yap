@@ -1,6 +1,6 @@
 import i18n from "i18next";
 
-import { statusLabel } from "@/features/theses/status";
+import { semaphoreLabel, toSemaphore } from "@/features/reviews/semaphore";
 import { currentLocale } from "@/i18n";
 import { formatAmount } from "@/lib/format";
 
@@ -10,10 +10,11 @@ type Params = Record<string, unknown>;
 
 const text = (value: unknown) => String(value ?? "");
 
-/** A review result, e.g. "needs adaptation, 7 / 10, modified" (TL-02). */
+/** A review result, e.g. "warning, 7 / 10" (TL-02); verdicts of events from before
+ * scoring version 3 as their semaphore (REV-06). */
 function reviewResult(p: Params): string {
   const parts: string[] = [];
-  if (p.verdict) parts.push(statusLabel(text(p.verdict)));
+  if (p.verdict) parts.push(semaphoreLabel(toSemaphore(text(p.verdict))));
   if (typeof p.total === "number") {
     const total = new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: 1 });
     parts.push(i18n.t("timeline.summary.score", { total: total.format(p.total) }));
@@ -74,6 +75,11 @@ export function eventSummary(event: TimelineEvent): string {
             revision: text(p.revision),
             result: reviewResult(p),
           });
+    case "review_confirmed":
+      return i18n.t("timeline.summary.review", {
+        version: text(p.version),
+        result: reviewResult(p),
+      });
     case "policy_review_confirmed":
       return i18n.t("timeline.summary.policyReview", {
         version: text(p.version),

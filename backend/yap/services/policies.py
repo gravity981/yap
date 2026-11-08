@@ -22,7 +22,6 @@ from yap.domain.types import (
     SELL_THRESHOLD_MIN,
     TARGET_SUM_TOLERANCE,
     AssetType,
-    ThesisStatus,
 )
 from yap.messages import Message, msg
 from yap.services import reviews
@@ -53,15 +52,6 @@ class PositionSpec:
     rationale_md: str = ""
 
 
-def parse_thesis_status(status: ThesisStatus | str) -> ThesisStatus:
-    try:
-        return ThesisStatus(status)
-    except ValueError:
-        raise ValidationError.single(
-            msg("thesis_status_unknown", status=str(status)), "thesis_status"
-        ) from None
-
-
 def create_policy(
     session: Session,
     actor: Investor,
@@ -70,7 +60,6 @@ def create_policy(
     name: str,
     thesis_title: str | None = None,
     thesis_md: str = "",
-    thesis_status: ThesisStatus | str = ThesisStatus.INTACT,
 ) -> Policy:
     """Creates a policy whose draft v1 holds the given thesis and no positions (POL-01).
     The thesis title defaults to the policy name."""
@@ -89,7 +78,6 @@ def create_policy(
             version_no=1,
             thesis_title=title,
             thesis_md=thesis_md,
-            thesis_status=parse_thesis_status(thesis_status).value,
             updated_at=now,
             created_at=now,
         )
@@ -133,7 +121,6 @@ def create_draft(session: Session, actor: Investor, clock: Clock, policy_id: int
         version_no=latest.version_no + 1,
         thesis_title=latest.thesis_title,
         thesis_md=latest.thesis_md,
-        thesis_status=latest.thesis_status,
         updated_at=clock.now(),
         created_at=clock.now(),
         positions=[
@@ -182,11 +169,10 @@ def validate_position_specs(positions: list[PositionSpec], path: str = "position
 
 @dataclass(frozen=True)
 class ThesisSpec:
-    """The thesis of a draft as entered or imported (THS-01, THS-04)."""
+    """The thesis of a draft as entered or imported (THS-01); it has no status (THS-04)."""
 
     title: str
     content_md: str
-    status: ThesisStatus | str = ThesisStatus.INTACT
 
 
 def update_thesis(
@@ -204,7 +190,6 @@ def update_thesis(
 def _set_thesis(draft: PolicyVersion, thesis: ThesisSpec) -> None:
     draft.thesis_title = require_text(thesis.title, "thesis_title", msg("title_required"))
     draft.thesis_md = thesis.content_md
-    draft.thesis_status = parse_thesis_status(thesis.status).value
 
 
 def update_draft(
@@ -328,7 +313,7 @@ class PositionChange:
 @dataclass
 class VersionDiff:
     positions: list[PositionChange]
-    thesis_changed: bool  # title, text or status
+    thesis_changed: bool  # title or text
     thesis_diff: str  # unified diff of title and text, empty if they are the same
 
 
@@ -366,8 +351,7 @@ def compare_versions(old: PolicyVersion, new: PolicyVersion) -> VersionDiff:
     )
     return VersionDiff(
         positions=changes,
-        thesis_changed=(old.thesis_title, old.thesis_md, old.thesis_status)
-        != (new.thesis_title, new.thesis_md, new.thesis_status),
+        thesis_changed=(old.thesis_title, old.thesis_md) != (new.thesis_title, new.thesis_md),
         thesis_diff="".join(lines),
     )
 

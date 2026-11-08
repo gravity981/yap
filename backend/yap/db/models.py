@@ -254,10 +254,9 @@ class PolicyVersion(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     policy_id: Mapped[int] = mapped_column(ForeignKey("policy.id"))
     version_no: Mapped[int] = mapped_column(Integer)
-    # The thesis of the version (THS-01); the status until the semaphore replaces it
+    # The thesis of the version (THS-01); its semaphore comes from its review (THS-04)
     thesis_title: Mapped[str] = mapped_column(String(200))
     thesis_md: Mapped[str] = mapped_column(Text)
-    thesis_status: Mapped[str] = mapped_column(String(20))
     change_note: Mapped[str | None] = mapped_column(Text)
     activated_at: Mapped[datetime | None]
     updated_at: Mapped[datetime | None]  # last change of a draft (REV-09)
@@ -414,21 +413,25 @@ class RebalanceAction(Base):
 
 
 class Review(Base):
-    """A thesis or policy review of a draft version (REV-01 to REV-12). It is confirmed,
-    and immutable from then on, when its draft is activated (REV-11)."""
+    """A review of a version (REV-01 to REV-12): of the whole policy, or from before stage 2
+    of its thesis or its target structure. It is confirmed, and immutable from then on,
+    when its draft is activated (REV-11)."""
 
     __tablename__ = "review"
     __table_args__ = (UniqueConstraint("policy_version_id", "kind"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    kind: Mapped[str] = mapped_column(String(10))  # thesis | policy
+    kind: Mapped[str] = mapped_column(String(10))  # full; thesis | policy before stage 2
     # The reviewed version; at most one review of each kind (REV-09)
     policy_version_id: Mapped[int] = mapped_column(ForeignKey("policy_version.id"))
     started_by: Mapped[int] = mapped_column(ForeignKey("investor.id"))
     state: Mapped[str] = mapped_column(String(10))  # queued | running | done | failed
-    news_from: Mapped[datetime | None]  # thesis reviews only
+    news_from: Mapped[datetime | None]  # null for policy reviews before stage 2
     news_to: Mapped[datetime | None]
-    verdict: Mapped[str | None] = mapped_column(String(20))  # thesis reviews only
+    # REV-03: good | warning | broken; before scoring version 3 intact | needs_adaptation |
+    # broken (REV-06); null for policy reviews before stage 2
+    verdict: Mapped[str | None] = mapped_column(String(20))
+    verdict_reason: Mapped[str | None] = mapped_column(Text)  # since scoring version 3
     # Investor changes of reviews from before REV-10 was dropped, read-only (JSON: note,
     # verdict, scores per aspect); null for all newer reviews
     legacy_modification: Mapped[str | None] = mapped_column(Text)
@@ -436,11 +439,12 @@ class Review(Base):
     method: Mapped[str] = mapped_column(String(10), default="ai")  # ai | manual (REV-18)
     prompt_id: Mapped[str | None] = mapped_column(String(60))  # REV-19; null before it
     # REV-17: the AI reviewer it runs on, its name at the start, provider and model; a
-    # manual review has the provider "manual" and the model the investor named
+    # manual review has the provider "manual" and no model (before stage 2: the model the
+    # investor named)
     ai_reviewer_id: Mapped[int | None] = mapped_column(ForeignKey("ai_reviewer.id"))
     ai_reviewer_name: Mapped[str | None] = mapped_column(String(100))  # null before 0007
     provider: Mapped[str] = mapped_column(String(20))
-    model: Mapped[str] = mapped_column(String(100))
+    model: Mapped[str | None] = mapped_column(String(100))
     error: Mapped[str | None] = mapped_column(Text)
     started_at: Mapped[datetime]
     completed_at: Mapped[datetime | None]
@@ -484,7 +488,8 @@ class ReviewSuggestion(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     review_id: Mapped[int] = mapped_column(ForeignKey("review.id", ondelete="CASCADE"))
-    kind: Mapped[str] = mapped_column(String(20))  # thesis_text | thesis_status | policy_position
+    # thesis_text | policy_position; thesis_status only in reviews before stage 2
+    kind: Mapped[str] = mapped_column(String(20))
     content_md: Mapped[str] = mapped_column(Text)
 
 

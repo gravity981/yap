@@ -35,23 +35,16 @@ def test_thesis_round_trip(session: Session, factory: Factory) -> None:
         owner,
         factory.clock,
         policy.id,
-        policies.ThesisSpec("Ünïcode title", "# Body\n\n- point", "broken"),
+        policies.ThesisSpec("Ünïcode title", "# Body\n\n- point"),
     )
     text = exporter.thesis(version)
     data = json.loads(text)
     assert data["$schema"] == "thesis.v1.schema.json"
-    assert (data["title"], data["visibility"], data["status"]) == (
-        "Ünïcode title",
-        "private",
-        "broken",
-    )
+    assert (data["title"], data["visibility"]) == ("Ünïcode title", "private")
+    assert "status" not in data  # a thesis has no status (THS-04)
     assert "change_note" not in data  # v1 has none; the field is left out
     imported = importer.import_thesis(session, factory.investor(), factory.clock, text)
-    assert (imported.thesis_title, imported.thesis_md, imported.thesis_status) == (
-        "Ünïcode title",
-        "# Body\n\n- point",
-        "broken",
-    )
+    assert (imported.thesis_title, imported.thesis_md) == ("Ünïcode title", "# Body\n\n- point")
 
 
 @pytest.mark.req("IMP-10")

@@ -43,7 +43,8 @@ live preview next to the editor.
 - Every change is a draft first. Activating it creates a new revision; earlier revisions
   never change, so old reasoning stays traceable.
 - Compare any two revisions side by side.
-- Each thesis has a status: *intact*, *needs adaptation* or *broken*.
+- A thesis has no status of its own: its semaphore (*good*, *warning* or *broken*) is the
+  verdict of its latest review.
 - Share a thesis with the other investors on your server, or keep it private.
 - Import and export theses as JSON files.
 

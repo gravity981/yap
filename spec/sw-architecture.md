@@ -880,7 +880,7 @@ erDiagram
         int id PK
         int investor_id FK
         datetime occurred_at
-        string type "policy_activated, portfolio_assigned, rebalance_confirmed, thesis_review_confirmed, policy_review_confirmed; thesis_revised only before stage 2"
+        string type "policy_activated, portfolio_assigned, rebalance_confirmed, review_confirmed; thesis_review_confirmed, policy_review_confirmed and thesis_revised only before stage 2"
         int portfolio_id FK "nullable"
         int policy_version_id FK "nullable"
         int rebalance_id FK "nullable"

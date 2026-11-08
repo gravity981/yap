@@ -263,7 +263,7 @@ test("[NFR-06] works on a phone-sized screen", async ({ page }) => {
   });
 });
 
-test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draft and confirms it", async ({
+test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-11] [TL-01] reviews a policy draft and confirms it", async ({
   page,
 }) => {
   await login(page, "admin", ADMIN_PASSWORD);
@@ -301,14 +301,17 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draf
     await page.getByRole("button", { name: "New draft" }).click();
     await expect(page.getByRole("heading", { name: "core-v2 (draft)" })).toBeVisible();
   });
-  const review = page.getByRole("region", { name: "Thesis review" });
+  const review = page.getByRole("region", { name: "Review", exact: true });
   await test.step("start the review in the editor and wait for its result", async () => {
     await page.getByRole("tab", { name: "Review", exact: true }).click();
     await expect(review.getByText(/0 of 5 reviews with Standard used this month/)).toBeVisible();
     await review.getByRole("button", { name: "Start review" }).click();
-    await expect(review.getByRole("img", { name: "Total score: 6.5 of 10" })).toBeVisible({
+    // The fake LLM: thesis 6.5, target structure 7.5, the review 7 (REV-02)
+    await expect(review.getByRole("img", { name: "Score: 7.0 of 10" })).toBeVisible({
       timeout: 15_000,
     });
+    await expect(review.getByText("Thesis · 6.5 · Target structure · 7.5")).toBeVisible();
+    await expect(review.getByText("good", { exact: true })).toBeVisible();
     await expect(review.getByText("not confirmed yet")).toBeVisible();
     // The result cannot be changed (REV-10 dropped)
     await expect(review.getByRole("button", { name: "Change result" })).toHaveCount(0);
@@ -318,10 +321,10 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draf
   await test.step("activating the draft confirms the review", async () => {
     await page.getByRole("button", { name: "Activate draft" }).click();
     const dialog = page.getByRole("dialog");
-    // The thesis review is current; the target structure has none yet (REV-11)
-    await expect(dialog.getByRole("alert")).toContainText("This draft has no review");
+    // The review of the whole draft is current, so nothing is pointed out (REV-11)
+    await expect(dialog.getByRole("alert")).toHaveCount(0);
     await dialog.getByLabel("Change note").fill("Reviewed");
-    await dialog.getByRole("button", { name: "Activate anyway" }).click();
+    await dialog.getByRole("button", { name: "Activate", exact: true }).click();
     await expect(page.getByText("active: core-v2")).toBeVisible();
     await expect(review.getByText("confirmed", { exact: true })).toBeVisible();
   });
@@ -330,7 +333,7 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draf
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "Timeline" })
       .click();
-    await expect(page.getByText("Thesis review of core-v2: intact, 6.5 / 10")).toBeVisible();
+    await expect(page.getByText("Review of core-v2: good, 7 / 10")).toBeVisible();
   });
 });
 

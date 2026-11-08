@@ -21,8 +21,6 @@ MESSAGES: dict[str, str] = {
     "answer_field_invalid": "{field}: {error}",
     "answer_prompt_id_unknown": "The answer has no valid prompt ID; copy the prompt again",
     "answer_prompt_id_other_draft": "The answer belongs to the prompt of another draft",
-    "review_model_required": "Name the AI model that wrote the answer",
-    "review_model_too_long": "The model name has at most {max} characters",
     "answer_aspects_wrong": "The answer must score exactly the aspects {aspects}",
     "answer_prompt_id_wrong": "The answer must repeat the prompt ID {prompt_id}",
     "score_invalid": "Score {score} is not between 0 and 10 in steps of 0.5",

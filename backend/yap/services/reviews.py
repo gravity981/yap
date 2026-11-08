@@ -1,8 +1,10 @@
-"""Thesis and policy reviews of policy drafts (REV-01 to REV-19).
+"""Reviews of policy drafts (REV-01 to REV-19).
 
-A review is started on a draft, runs in the background (REV-08) and is confirmed by
-activating the draft (REV-11). Every started run counts towards the monthly limit of its
-AI reviewer (REV-16).
+A review judges the whole draft: its thesis (T1-T6 and the verdict) and its target
+structure (P1-P6). It is started on a draft, runs in the background (REV-08) and is
+confirmed by activating the draft (REV-11). Every started run counts towards the monthly
+limit of its AI reviewer (REV-16). Versions from before stage 2 can have a thesis and a
+policy review instead (ReviewKind.THESIS, ReviewKind.POLICY).
 """
 
 import json
@@ -29,11 +31,14 @@ from yap.db.models import (
 from yap.domain.reviews import (
     SCORING_VERSION,
     ReviewKind,
+    Scores,
+    Verdict,
     aspects_of,
-    total_half_points,
+    scores_of,
+    semaphore,
 )
 from yap.llm import LlmError
-from yap.llm.base import AdapterFactory, LlmRequest, unexpected_detail
+from yap.llm.base import AdapterFactory, unexpected_detail
 from yap.messages import Message, msg
 from yap.services import review_prompts
 from yap.services.ai_reviewers import llm_config
@@ -138,39 +143,57 @@ def _policy_draft(session: Session, actor: Investor, policy_id: int) -> PolicyVe
     return draft
 
 
-def draft_review(session: Session, draft: PolicyVersion, kind: ReviewKind) -> Review | None:
-    """The review of the given kind of a version; at most one each (REV-09)."""
-    return session.scalar(
-        select(Review).where(Review.policy_version_id == draft.id, Review.kind == kind.value)
-    )
+def current_review(version: PolicyVersion) -> Review | None:
+    """The review that gives a version its score and semaphore (REV-21): its review of
+    the whole policy, or for a version from before stage 2 its thesis review, else its
+    policy review. The review log of step 2.6 will replace this choice."""
+    order = (ReviewKind.FULL, ReviewKind.THESIS, ReviewKind.POLICY)
+    found = {r.kind: r for r in version.reviews}
+    return next((found[k] for k in order if k in found), None)
 
 
-def _start(
+def _replace_previous(session: Session, draft: PolicyVersion) -> None:
+    """A draft has at most one review; a new one replaces it, and any reviews it has from
+    before stage 2 (REV-09)."""
+    previous = draft_reviews(session, draft)
+    if any(r.state in UNFINISHED for r in previous):
+        raise ConflictError(msg("review_running"))
+    for review in previous:
+        session.delete(review)
+    session.flush()
+
+
+def _check_news_days(news_days: int) -> None:
+    if not 1 <= news_days <= NEWS_DAYS_MAX:
+        raise ValidationError.single(
+            msg("review_news_days_invalid", max=NEWS_DAYS_MAX), "news_days"
+        )
+
+
+def start_review(
     session: Session,
     actor: Investor,
     clock: Clock,
     keys: KeyBox,
-    kind: ReviewKind,
-    draft: PolicyVersion,
-    news_days: int | None = None,
+    policy_id: int,
+    news_days: int = NEWS_DAYS_DEFAULT,
     reviewer_id: int | None = None,
 ) -> Review:
+    """REV-01, REV-04: a review of the policy draft, with news of the last `news_days`, by
+    the given AI reviewer or the investor's default (USR-08)."""
+    _check_news_days(news_days)
+    draft = _policy_draft(session, actor, policy_id)
     status = usage(session, actor, clock, keys, reviewer_id)
     if status.unavailable_reason:
         raise ConflictError(status.unavailable_reason)
-    previous = draft_review(session, draft, kind)
-    if previous is not None:
-        if previous.state in UNFINISHED:
-            raise ConflictError(msg("review_running"))
-        session.delete(previous)  # a new run replaces the previous one (REV-09)
-        session.flush()
+    _replace_previous(session, draft)
     reviewer = session.get(AiReviewer, status.reviewer_id)
     assert reviewer is not None
     now = clock.now()
     session.add(
         ReviewRun(
             investor_id=actor.id,
-            kind=kind.value,
+            kind=ReviewKind.FULL.value,
             ai_reviewer_id=reviewer.id,
             provider=reviewer.provider,
             model=reviewer.model,
@@ -178,12 +201,12 @@ def _start(
         )
     )
     review = Review(
-        kind=kind.value,
+        kind=ReviewKind.FULL.value,
         policy_version_id=draft.id,
         started_by=actor.id,
         state="queued",
-        news_from=now - timedelta(days=news_days) if news_days else None,
-        news_to=now if news_days else None,
+        news_from=now - timedelta(days=news_days),
+        news_to=now,
         scoring_version=SCORING_VERSION,
         method="ai",
         ai_reviewer_id=reviewer.id,
@@ -197,130 +220,64 @@ def _start(
     return review
 
 
-def _check_news_days(news_days: int) -> None:
-    if not 1 <= news_days <= NEWS_DAYS_MAX:
-        raise ValidationError.single(
-            msg("review_news_days_invalid", max=NEWS_DAYS_MAX), "news_days"
-        )
-
-
-def start_thesis_review(
-    session: Session,
-    actor: Investor,
-    clock: Clock,
-    keys: KeyBox,
-    policy_id: int,
-    news_days: int = NEWS_DAYS_DEFAULT,
-    reviewer_id: int | None = None,
-) -> Review:
-    """REV-01, REV-04: a review of the thesis of the policy draft, with news of the last
-    `news_days`,
-    by the given AI reviewer or the investor's default (USR-08)."""
-    _check_news_days(news_days)
-    draft = _policy_draft(session, actor, policy_id)
-    return _start(session, actor, clock, keys, ReviewKind.THESIS, draft, news_days, reviewer_id)
-
-
-def start_policy_review(
-    session: Session,
-    actor: Investor,
-    clock: Clock,
-    keys: KeyBox,
-    policy_id: int,
-    reviewer_id: int | None = None,
-) -> Review:
-    """REV-01, REV-05: a review of the policy draft against its pinned thesis revision."""
-    draft = _policy_draft(session, actor, policy_id)
-    return _start(session, actor, clock, keys, ReviewKind.POLICY, draft, None, reviewer_id)
-
-
 # --- Prompt for a manual review (REV-19) -----------------------------------------------
 
 
-def thesis_review_prompt(
+def review_prompt(
     session: Session,
     actor: Investor,
     clock: Clock,
     policy_id: int,
     news_days: int = NEWS_DAYS_DEFAULT,
 ) -> review_prompts.ReviewPrompt:
-    """The review prompt of the thesis draft as it is saved now, the same an AI reviewer
+    """The review prompt of the policy draft as it is saved now, the same an AI reviewer
     would receive. Making it changes nothing; it counts towards no limit (REV-16)."""
     _check_news_days(news_days)
     draft = _policy_draft(session, actor, policy_id)
-    ref = review_prompts.PromptRef(ReviewKind.THESIS, draft.id, clock.now(), news_days)
-    return _prompt(session, ref)
-
-
-def policy_review_prompt(
-    session: Session, actor: Investor, clock: Clock, policy_id: int
-) -> review_prompts.ReviewPrompt:
-    """The review prompt of the policy draft as it is saved now (REV-05, REV-19)."""
-    draft = _policy_draft(session, actor, policy_id)
-    ref = review_prompts.PromptRef(ReviewKind.POLICY, draft.id, clock.now(), 0)
-    return _prompt(session, ref)
+    return review_prompts.review_prompt(
+        draft, review_prompts.PromptRef(draft.id, clock.now(), news_days)
+    )
 
 
 # --- Manual review (REV-18) ------------------------------------------------------------
 
-MODEL_MAX = 100
 
-
-def _submit_manual(
-    session: Session,
-    actor: Investor,
-    clock: Clock,
-    kind: ReviewKind,
-    draft: PolicyVersion,
-    answer: str,
-    model: str,
+def submit_manual_review(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, answer: str
 ) -> Review:
-    """Stores the answer of an AI outside the app as the review of the draft. It is made
+    """REV-18: stores the answer of an AI outside the app as the review of the policy
+    draft; it counts towards no limit (REV-16) and names no model (REV-17). It is made
     when its prompt was copied, so a later change of the draft makes it outdated (REV-09).
     Every problem of the answer is reported at once."""
-    problems: list[tuple[str, Message]] = []
-    model = " ".join(model.split())
-    if not model:
-        problems.append(("model", msg("review_model_required")))
-    elif len(model) > MODEL_MAX:
-        problems.append(("model", msg("review_model_too_long", max=MODEL_MAX)))
+    draft = _policy_draft(session, actor, policy_id)
     prompt_id = review_prompts.answer_prompt_id(answer)
     ref = review_prompts.parse_prompt_id(prompt_id) if prompt_id else None
-    parsed = None
+    with_positions = bool(draft.positions)
     if ref is None:
-        _, format_problems = review_prompts.check_answer(kind, answer, "")
-        id_problem = msg("answer_prompt_id_unknown")
-        answer_problems = [
-            id_problem,
+        _, format_problems = review_prompts.check_answer(answer, "", with_positions)
+        problems = [
+            msg("answer_prompt_id_unknown"),
             *(p for p in format_problems if p.code != "answer_prompt_id_wrong"),
         ]
-        problems.extend(("answer", p) for p in answer_problems)
-    elif ref.kind != kind or ref.draft_id != draft.id:
-        problems.append(("answer", msg("answer_prompt_id_other_draft")))
-    else:
-        parsed, answer_problems = review_prompts.check_answer(kind, answer, ref.prompt_id)
-        problems.extend(("answer", p) for p in answer_problems)
-    if problems:
-        raise ValidationError(problems)
-    assert ref is not None and parsed is not None
-    previous = draft_review(session, draft, kind)
-    if previous is not None:
-        if previous.state in UNFINISHED:
-            raise ConflictError(msg("review_running"))
-        session.delete(previous)  # replaces the previous review (REV-09)
-        session.flush()
+        raise ValidationError([("answer", p) for p in problems])
+    if ref.version_id != draft.id:
+        raise ValidationError.single(msg("answer_prompt_id_other_draft"), "answer")
+    parsed, problems = review_prompts.check_answer(answer, ref.prompt_id, with_positions)
+    if parsed is None:
+        raise ValidationError([("answer", p) for p in problems])
+    _replace_previous(session, draft)
     review = Review(
-        kind=kind.value,
+        kind=ReviewKind.FULL.value,
         policy_version_id=draft.id,
         started_by=actor.id,
         state="done",
-        news_from=ref.issued_at - timedelta(days=ref.news_days) if ref.news_days else None,
-        news_to=ref.issued_at if ref.news_days else None,
+        news_from=ref.issued_at - timedelta(days=ref.news_days),
+        news_to=ref.issued_at,
         scoring_version=SCORING_VERSION,
         method="manual",
         prompt_id=ref.prompt_id,
         provider="manual",
-        model=model,
+        model=None,
         started_at=ref.issued_at,
         completed_at=clock.now(),
     )
@@ -328,23 +285,6 @@ def _submit_manual(
     session.add(review)
     session.flush()
     return review
-
-
-def submit_manual_thesis_review(
-    session: Session, actor: Investor, clock: Clock, policy_id: int, answer: str, model: str
-) -> Review:
-    """REV-18: a manual review of the thesis of the policy draft; counts towards no limit
-    (REV-16)."""
-    draft = _policy_draft(session, actor, policy_id)
-    return _submit_manual(session, actor, clock, ReviewKind.THESIS, draft, answer, model)
-
-
-def submit_manual_policy_review(
-    session: Session, actor: Investor, clock: Clock, policy_id: int, answer: str, model: str
-) -> Review:
-    """REV-18: a manual review of the policy draft; counts towards no limit (REV-16)."""
-    draft = _policy_draft(session, actor, policy_id)
-    return _submit_manual(session, actor, clock, ReviewKind.POLICY, draft, answer, model)
 
 
 # --- Run (background job, REV-08) ------------------------------------------------------
@@ -373,7 +313,7 @@ def run_review(
             if reason is not None:
                 raise ConflictError(reason)
             config = llm_config(reviewer, keys)
-            request, prompt_id = _request(session, review)
+            prompt = _prompt(session, review)
         except ConflictError as e:
             _fail(review, clock, str(e))
             session.commit()
@@ -381,8 +321,8 @@ def run_review(
         session.commit()
 
     try:
-        answer = adapters(config).generate(request)
-        parsed = review_prompts.parse_answer(ReviewKind(review.kind), answer, prompt_id)
+        answer = adapters(config).generate(prompt.llm_request())
+        parsed = review_prompts.parse_answer(answer, prompt.prompt_id, prompt.with_positions)
         error = None
     except LlmError as e:
         error = str(e)
@@ -404,32 +344,14 @@ def run_review(
         session.commit()
 
 
-def _prompt_ref(review: Review) -> review_prompts.PromptRef:
-    """The prompt of an AI review is made when the review starts."""
-    if review.kind == ReviewKind.THESIS:
-        assert review.news_from and review.news_to
-        return review_prompts.PromptRef(
-            ReviewKind.THESIS,
-            review.policy_version_id,
-            review.started_at,
-            (review.news_to - review.news_from).days,
-        )
-    return review_prompts.PromptRef(
-        ReviewKind.POLICY, review.policy_version_id, review.started_at, 0
+def _prompt(session: Session, review: Review) -> review_prompts.ReviewPrompt:
+    """The prompt of an AI review is made from the draft as it is when the run starts."""
+    assert review.news_from and review.news_to
+    version = draft_of(session, review)
+    ref = review_prompts.PromptRef(
+        version.id, review.started_at, (review.news_to - review.news_from).days
     )
-
-
-def _prompt(session: Session, ref: review_prompts.PromptRef) -> review_prompts.ReviewPrompt:
-    version = session.get(PolicyVersion, ref.draft_id)
-    assert version is not None
-    if ref.kind == ReviewKind.THESIS:
-        return review_prompts.thesis_prompt(version, ref)
-    return review_prompts.policy_prompt(version, ref)
-
-
-def _request(session: Session, review: Review) -> tuple[LlmRequest, str]:
-    prompt = _prompt(session, _prompt_ref(review))
-    return prompt.llm_request(), prompt.prompt_id
+    return review_prompts.review_prompt(version, ref)
 
 
 def _fail(review: Review, clock: Clock, error: str) -> None:
@@ -439,7 +361,8 @@ def _fail(review: Review, clock: Clock, error: str) -> None:
 
 
 def _store(review: Review, parsed: review_prompts.ParsedReview) -> None:
-    review.verdict = parsed.verdict.value if parsed.verdict else None
+    review.verdict = parsed.verdict.value
+    review.verdict_reason = parsed.verdict_reason
     review.aspects = [
         ReviewAspect(aspect=a.code, half_points=a.half_points, reasoning_md=a.reasoning)
         for a in parsed.aspects
@@ -506,11 +429,21 @@ def get_review(session: Session, actor: Investor, review_id: int) -> Review:
     raise NotFoundError(msg("review_not_found", id=review_id))
 
 
+def scores(review: Review) -> Scores:
+    """The thesis, target-structure and review scores in half points (REV-02)."""
+    return scores_of({a.aspect: a.half_points for a in review.aspects})
+
+
 def total(review: Review) -> int | None:
-    """The total score in half points (REV-02), None without aspects."""
-    if not review.aspects:
+    """The review's score in half points (REV-02), None without aspects."""
+    return scores(review).total
+
+
+def review_semaphore(review: Review | None) -> Verdict | None:
+    """The semaphore a finished review gives its version (THS-04, REV-03, REV-06)."""
+    if review is None or review.state != "done":
         return None
-    return total_half_points([a.half_points for a in review.aspects])
+    return semaphore(review.verdict)
 
 
 @dataclass(frozen=True)
@@ -534,7 +467,7 @@ def legacy_modification(review: Review) -> LegacyModification | None:
 
 
 def aspect_names(kind: str, scoring_version: str) -> dict[str, str]:
-    return {a.code: a.name for a in aspects_of(ReviewKind(kind), scoring_version)}
+    return {a.code: a.name for a in aspects_of(kind, scoring_version)}
 
 
 # --- Draft lifecycle (REV-11) ----------------------------------------------------------
@@ -578,8 +511,10 @@ def confirm_with_draft(
         params = {**_summary_params(review), "version": draft.label}
         if review.kind == ReviewKind.THESIS:
             event, text = EventType.THESIS_REVIEW_CONFIRMED, f"Thesis review of {draft.label}"
-        else:
+        elif review.kind == ReviewKind.POLICY:
             event, text = EventType.POLICY_REVIEW_CONFIRMED, f"Policy review of {draft.label}"
+        else:
+            event, text = EventType.REVIEW_CONFIRMED, f"Review of {draft.label}"
         add_event(
             session,
             owner_id,
@@ -595,17 +530,19 @@ def confirm_with_draft(
 def _summary_params(review: Review) -> dict[str, Any]:
     """The values of _summary for the timeline in the UI's language (TL-02, NFR-10)."""
     half_points = total(review)
+    verdict = semaphore(review.verdict)
     return {
-        "verdict": review.verdict,
+        "verdict": verdict.value if verdict else None,
         "total": half_points / 2 if half_points is not None else None,
     }
 
 
 def _summary(review: Review) -> str:
-    """TL-02, e.g. 'needs adaptation, 6.5 / 10'."""
+    """TL-02, e.g. 'warning, 6.5 / 10'."""
     parts = []
-    if review.verdict:
-        parts.append(review.verdict.replace("_", " "))
+    verdict = semaphore(review.verdict)
+    if verdict:
+        parts.append(verdict.value)
     half_points = total(review)
     if half_points is not None:
         parts.append(f"{half_points / 2:g} / 10")

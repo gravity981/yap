@@ -10,22 +10,27 @@ const version = (n: number, extra: Record<string, unknown> = {}) => ({
   version_no: n,
   label: `core-v${n}`,
   thesis_title: "Core thesis",
-  thesis_status: "intact",
   change_note: n === 1 ? null : `change ${n}`,
   is_draft: false,
   active_from: `2026-0${n}-01T10:00:00+00:00`,
   active_until: n === 1 ? "2026-02-01T10:00:00+00:00" : null,
-  thesis_review: null,
   review: null,
+  reviews: [],
   ...extra,
 });
 
+/** A version's review, which also is its only one (REV-21). */
+const reviewed = (b: unknown) => ({ review: b, reviews: b ? [b] : [] });
+
 const brief = (id: number, total: number, extra: Record<string, unknown> = {}) => ({
   id,
+  kind: "full",
   state: "done",
   total,
-  verdict: "intact",
-  scoring_version: "2",
+  thesis_score: total,
+  structure_score: total,
+  semaphore: "good",
+  scoring_version: "3",
   method: "ai",
   model: "claude-x",
   ai_reviewer_name: "Standard",
@@ -42,6 +47,7 @@ const NAMES = [
   "Current evidence",
 ];
 const NAMES_V1 = ["Core claim", "Value drivers", "Risks", "Break conditions", "Fit", "Evidence"];
+const P_NAMES = ["Coverage", "Weighting", "Bands", "Exits", "Concentration", "Rationales"];
 
 const aspect = (n: number, score: number, extra: Record<string, unknown> = {}) => ({
   code: `T${n}`,
@@ -51,24 +57,39 @@ const aspect = (n: number, score: number, extra: Record<string, unknown> = {}) =
   ...extra,
 });
 
+const pAspect = (n: number, score: number) => ({
+  code: `P${n}`,
+  name: P_NAMES[n - 1],
+  score,
+  reasoning_md: `Structure reasoning ${n}`,
+});
+
 const review = (extra: Record<string, unknown> = {}) => ({
   id: 30,
-  kind: "thesis",
+  kind: "full",
   state: "done",
   error: null,
   policy_version_id: 203,
   provider: "anthropic",
   model: "claude-x",
-  scoring_version: "2",
+  ai_reviewer_name: null,
+  scoring_version: "3",
   method: "ai",
   prompt_id: null,
   news_from: "2025-12-01T10:00:00+00:00",
   news_to: "2026-03-01T10:00:00+00:00",
   started_at: "2026-03-01T10:00:00+00:00",
   completed_at: "2026-03-01T10:05:00+00:00",
-  aspects: [7, 6, 8, 5, 7, 6.5].map((s, i) => aspect(i + 1, s)),
-  total: 6.5,
-  verdict: "needs_adaptation",
+  aspects: [
+    ...[7, 6, 8, 5, 7, 6.5].map((s, i) => aspect(i + 1, s)),
+    ...[8, 7, 6, 9, 7.5, 8].map((s, i) => pAspect(i + 1, s)),
+  ],
+  total: 7,
+  thesis_score: 6.5,
+  structure_score: 7.5,
+  semaphore: "warning",
+  verdict: "warning",
+  verdict_reason: "Two warning signals are observed [1].",
   legacy_modification: null,
   outdated: false,
   confirmed: false,
@@ -122,23 +143,30 @@ const usageOf: Handler = (request) => {
 };
 
 function policy(draftReview: unknown = null) {
-  const v1Review = brief(10, 6, { scoring_version: "1", method: "manual", model: "GPT 5" });
+  // REV-06: a thesis review from before stage 2, with an old verdict mapped to its semaphore
+  const v1Review = brief(10, 6, {
+    kind: "thesis",
+    scoring_version: "1",
+    method: "manual",
+    model: "GPT 5",
+    structure_score: null,
+  });
   return {
     id: 7,
     name: "core",
     archived_at: null,
     created_at: "2026-01-01T10:00:00+00:00",
     portfolios: [],
-    thesis_warning: false,
-    thesis_status: "intact",
+    thesis_warning: true,
+    semaphore: "warning",
     versions: [
-      version(1, { thesis_review: v1Review }),
-      version(2, { thesis_review: brief(20, 7.5, { verdict: "needs_adaptation" }) }),
+      version(1, reviewed(v1Review)),
+      version(2, reviewed(brief(20, 7.5, { semaphore: "warning" }))),
       version(3, {
         is_draft: true,
         active_from: null,
         change_note: null,
-        thesis_review: draftReview,
+        ...reviewed(draftReview),
       }),
     ],
   };
@@ -174,7 +202,7 @@ async function draftOnPage() {
 async function openPane() {
   renderApp("/policies/7/draft");
   await userEvent.click(await screen.findByRole("tab", { name: "Review" }));
-  return screen.findByRole("region", { name: "Thesis review" });
+  return screen.findByRole("region", { name: "Review" });
 }
 
 describe("reviews", () => {
@@ -184,19 +212,21 @@ describe("reviews", () => {
     expect(stars.querySelectorAll("svg")).toHaveLength(11); // 10 stars + one half overlay
   });
 
-  it("[REV-01] [REV-04] [REV-16] [NFR-01] [NFR-15] starts a thesis review of the draft with a news period", async () => {
+  it("[REV-01] [REV-04] [REV-05] [REV-16] [NFR-01] [NFR-15] starts one review of the whole draft with a news period", async () => {
     const calls = setup({
-      "POST /api/policies/7/draft/thesis-review": () =>
+      "POST /api/policies/7/draft/review": () =>
         json(review({ state: "queued", aspects: [] }), 202),
     });
     const section = await openPane();
-    expect(within(section).getByText(/has no review yet; it needs one/)).toBeInTheDocument();
+    expect(within(section).getByText(/Not reviewed yet. You can activate/)).toBeInTheDocument();
     expect(
       await within(section).findByText(/1 of 3 reviews with Standard used this month/),
     ).toBeInTheDocument();
     // NFR-01: says what is sent before anything is sent
     expect(
-      within(section).getByText(/the thesis text is sent to the provider of your AI reviewer/),
+      within(section).getByText(
+        /the title, the thesis text and the target structure .* are sent to the provider of your AI reviewer/,
+      ),
     ).toHaveTextContent(/No amounts, portfolios or personal data are sent/);
     const days = within(section).getByLabelText("News of the last … days");
     expect(days).toHaveValue(90);
@@ -204,7 +234,7 @@ describe("reviews", () => {
     await userEvent.type(days, "30");
     await userEvent.click(within(section).getByRole("button", { name: "Start review" }));
     await waitFor(() =>
-      expect(calls.find((c) => c.path === "/api/policies/7/draft/thesis-review")?.body).toEqual({
+      expect(calls.find((c) => c.path === "/api/policies/7/draft/review")?.body).toEqual({
         ai_reviewer_id: 1,
         news_days: 30,
       }),
@@ -212,14 +242,14 @@ describe("reviews", () => {
     // The draft is saved first, so the review sees what is in the editor
     const order = calls.map((c) => `${c.method} ${c.path}`);
     expect(order.indexOf("PUT /api/policies/7/draft")).toBeLessThan(
-      order.indexOf("POST /api/policies/7/draft/thesis-review"),
+      order.indexOf("POST /api/policies/7/draft/review"),
     );
     expect(within(section).queryByRole("button", { name: "Copy review prompt" })).toBeNull();
   });
 
   it("[USR-08] [REV-16] chooses another AI reviewer than the default for one review", async () => {
     const calls = setup({
-      "POST /api/policies/7/draft/thesis-review": () =>
+      "POST /api/policies/7/draft/review": () =>
         json(review({ state: "queued", aspects: [] }), 202),
     });
     const section = await openPane();
@@ -233,7 +263,7 @@ describe("reviews", () => {
     expect(within(section).getByText("Thorough, slower")).toBeInTheDocument();
     await userEvent.click(within(section).getByRole("button", { name: "Start review" }));
     await waitFor(() =>
-      expect(calls.find((c) => c.path === "/api/policies/7/draft/thesis-review")?.body).toEqual({
+      expect(calls.find((c) => c.path === "/api/policies/7/draft/review")?.body).toEqual({
         ai_reviewer_id: 2,
         news_days: 90,
       }),
@@ -281,15 +311,22 @@ describe("reviews", () => {
   });
 
   it("[REV-02] [REV-03] [REV-04] [REV-07] [REV-17] [NFR-15] shows the result of a draft review", async () => {
-    setup({}, brief(30, 6.5));
+    setup({}, brief(30, 7));
     await draftOnPage();
-    const section = await screen.findByRole("region", { name: "Thesis review" });
+    const section = await screen.findByRole("region", { name: "Review" });
     expect(
-      await within(section).findByRole("img", { name: "Total score: 6.5 of 10" }),
+      await within(section).findByRole("img", { name: "Score: 7.0 of 10" }),
     ).toBeInTheDocument();
-    expect(within(section).getByText("needs adaptation")).toBeInTheDocument();
+    // REV-02: the thesis and target-structure scores, the aspects grouped by both
+    expect(within(section).getByText("Thesis · 6.5 · Target structure · 7.5")).toBeInTheDocument();
+    expect(within(section).getByRole("heading", { name: "Thesis" })).toBeInTheDocument();
+    expect(within(section).getByRole("heading", { name: "Target structure" })).toBeInTheDocument();
+    expect(within(section).getByRole("img", { name: "Bands: 6.0 of 10" })).toBeInTheDocument();
+    // REV-03: the semaphore with the reason for the verdict
+    expect(within(section).getByText("warning")).toBeInTheDocument();
+    expect(within(section).getByText(/Two warning signals are observed/)).toBeInTheDocument();
     expect(within(section).getByText("not confirmed yet")).toBeInTheDocument();
-    expect(within(section).getByText(/anthropic claude-x · scoring v2/)).toBeInTheDocument();
+    expect(within(section).getByText(/anthropic claude-x · scoring v3/)).toBeInTheDocument();
     expect(within(section).getByRole("img", { name: "Belief: 7.0 of 10" })).toBeInTheDocument();
     expect(within(section).getByRole("link", { name: "ETF inflows rise" })).toHaveAttribute(
       "href",
@@ -308,27 +345,33 @@ describe("reviews", () => {
         "GET /api/reviews/30": () =>
           json(
             review({
+              kind: "thesis",
               confirmed: true,
               scoring_version: "1",
               aspects: [7, 6, 8, 5, 7, 6.5].map((s, i) => aspect(i + 1, s, { name: NAMES_V1[i] })),
+              total: 6.5,
+              thesis_score: 6.5,
+              structure_score: null,
+              verdict: "needs_adaptation",
+              verdict_reason: null,
               legacy_modification: { note: "Too strict", verdict: "intact", scores: { T1: 9 } },
             }),
           ),
       },
-      brief(30, 6.5),
+      brief(30, 6.5, { kind: "thesis" }),
     );
     await draftOnPage();
     const section = await screen.findByRole("region", { name: "Thesis review" });
     expect(
       await within(section).findByText(/You changed this result when reviews could still/),
     ).toBeInTheDocument();
-    expect(within(section).getByText("Your verdict: intact")).toBeInTheDocument();
+    // REV-06: old verdicts are shown as semaphores
+    expect(within(section).getByText("Your verdict: good")).toBeInTheDocument();
+    expect(within(section).getByText("warning")).toBeInTheDocument();
     expect(within(section).getByText("T1 Core claim: 9.0")).toBeInTheDocument();
     expect(within(section).getByText("Why: Too strict")).toBeInTheDocument();
     // The AI's values are the result
-    expect(
-      within(section).getByRole("img", { name: "Total score: 6.5 of 10" }),
-    ).toBeInTheDocument();
+    expect(within(section).getByRole("img", { name: "Score: 6.5 of 10" })).toBeInTheDocument();
     expect(
       within(section).queryByRole("button", { name: "Change result" }),
     ).not.toBeInTheDocument();
@@ -342,6 +385,7 @@ describe("reviews", () => {
           "GET /api/reviews/30": () =>
             json(
               review({
+                kind: "thesis",
                 scoring_version: version,
                 aspects: [7, 6, 8, 5, 7, 6.5].map((s, i) =>
                   aspect(i + 1, s, { name: (version === "1" ? NAMES_V1 : NAMES)[i] }),
@@ -349,7 +393,7 @@ describe("reviews", () => {
               }),
             ),
         },
-        brief(30, 6.5, { scoring_version: version }),
+        brief(30, 6.5, { kind: "thesis", scoring_version: version }),
       );
       return draftOnPage();
     };
@@ -365,18 +409,25 @@ describe("reviews", () => {
     expect(await within(old).findByText("T1 Kernaussage")).toBeInTheDocument();
   });
 
-  it("[REV-17] [REV-18] names the model of a manual review", async () => {
-    setup(
-      {
-        "GET /api/reviews/30": () =>
-          json(review({ method: "manual", provider: "manual", model: "ChatGPT 5" })),
-      },
-      brief(30, 6.5),
-    );
-    await draftOnPage();
-    const section = await screen.findByRole("region", { name: "Thesis review" });
+  it("[REV-17] [REV-18] shows a manual review without a model, older ones with theirs", async () => {
+    const show = (extra: Record<string, unknown>) => {
+      setup(
+        {
+          "GET /api/reviews/30": () =>
+            json(review({ method: "manual", provider: "manual", ...extra })),
+        },
+        brief(30, 7),
+      );
+      return draftOnPage();
+    };
+    const current = await show({ model: null });
+    const section = await screen.findByRole("region", { name: "Review" });
+    expect(await within(section).findByText(/manual review · scoring v3/)).toBeInTheDocument();
+    current.unmount();
+    await show({ model: "ChatGPT 5", scoring_version: "2" });
+    const old = await screen.findByRole("region", { name: "Review" });
     expect(
-      await within(section).findByText(/manual review with ChatGPT 5 · scoring v2/),
+      await within(old).findByText(/manual review with ChatGPT 5 · scoring v2/),
     ).toBeInTheDocument();
   });
 
@@ -397,14 +448,14 @@ describe("reviews", () => {
   it("[REV-18] [REV-19] [NFR-01] reviews manually: copy the prompt, paste the answer", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
-    const manual = review({ method: "manual", provider: "manual", model: "ChatGPT 5" });
+    const manual = review({ method: "manual", provider: "manual", model: null });
     let draftReview: unknown = null;
     const calls = setup({
       "GET /api/policies/7": () => json(policy(draftReview)),
-      "GET /api/policies/7/draft/thesis-review-prompt": () =>
-        json({ prompt_id: "T103-20260301T100000Z-30-abcdef", text: "THE PROMPT" }),
-      "POST /api/policies/7/draft/thesis-review/manual": () => {
-        draftReview = brief(30, 6.5);
+      "GET /api/policies/7/draft/review-prompt": () =>
+        json({ prompt_id: "R203-20260301T100000Z-30-abcdef", text: "THE PROMPT" }),
+      "POST /api/policies/7/draft/review/manual": () => {
+        draftReview = brief(30, 7);
         return json(manual, 201);
       },
       "GET /api/reviews/30": () => json(manual),
@@ -413,7 +464,9 @@ describe("reviews", () => {
     await userEvent.selectOptions(within(section).getByLabelText("Review method"), "manual");
     // REV-19: what the prompt contains, before it is copied; no AI reviewer is used
     expect(
-      within(section).getByText(/The prompt contains the review instructions and the thesis text/),
+      within(section).getByText(
+        /The prompt contains the review instructions, the title, the thesis text and the target structure/,
+      ),
     ).toBeInTheDocument();
     expect(within(section).queryByRole("button", { name: "Start review" })).toBeNull();
     const days = within(section).getByLabelText("News of the last … days");
@@ -424,29 +477,25 @@ describe("reviews", () => {
     expect(await within(section).findByRole("status")).toHaveTextContent(/Copied/);
     const order = calls.map((c) => `${c.method} ${c.path}`);
     expect(order.indexOf("PUT /api/policies/7/draft")).toBeLessThan(
-      order.indexOf("GET /api/policies/7/draft/thesis-review-prompt?news_days=30"),
+      order.indexOf("GET /api/policies/7/draft/review-prompt?news_days=30"),
     );
-    await userEvent.type(within(section).getByLabelText("AI model used"), "ChatGPT 5");
-    fireEvent.change(within(section).getByLabelText("Answer of the AI"), {
-      target: { value: '{"prompt_id": "T103-20260301T100000Z-30-abcdef"}' },
+    // REV-17: no model is asked for
+    expect(within(section).queryByLabelText("AI model used")).toBeNull();
+    fireEvent.change(within(section).getByLabelText("Paste its whole answer"), {
+      target: { value: '{"prompt_id": "R203-20260301T100000Z-30-abcdef"}' },
     });
     await userEvent.click(within(section).getByRole("button", { name: "Save review" }));
     await waitFor(() =>
-      expect(
-        calls.find((c) => c.path === "/api/policies/7/draft/thesis-review/manual")?.body,
-      ).toEqual({
-        answer: '{"prompt_id": "T103-20260301T100000Z-30-abcdef"}',
-        model: "ChatGPT 5",
+      expect(calls.find((c) => c.path === "/api/policies/7/draft/review/manual")?.body).toEqual({
+        answer: '{"prompt_id": "R203-20260301T100000Z-30-abcdef"}',
       }),
     );
-    expect(
-      await screen.findByText(/manual review with ChatGPT 5 · scoring v2/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/manual review · scoring v3/)).toBeInTheDocument();
   });
 
   it("[REV-18] lists every problem of a pasted answer", async () => {
     const calls = setup({
-      "POST /api/policies/7/draft/thesis-review/manual": () =>
+      "POST /api/policies/7/draft/review/manual": () =>
         json(
           {
             detail: "invalid",
@@ -469,8 +518,7 @@ describe("reviews", () => {
     });
     const section = await openPane();
     await userEvent.selectOptions(within(section).getByLabelText("Review method"), "manual");
-    await userEvent.type(within(section).getByLabelText("AI model used"), "GPT");
-    await userEvent.type(within(section).getByLabelText("Answer of the AI"), "nonsense");
+    await userEvent.type(within(section).getByLabelText("Paste its whole answer"), "nonsense");
     await userEvent.click(within(section).getByRole("button", { name: "Save review" }));
     expect(calls.some((c) => c.method === "PUT")).toBe(false); // the editor stays open
     expect(await within(section).findByText("The answer cannot be used:")).toBeInTheDocument();
@@ -484,8 +532,8 @@ describe("reviews", () => {
       clipboard: { writeText: () => Promise.reject(new Error("not allowed")) },
     });
     setup({
-      "GET /api/policies/7/draft/thesis-review-prompt": () =>
-        json({ prompt_id: "T1-20260301T100000Z-90-abcdef", text: "THE PROMPT" }),
+      "GET /api/policies/7/draft/review-prompt": () =>
+        json({ prompt_id: "R1-20260301T100000Z-90-abcdef", text: "THE PROMPT" }),
     });
     const section = await openPane();
     await userEvent.selectOptions(within(section).getByLabelText("Review method"), "manual");
@@ -526,7 +574,7 @@ describe("reviews", () => {
       "href",
       "/policies/7/draft",
     );
-    const section = screen.getByRole("region", { name: "Thesis review" });
+    const section = screen.getByRole("region", { name: "Review" });
     expect(within(section).queryByRole("button")).toBeNull();
   });
 
@@ -534,25 +582,27 @@ describe("reviews", () => {
     setup({ "GET /api/reviews/20": () => json(review({ id: 20, confirmed: true })) });
     renderApp("/policies/7");
     await userEvent.click(await screen.findByRole("tab", { name: "Versions" }));
-    const course = screen.getByRole("figure", { name: "Thesis review score over the versions" });
+    const course = screen.getByRole("figure", { name: "Review score over the versions" });
     expect(within(course).getByRole("img", { name: "core-v1: 6.0 of 10" })).toBeInTheDocument();
     expect(within(course).getByRole("img", { name: "core-v2: 7.5 of 10" })).toBeInTheDocument();
-    // REV-06: v1 was scored with scoring version 1, v2 with scoring version 2
-    expect(within(course).getByTestId("version-change")).toHaveTextContent("v2");
+    // REV-06: v1 was scored with scoring version 1, v2 with scoring version 3
+    expect(within(course).getByTestId("version-change")).toHaveTextContent("v3");
     expect(
       within(course).getByText(/scores before and after are not directly comparable/),
     ).toBeInTheDocument();
     const second = screen.getByText("core-v2").closest("li")!;
     expect(within(second).getByRole("img", { name: "Review: 7.5 of 10" })).toBeInTheDocument();
-    expect(within(second).getByText("needs adaptation")).toBeInTheDocument();
+    expect(within(second).getByText("warning")).toBeInTheDocument();
     // REV-17: who made each review
     expect(within(second).getByText("Standard (claude-x)")).toBeInTheDocument();
     const first = screen.getByText("core-v1").closest("li")!;
     expect(within(first).getByText("manual review with GPT 5")).toBeInTheDocument();
+    expect(within(first).getByText("Thesis review:")).toBeInTheDocument();
+    expect(within(first).getByText("good")).toBeInTheDocument();
     // An activated version's review cannot be changed or run again
     await userEvent.click(screen.getByRole("tab", { name: "Thesis" }));
     await userEvent.selectOptions(await screen.findByLabelText("Version"), "2");
-    const section = await screen.findByRole("region", { name: "Thesis review" });
+    const section = await screen.findByRole("region", { name: "Review" });
     expect(await within(section).findByText("confirmed")).toBeInTheDocument();
     expect(within(section).queryByRole("button")).not.toBeInTheDocument();
   });

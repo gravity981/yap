@@ -12,6 +12,7 @@ export const EVENT_TYPES = [
   "rebalance_confirmed",
   "thesis_review_confirmed",
   "policy_review_confirmed",
+  "review_confirmed",
   "thesis_revised",
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];

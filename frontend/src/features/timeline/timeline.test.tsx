@@ -37,7 +37,7 @@ const policies = [
     active_version_label: "core-v2",
     has_draft: false,
     thesis_warning: false,
-    thesis_status: "intact",
+    semaphore: "good",
   },
   {
     id: 4,
@@ -46,7 +46,7 @@ const policies = [
     active_version_label: "growth-v1",
     has_draft: false,
     thesis_warning: true,
-    thesis_status: "needs_adaptation",
+    semaphore: "warning",
   },
 ];
 
@@ -177,7 +177,11 @@ describe("timeline", () => {
             aspect(6, 7),
           ],
           total: 6.5,
+          thesis_score: 6.5,
+          structure_score: null,
+          semaphore: "good",
           verdict: "intact",
+          verdict_reason: null,
           scoring_version: "2",
           method: "manual",
           model: "Gemini 3",
@@ -188,22 +192,64 @@ describe("timeline", () => {
     });
     renderApp("/timeline");
     await userEvent.click(await screen.findByText(/Thesis review of core-v2/));
-    expect(await screen.findByRole("img", { name: "Total score: 6.5 of 10" })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Score: 6.5 of 10" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Aspect 1: 7.0 of 10" })).toBeInTheDocument();
     expect(screen.getByText("manual review with Gemini 3")).toBeInTheDocument(); // REV-17
+    expect(screen.getByText("good")).toBeInTheDocument(); // REV-06: intact
     expect(await screen.findByRole("link", { name: "core-v2" })).toHaveAttribute(
       "href",
       "/policies/3",
     );
   });
 
-  it("[CMP-09] [POL-11] shows portfolios, warnings and recent events on the dashboard", async () => {
+  it("[TL-02] [REV-02] [REV-17] opens the result of a confirmed review of the whole policy", async () => {
+    setup({
+      "GET /api/timeline": () =>
+        json([
+          event(6, "review_confirmed", "Review of core-v3: warning, 7 / 10", {
+            review_id: 31,
+            policy_version_id: 202,
+            params: { version: "core-v3", verdict: "warning", total: 7 },
+          }),
+        ]),
+      "GET /api/reviews/31": () =>
+        json({
+          id: 31,
+          kind: "full",
+          state: "done",
+          aspects: [
+            { code: "T1", name: "Belief", score: 6.5, reasoning_md: "" },
+            { code: "P1", name: "Coverage", score: 7.5, reasoning_md: "" },
+          ],
+          total: 7,
+          thesis_score: 6.5,
+          structure_score: 7.5,
+          semaphore: "warning",
+          verdict: "warning",
+          verdict_reason: "Warning signals",
+          scoring_version: "3",
+          method: "manual",
+          model: null,
+          ai_reviewer_name: null,
+          legacy_modification: null,
+          confirmed: true,
+        }),
+    });
+    renderApp("/timeline");
+    await userEvent.click(await screen.findByText("Review of core-v3: warning, 7 / 10"));
+    expect(await screen.findByRole("img", { name: "Score: 7.0 of 10" })).toBeInTheDocument();
+    expect(screen.getByText("Thesis · 6.5 · Target structure · 7.5")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Coverage: 7.5 of 10" })).toBeInTheDocument();
+    expect(screen.getByText("manual review")).toBeInTheDocument();
+  });
+
+  it("[CMP-09] [POL-11] [THS-04] shows portfolios, warnings and recent events on the dashboard", async () => {
     setup();
     renderApp("/");
     expect(await screen.findByRole("link", { name: "Main" })).toBeInTheDocument();
     const alerts = await screen.findAllByRole("alert");
     expect(alerts.map((a) => a.textContent)).toEqual([
-      "growth: its thesis is marked as needs adaptation.",
+      "growth: the semaphore of its thesis is warning.",
     ]);
     const recent = screen.getByRole("heading", { name: "Recent events" }).closest("section")!;
     expect(within(recent).getAllByRole("listitem")).toHaveLength(4);
@@ -225,18 +271,17 @@ describe("export links", () => {
               version_no: 1,
               label: "core-v1",
               thesis_title: "T",
-              thesis_status: "intact",
               change_note: null,
               active_from: "2026-01-01T10:00:00+00:00",
               active_until: null,
               is_draft: false,
-              thesis_review: null,
               review: null,
+              reviews: [],
             },
           ],
           portfolios: [],
           thesis_warning: false,
-          thesis_status: "intact",
+          semaphore: null,
         }),
       "GET /api/policies/3/versions/1": () =>
         json({

@@ -419,7 +419,7 @@ def test_theses_merge_into_policy_versions_and_back(db_url: str, engine: Engine)
             " 'Thesis review of Growth revision 1')",
         ):
             connection.execute(text(sql))
-    upgrade(db_url)
+    command.upgrade(_alembic(db_url), "0018")
     assert _triggers(engine) == at_head
     with engine.connect() as connection:
         versions = connection.execute(
@@ -459,6 +459,86 @@ def test_theses_merge_into_policy_versions_and_back(db_url: str, engine: Engine)
             text("SELECT thesis_revision_id, policy_version_id FROM review WHERE id = 1")
         ).one()
         assert tuple(moved) == (revisions[0][0], None)
+    upgrade(db_url)
+    assert _triggers(engine) == at_head
+
+
+@pytest.mark.req("NFR-09", "NFR-05", "THS-04", "REV-06", "REV-17")
+def test_the_thesis_status_gives_way_to_the_semaphore_and_back(db_url: str, engine: Engine) -> None:
+    """0019: the thesis status is dropped, reviews get a verdict reason and may have no
+    model; old reviews keep their kinds and verdicts. Downgrading sets the status from the
+    thesis review and turns reviews of the whole policy into thesis reviews."""
+    from alembic import command
+
+    from yap.db.migrate import upgrade
+
+    at_head = _triggers(engine)
+    command.downgrade(_alembic(db_url), "0018")
+    t0 = "'2026-01-01T00:00:00+00:00'"
+    with engine.begin() as connection:
+        for sql in (
+            "INSERT INTO investor (id, username, password_hash, is_admin, is_investor,"
+            " base_currency, active, must_change_password, created_at, manual_review_default)"
+            f" VALUES (1, 'alice', 'x', 0, 1, 'CHF', 1, 0, {t0}, 0)",
+            f"INSERT INTO policy (id, owner_id, name, created_at) VALUES (1, 1, 'core', {t0})",
+            "INSERT INTO policy_version (id, policy_id, version_no, thesis_title, thesis_md,"
+            " thesis_status, activated_at, created_at) VALUES"
+            f" (1, 1, 1, 'Growth', 'text', 'broken', NULL, {t0}),"
+            f" (2, 1, 2, 'Growth', 'text', 'broken', NULL, {t0})",
+            "INSERT INTO review (id, kind, policy_version_id, started_by, state, verdict,"
+            " scoring_version, provider, model, started_at, method) VALUES"
+            f" (1, 'thesis', 1, 1, 'done', 'needs_adaptation', '2', 'openai', 'm', {t0}, 'ai')",
+            "INSERT INTO review_aspect (review_id, aspect, half_points, reasoning_md)"
+            " VALUES (1, 'T1', 14, 'r')",
+            f"UPDATE policy_version SET activated_at = {t0} WHERE id = 1",
+        ):
+            connection.execute(text(sql))
+    upgrade(db_url)
+    assert _triggers(engine) == at_head
+    with engine.connect() as connection:
+        columns = {r[1] for r in connection.execute(text("PRAGMA table_info(policy_version)"))}
+        assert "thesis_status" not in columns
+        review = connection.execute(
+            text("SELECT kind, verdict, verdict_reason, model FROM review WHERE id = 1")
+        ).one()
+        assert tuple(review) == ("thesis", "needs_adaptation", None, "m")
+    with engine.begin() as connection:
+        # A manual review of the whole policy on the draft v2, without a model
+        connection.execute(
+            text(
+                "INSERT INTO review (id, kind, policy_version_id, started_by, state, verdict,"
+                " verdict_reason, scoring_version, provider, model, started_at, method) VALUES"
+                f" (2, 'full', 2, 1, 'done', 'good', 'fine', '3', 'manual', NULL, {t0},"
+                " 'manual')"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO review_aspect (review_id, aspect, half_points, reasoning_md)"
+                " VALUES (2, 'T1', 16, 'r'), (2, 'P1', 12, 'r')"
+            )
+        )
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(text("UPDATE review SET verdict = 'good' WHERE id = 1"))
+
+    command.downgrade(_alembic(db_url), "0018")
+    with engine.connect() as connection:
+        statuses = connection.execute(
+            text("SELECT id, thesis_status FROM policy_version ORDER BY id")
+        ).all()
+        # v1 from its thesis review; v2 from its review of the whole policy, now a thesis one
+        assert [tuple(r) for r in statuses] == [(1, "needs_adaptation"), (2, "intact")]
+        reviews = connection.execute(
+            text("SELECT id, kind, verdict, model FROM review ORDER BY id")
+        ).all()
+        assert [tuple(r) for r in reviews] == [
+            (1, "thesis", "needs_adaptation", "m"),
+            (2, "thesis", "intact", "unknown"),
+        ]
+        aspects = connection.execute(
+            text("SELECT aspect FROM review_aspect WHERE review_id = 2")
+        ).all()
+        assert [a[0] for a in aspects] == ["T1"]
     upgrade(db_url)
     assert _triggers(engine) == at_head
 

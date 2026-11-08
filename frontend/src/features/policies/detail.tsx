@@ -15,9 +15,14 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Markdown } from "@/components/markdown";
-import { ReviewBriefLine, ReviewSection, activationWarning } from "@/features/reviews/review";
+import {
+  ReviewBriefLine,
+  ReviewSection,
+  activationWarning,
+  reviewTitle,
+} from "@/features/reviews/review";
 import { ScoreCourse } from "@/features/reviews/score-course";
-import { ThesisStatusBadge, statusLabel } from "@/features/theses/status";
+import { SemaphoreBadge, semaphoreLabel } from "@/features/reviews/semaphore";
 import { formatDateTime } from "@/lib/format";
 
 import {
@@ -106,7 +111,7 @@ export function PolicyPage({ policyId }: { policyId: number }) {
       {p.thesis_warning && (
         <Alert variant="warning">
           {t("policies.detail.thesisWarningBefore")}
-          <strong>{statusLabel(p.thesis_status ?? "")}</strong>
+          <strong>{semaphoreLabel(p.semaphore)}</strong>
           {t("policies.detail.thesisWarningAfter")}
         </Alert>
       )}
@@ -176,7 +181,6 @@ export function PolicyPage({ policyId }: { policyId: number }) {
             <p className="text-sm">
               {t("policies.detail.importThesisPreview", {
                 title: preview.title,
-                status: statusLabel(preview.status),
                 no: preview.version_no,
               })}
             </p>
@@ -288,7 +292,8 @@ function VersionView({
           <div className="grid gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-semibold">{version.data.thesis_title}</h2>
-              <ThesisStatusBadge status={version.data.thesis_status} />
+              {/* THS-04: the semaphore comes from the version's review */}
+              <SemaphoreBadge semaphore={summary?.review?.semaphore} />
             </div>
             <div className="rounded-md border p-4">
               <Markdown source={version.data.thesis_md} />
@@ -299,11 +304,15 @@ function VersionView({
         ) : (
           <PositionsTable version={version.data} />
         ))}
+      {/* REV-02: one review of thesis and target structure; versions from before stage 2
+          may have a thesis and a policy review */}
       {summary &&
-        (part === "thesis" ? (
-          <ReviewSection key={summary.version_no} kind="thesis" brief={summary.thesis_review} />
+        (summary.reviews.length === 0 ? (
+          <ReviewSection key={summary.version_no} brief={null} />
         ) : (
-          <ReviewSection key={summary.version_no} kind="policy" brief={summary.review} />
+          summary.reviews.map((r) => (
+            <ReviewSection key={`${summary.version_no}-${r.id}`} brief={r} />
+          ))
         ))}
       {/* REV-01: reviews are made in the draft editor */}
       {summary?.is_draft && policy.archived_at === null && (
@@ -326,22 +335,19 @@ function VersionView({
   );
 }
 
-/** POL-12, THS-08: the versions with their reviews and the course of the thesis score. */
+/** POL-12, THS-08: the versions with their reviews and the course of the review score. */
 function VersionList({ policy }: { policy: Policy }) {
   const { t } = useTranslation();
   return (
     <div className="grid gap-4">
       <ScoreCourse
         points={policy.versions
-          .filter(
-            (v) =>
-              !v.is_draft && v.thesis_review?.state === "done" && v.thesis_review.total !== null,
-          )
+          .filter((v) => !v.is_draft && v.review?.state === "done" && v.review.total !== null)
           .map((v) => ({
             label: v.label,
             date: v.active_from ?? "",
-            score: v.thesis_review!.total!,
-            version: v.thesis_review!.scoring_version,
+            score: v.review!.total!,
+            version: v.review!.scoring_version,
           }))}
       />
       <ol className="grid gap-2">
@@ -362,20 +368,14 @@ function VersionList({ policy }: { policy: Policy }) {
               )}
             </div>
             {v.change_note && <p className="mt-1">{v.change_note}</p>}
-            {(v.thesis_review || v.review) && (
+            {v.reviews.length > 0 && (
               <div className="mt-2 grid gap-1">
-                {v.thesis_review && (
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="text-muted-foreground">{t("reviews.section.thesis")}:</span>
-                    <ReviewBriefLine brief={v.thesis_review} />
+                {v.reviews.map((r) => (
+                  <span key={r.id} className="flex flex-wrap items-center gap-2">
+                    <span className="text-muted-foreground">{reviewTitle(r.kind)}:</span>
+                    <ReviewBriefLine brief={r} />
                   </span>
-                )}
-                {v.review && (
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="text-muted-foreground">{t("reviews.section.policy")}:</span>
-                    <ReviewBriefLine brief={v.review} />
-                  </span>
-                )}
+                ))}
               </div>
             )}
           </li>
@@ -468,9 +468,9 @@ function ActivateDialog({
   const { t } = useTranslation();
   const { activate } = usePolicyActions(policy.id);
   const [note, setNote] = useState("");
-  // REV-11: both reviews of the draft, the thesis review first
+  // REV-11: the review of the draft
   const draft = policy.versions.find((v) => v.is_draft);
-  const warning = activationWarning(draft?.thesis_review) ?? activationWarning(draft?.review);
+  const warning = activationWarning(draft?.review);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     activate.mutate(note.trim() || null, { onSuccess: onActivated });

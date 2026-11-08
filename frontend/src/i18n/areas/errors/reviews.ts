@@ -19,8 +19,6 @@ export const de = {
   answer_field_invalid: "{{field}}: {{error}}",
   answer_prompt_id_unknown: "Die Antwort hat keine gültige Prompt-ID; kopiere den Prompt erneut",
   answer_prompt_id_other_draft: "Die Antwort gehört zum Prompt eines anderen Entwurfs",
-  review_model_required: "Nenne das KI-Modell, das die Antwort geschrieben hat",
-  review_model_too_long: "Der Name des Modells hat höchstens {{max}} Zeichen",
   answer_aspects_wrong: "Die Antwort muss genau die Aspekte {{aspects}} bewerten",
   answer_prompt_id_wrong: "Die Antwort muss die Prompt-ID {{prompt_id}} wiederholen",
   score_invalid: "Die Bewertung {{score}} liegt nicht zwischen 0 und 10 in Schritten von 0.5",
