@@ -324,7 +324,7 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [T
     const card = review.getByRole("listitem", { name: /· sell threshold$/ });
     await card.getByRole("button", { name: "Take over" }).click();
     await expect(card.getByText("Taken over")).toBeVisible();
-    await expect(card.getByText(/→ \+30 %/)).toBeVisible();
+    await expect(card.getByText(/→ \+30\s%/)).toBeVisible();
     await card.getByRole("button", { name: "Undo" }).click();
     await expect(card.getByRole("button", { name: "Take over" })).toBeVisible();
   });

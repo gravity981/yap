@@ -130,10 +130,20 @@ export function PolicyPage({ policyId }: { policyId: number }) {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="thesis">
-          <VersionView key={imports} policy={p} part="thesis" showDraft={imports > 0} />
+          <VersionView
+            key={`${imports}-${active?.version_no ?? 0}`}
+            policy={p}
+            part="thesis"
+            showDraft={imports > 0}
+          />
         </TabsContent>
         <TabsContent value="structure">
-          <VersionView key={imports} policy={p} part="structure" showDraft={imports > 0} />
+          <VersionView
+            key={`${imports}-${active?.version_no ?? 0}`}
+            policy={p}
+            part="structure"
+            showDraft={imports > 0}
+          />
         </TabsContent>
         <TabsContent value="versions" className="grid gap-4">
           <VersionList policy={p} />
