@@ -140,11 +140,14 @@ def test_change_note_required_from_v2(session: Session, factory: Factory) -> Non
     assert version.change_note == "Rebalanced"
 
 
-@pytest.mark.req("POL-06")
-def test_first_version_cannot_be_deleted(session: Session, factory: Factory) -> None:
+@pytest.mark.req("POL-16")
+def test_discarding_the_first_draft_deletes_the_policy(session: Session, factory: Factory) -> None:
     owner = factory.investor()
     policy = policies.create_policy(session, owner, factory.clock, name="p")
-    with pytest.raises(ConflictError):
+    assert policies.delete_draft(session, owner, policy.id) is True
+    with pytest.raises(NotFoundError):
+        policies.get_policy(session, owner, policy.id)
+    with pytest.raises(NotFoundError):  # nothing left to discard
         policies.delete_draft(session, owner, policy.id)
 
 

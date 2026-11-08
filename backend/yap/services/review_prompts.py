@@ -438,7 +438,7 @@ def parse_answer(
 # --- Prompt ID -------------------------------------------------------------------------
 
 _ISSUED = "%Y%m%dT%H%M%SZ"
-_PROMPT_ID = re.compile(r"^R(\d+)-(\d{8}T\d{6}Z)-(\d+)-([0-9a-f]{6})$")
+_PROMPT_ID = re.compile(r"^R(\d+)-(\d{8}T\d{6}Z)-(\d+)(-[0-9a-f]{16})?-([0-9a-f]{6})$")
 
 
 @dataclass(frozen=True)
@@ -450,12 +450,13 @@ class PromptRef:
     version_id: int
     issued_at: datetime
     news_days: int
+    fingerprint: str = ""  # of the content the prompt was made from (REV-09)
 
     @property
     def prompt_id(self) -> str:
         body = (
             f"R{self.version_id}-{self.issued_at.astimezone(UTC).strftime(_ISSUED)}"
-            f"-{self.news_days}"
+            f"-{self.news_days}" + (f"-{self.fingerprint}" if self.fingerprint else "")
         )
         return f"{body}-{_checksum(body)}"
 
@@ -479,14 +480,15 @@ def parse_prompt_id(prompt_id: str) -> PromptRef | None:
     match = _PROMPT_ID.match(prompt_id.strip())
     if not match:
         return None
-    version_id, issued, news_days, check = match.groups()
-    body = f"R{version_id}-{issued}-{news_days}"
+    version_id, issued, news_days, fingerprint, check = match.groups()
+    body = f"R{version_id}-{issued}-{news_days}{fingerprint or ''}"
     if _checksum(body) != check:
         return None
     return PromptRef(
         version_id=int(version_id),
         issued_at=datetime.strptime(issued, _ISSUED).replace(tzinfo=UTC),
         news_days=int(news_days),
+        fingerprint=(fingerprint or "").lstrip("-"),
     )
 
 

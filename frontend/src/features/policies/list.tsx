@@ -21,6 +21,7 @@ import {
 import { thesisTemplate } from "@/features/theses/template";
 
 import { policiesKey, thesisImport, useCreatePolicy, usePolicies } from "./api";
+import { MarkBadge } from "./mark";
 
 /** POL-01, POL-12 */
 export function PoliciesPage() {
@@ -69,7 +70,13 @@ export function PoliciesPage() {
                     <Badge variant="secondary">{t("policies.list.archived")}</Badge>
                   )}
                 </TableCell>
-                <TableCell>{p.active_version_label ?? t("policies.list.noneYet")}</TableCell>
+                <TableCell>
+                  <span className="flex flex-wrap items-center gap-2">
+                    {p.active_version_label ?? t("policies.list.noneYet")}
+                    {/* REV-20 */}
+                    <MarkBadge mark={p.mark} />
+                  </span>
+                </TableCell>
                 <TableCell>
                   {p.has_draft && <Badge variant="outline">{t("policies.list.draftBadge")}</Badge>}
                 </TableCell>

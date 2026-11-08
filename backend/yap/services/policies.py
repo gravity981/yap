@@ -234,15 +234,33 @@ def update_draft(
     return draft
 
 
-def delete_draft(session: Session, actor: Investor, policy_id: int) -> None:
+def delete_draft(session: Session, actor: Investor, policy_id: int) -> bool:
+    """POL-16: discards the draft with its reviews; the policy is back to its active
+    version. A policy that was never activated is deleted with its draft. Returns whether
+    the policy was deleted."""
     policy = get_policy(session, actor, policy_id)
     draft = _require_draft(policy)
-    if draft.version_no == 1:
-        raise ConflictError(msg("policy_first_version_kept"))
     reviews.delete_with_draft(session, draft)
+    never_activated = all(v.activated_at is None for v in policy.versions)
     session.delete(draft)
     session.flush()
+    if never_activated:  # no portfolio can follow it (PTF-02), nothing refers to it
+        session.delete(policy)
+        session.flush()
+        return True
     session.refresh(policy)
+    return False
+
+
+def update_change_note(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, note: str | None
+) -> PolicyVersion:
+    """POL-14, POL-17: the change note of the draft, saved like every other change."""
+    policy = get_policy(session, actor, policy_id)
+    draft = _require_draft(policy)
+    draft.change_note = note.strip() if note and note.strip() else None
+    session.flush()
+    return draft
 
 
 def portfolios_using(session: Session, policy: Policy) -> list[Portfolio]:
@@ -266,11 +284,13 @@ def activate_draft(
         raise ValidationError.single(TargetSumError(target_sum).message, "positions")
     if sum(1 for p in draft.positions if p.asset.type == AssetType.CASH_BUFFER.value) > 1:
         raise ValidationError.single(MultipleCashBuffersError().message, "positions")
-    note = change_note.strip() if change_note else None
+    # POL-17: the note given with the activation, or the one saved with the draft
+    given = change_note if change_note is not None else draft.change_note
+    note = given.strip() if given and given.strip() else None
     if draft.version_no > 1 and not note:
         raise ValidationError.single(msg("change_note_required_v2"), "change_note")
     now = clock.now()
-    reviews.prepare_activation(session, draft)
+    draft.mark = reviews.prepare_activation(session, draft, now)  # REV-11, REV-20
     draft.change_note = note
     draft.activated_at = now
     session.flush()

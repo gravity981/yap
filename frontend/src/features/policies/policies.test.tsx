@@ -238,78 +238,212 @@ describe("policies", () => {
     expect(within(heading.parentElement!).getByText("broken")).toBeInTheDocument();
   });
 
-  it("[POL-06] [POL-08] activates the draft with a change note, naming the portfolios", async () => {
+  it("[POL-06] [POL-17] [POL-08] [REV-11] finalizes the draft: summary, change note, activate anyway", async () => {
     const calls = setup({
+      "PUT /api/policies/3/draft/change-note": () => json({ ...version(3), positions: [] }),
       "POST /api/policies/3/draft/activate": () => json({ ...version(3), positions: [] }),
     });
     renderApp("/policies/3");
-    await userEvent.click(await screen.findByRole("button", { name: "Activate draft" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/It applies to: Main/)).toBeInTheDocument();
-    // REV-11: the draft has no review, so the activation asks for confirmation
-    expect(
-      within(dialog).getByText("This draft has no review. Activate it anyway?"),
-    ).toBeInTheDocument();
-    await userEvent.type(within(dialog).getByLabelText("Change note"), "Less ETH");
-    await userEvent.click(within(dialog).getByRole("button", { name: "Activate anyway" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(calls.find((c) => c.path === "/api/policies/3/draft/activate")?.body).toEqual({
-      change_note: "Less ETH",
-    });
+    // POL-17: activation goes through the summary of the draft
+    await userEvent.click(await screen.findByRole("button", { name: "Finalize draft" }));
+    expect(await screen.findByRole("heading", { name: "core-v3: summary" })).toBeInTheDocument();
+    // REV-11: no review is pointed out, never required
+    expect(screen.getByText(/Not reviewed. You can activate the draft anyway/)).toBeInTheDocument();
+    expect(screen.getByText("Total of the targets: 100.00 %")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Changes against v2" })).toBeInTheDocument();
+    expect(await screen.findByText("BTC")).toBeInTheDocument();
+    expect(screen.getByText(/It applies to: Main/)).toBeInTheDocument();
+    // POL-06, POL-14: from v2 on a change note is asked for; it is saved automatically
+    const note = screen.getByLabelText("Change note");
+    expect(note).toHaveValue("note 3"); // as saved with the draft
+    await userEvent.clear(note);
+    await userEvent.type(note, "Less ETH");
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === "/api/policies/3/draft/change-note")?.body).toEqual({
+        change_note: "Less ETH",
+      }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Activate anyway" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === "/api/policies/3/draft/activate")?.body).toEqual({
+        change_note: "Less ETH",
+      }),
+    );
+    expect(await screen.findByRole("heading", { name: "core" })).toBeInTheDocument();
   });
 
-  it("[REV-11] activates without a question when the draft has a current review", async () => {
-    const brief = reviewBrief({ outdated: false });
+  it("[POL-17] [REV-09] [REV-11] shows whether the review matches the draft", async () => {
+    const withReview = (brief: unknown) =>
+      setup({
+        "GET /api/policies/3": () =>
+          json(
+            policy({
+              versions: [
+                version(2),
+                version(3, {
+                  is_draft: true,
+                  active_from: null,
+                  change_note: null,
+                  review: brief,
+                  reviews: [brief],
+                }),
+              ],
+            }),
+          ),
+      });
+    withReview(reviewBrief({ outdated: false }));
+    const first = renderApp("/policies/3/draft/summary");
+    expect(await screen.findByText("matches the draft")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Score: 7.0 of 10" })).toBeInTheDocument();
+    expect(screen.getByText("good")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Activate" })).toBeEnabled();
+    first.unmount();
+
+    withReview(reviewBrief({ outdated: true, semaphore: "broken" }));
+    renderApp("/policies/3/draft/summary");
+    expect(await screen.findByText("no longer matches the draft")).toBeInTheDocument();
+    expect(screen.getByText(/changed after its review/)).toBeInTheDocument();
+    // A broken thesis is recorded as broken and sells nothing (POL-17, RB-25)
+    expect(
+      screen.getByText(/Activating records it as broken and sells nothing/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Activate anyway" })).toBeEnabled();
+  });
+
+  it("[POL-17] [POL-05] blocks only an incomplete target structure, and leads back to the editor", async () => {
+    setup({
+      "GET /api/policies/3/versions/3": () =>
+        json({
+          ...version(3, { is_draft: true }),
+          thesis_md: "# Draft thesis",
+          positions: [position("XUS", "40")],
+        }),
+    });
+    renderApp("/policies/3/draft/summary");
+    expect(await screen.findByText("Total of the targets: 40.00 %")).toBeInTheDocument();
+    expect(screen.getByText(/must sum to 100 %/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Activate anyway" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("link", { name: "Back to the editor" }));
+    expect(await screen.findByRole("group", { name: "Position 1" })).toBeInTheDocument();
+  });
+
+  it("[POL-17] waits for a running review before activating", async () => {
+    const brief = reviewBrief({ state: "running", total: null });
     setup({
       "GET /api/policies/3": () =>
         json(
           policy({
             versions: [
-              version(1, { active_until: "2026-02-01T10:00:00+00:00" }),
               version(2),
-              version(3, {
-                is_draft: true,
-                active_from: null,
-                change_note: null,
-                review: brief,
-                reviews: [brief],
-              }),
+              version(3, { is_draft: true, active_from: null, review: brief, reviews: [brief] }),
             ],
           }),
         ),
     });
-    renderApp("/policies/3");
-    await userEvent.click(await screen.findByRole("button", { name: "Activate draft" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Activate" })).toBeInTheDocument();
+    renderApp("/policies/3/draft/summary");
+    expect((await screen.findAllByText(/review is still running/)).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Activate" })).toBeDisabled();
   });
 
-  it("[REV-11] warns when the review is older than the last change of the draft", async () => {
-    const brief = reviewBrief({ outdated: true });
+  it("[POL-16] discards a draft after a confirmation, back to the active version", async () => {
+    const calls = setup({
+      "DELETE /api/policies/3/draft": () => json({ policy_deleted: false }),
+    });
+    renderApp("/policies/3/draft");
+    await userEvent.click(await screen.findByRole("button", { name: "Discard draft" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/stays at its active version/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: "Discard draft" }));
+    await userEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", { name: "Discard" }),
+    );
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE")).toBe(true));
+    expect(await screen.findByRole("tab", { name: "Versions" })).toBeInTheDocument();
+  });
+
+  it("[POL-16] deletes a never activated policy with its draft", async () => {
     setup({
       "GET /api/policies/3": () =>
-        json(
-          policy({
-            versions: [
-              version(2),
-              version(3, {
-                is_draft: true,
-                active_from: null,
-                change_note: null,
-                review: brief,
-                reviews: [brief],
-              }),
-            ],
-          }),
-        ),
+        json(policy({ versions: [version(1, { is_draft: true, active_from: null })] })),
+      "GET /api/policies/3/versions/1": () =>
+        json({ ...version(1, { is_draft: true }), thesis_md: "# New", positions: [] }),
+      "DELETE /api/policies/3/draft": () => json({ policy_deleted: true }),
     });
-    renderApp("/policies/3");
-    await userEvent.click(await screen.findByRole("button", { name: "Activate draft" }));
-    expect(
-      await within(await screen.findByRole("dialog")).findByText(/changed after its review/),
-    ).toBeInTheDocument();
+    renderApp("/policies/3/draft");
+    await userEvent.click(await screen.findByRole("button", { name: "Discard draft" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/never activated, so it is deleted/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Discard" }));
+    expect(await screen.findByRole("heading", { name: "Policies" })).toBeInTheDocument();
   });
+
+  it("[REV-20] marks a version activated without a matching review", async () => {
+    setup({
+      "GET /api/policies": () =>
+        json([
+          {
+            id: 3,
+            name: "core",
+            archived_at: null,
+            active_version_label: "core-v2",
+            has_draft: false,
+            thesis_warning: false,
+            semaphore: null,
+            mark: "not_reviewed",
+          },
+        ]),
+      "GET /api/policies/3": () => json(policy({ mark: "review_did_not_match" })),
+    });
+    renderApp("/policies");
+    expect(await screen.findByText("not reviewed")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("link", { name: "core" }));
+    expect(await screen.findByText("review did not match")).toBeInTheDocument();
+  });
+
+  it("[POL-14] saves the draft automatically, before finalizing, and shows when", async () => {
+    const calls = setup({
+      "PUT /api/policies/3/draft": () => json({ ...version(3, { is_draft: true }), positions: [] }),
+    });
+    renderApp("/policies/3/draft");
+    const title = await screen.findByLabelText("Title");
+    expect(screen.getByRole("status")).toHaveTextContent("Saved automatically");
+    // Nothing is saved without a change; there is no save button
+    expect(screen.queryByRole("button", { name: /^Save/ })).toBeNull();
+    await userEvent.type(title, " 2");
+    await waitFor(() => expect(calls.filter((c) => c.method === "PUT")).toHaveLength(1));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(/Saved automatically · \d/),
+    );
+    // Finalize saves what was typed just before
+    await userEvent.type(title, "3");
+    await userEvent.click(screen.getByRole("button", { name: "Finalize →" }));
+    expect(await screen.findByRole("heading", { name: "core-v3: summary" })).toBeInTheDocument();
+    const puts = calls.filter((c) => c.method === "PUT");
+    expect((puts.at(-1)?.body as { thesis: { title: string } }).thesis.title).toBe(
+      "Core thesis 23",
+    );
+  });
+
+  it("[POL-14] retries a failed save", async () => {
+    let failing = true;
+    const calls = setup({
+      "PUT /api/policies/3/draft": () =>
+        failing
+          ? json({ detail: "down" }, 503)
+          : json({ ...version(3, { is_draft: true }), positions: [] }),
+    });
+    renderApp("/policies/3/draft");
+    await userEvent.type(await screen.findByLabelText("Title"), "!");
+    expect(await screen.findByText("Saving failed; it is retried")).toBeInTheDocument();
+    failing = false;
+    await waitFor(
+      () => expect(screen.getByRole("status")).toHaveTextContent(/Saved automatically · /),
+      { timeout: 8000 },
+    );
+    expect(calls.filter((c) => c.method === "PUT").length).toBeGreaterThanOrEqual(2);
+  }, 15_000);
 
   it("[POL-02] [POL-05] edits the draft: bands, total, known tickers, exit flag", async () => {
     const calls = setup({
@@ -338,18 +472,20 @@ describe("policies", () => {
         "Exit (sell completely)",
       ),
     );
-    await userEvent.click(screen.getByRole("button", { name: "Save draft" }));
-
-    await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
-    const body = calls.find((c) => c.method === "PUT")?.body as {
-      positions: Record<string, unknown>[];
-    };
-    expect(body).not.toHaveProperty("reinvest_sells");
-    expect(body.positions.map((p) => [p.ticker, p.name, p.type, p.target_pct, p.exit])).toEqual([
-      ["XUS", null, null, "30", false],
-      ["ETH", null, null, "60", true],
-      ["GOLD", "Gold ETF", "ETF", "10", false],
-    ]);
+    // POL-14: saved automatically
+    const last = () =>
+      calls.filter((c) => c.method === "PUT").at(-1)?.body as
+        { positions: Record<string, unknown>[] } | undefined;
+    await waitFor(() =>
+      expect(
+        last()?.positions.map((p) => [p.ticker, p.name, p.type, p.target_pct, p.exit]),
+      ).toEqual([
+        ["XUS", null, null, "30", false],
+        ["ETH", null, null, "60", true],
+        ["GOLD", "Gold ETF", "ETF", "10", false],
+      ]),
+    );
+    expect(last()).not.toHaveProperty("reinvest_sells");
   });
 
   it("[REV-01] [REV-05] [REV-19] reviews the whole draft in its editor, saving it first", async () => {
@@ -362,6 +498,8 @@ describe("policies", () => {
         json({ prompt_id: "R203-20260301T100000Z-90-abcdef", text: "POLICY PROMPT" }),
     });
     renderApp("/policies/3/draft");
+    // POL-14: what was just typed is saved before the prompt is made
+    await userEvent.type(await screen.findByLabelText("Title"), " 2");
     await userEvent.click(await screen.findByRole("tab", { name: "Review" }));
     // One review of thesis and target structure; no separate policy review below
     expect(screen.getAllByRole("region", { name: /review/i })).toHaveLength(1);
@@ -409,12 +547,14 @@ describe("policies", () => {
         ),
     });
     renderApp("/policies/3/draft");
-    await screen.findByRole("group", { name: "Position 1" });
-    await userEvent.click(screen.getByRole("button", { name: "Save draft" }));
-    const second = screen.getByRole("group", { name: "Position 2" });
+    const second = await screen.findByRole("group", { name: "Position 2" });
+    await userEvent.clear(within(second).getByLabelText("Buy %"));
+    await userEvent.type(within(second).getByLabelText("Buy %"), "5");
     expect(
       await within(second).findByText("Buy threshold must be between -100 and 0"),
     ).toBeInTheDocument();
+    // POL-14: a save the server refuses is not retried; the fields say why
+    expect(screen.getByText("Not saved yet: correct the marked fields")).toBeInTheDocument();
   });
 
   it("[POL-05] warns about more than one cash buffer", async () => {
@@ -477,12 +617,12 @@ describe("policies", () => {
     // The review is a tab next to the editor (REV-01)
     await userEvent.click(screen.getByRole("tab", { name: "Review" }));
     expect(screen.getByRole("region", { name: "Review" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Save draft" }));
-    await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
-    expect((calls.find((c) => c.method === "PUT")?.body as { thesis: unknown }).thesis).toEqual({
-      title: "Growth",
-      content_md: "# Draft thesis",
-    });
+    // POL-14: saved automatically
+    await waitFor(() =>
+      expect(
+        (calls.filter((c) => c.method === "PUT").at(-1)?.body as { thesis: unknown })?.thesis,
+      ).toEqual({ title: "Growth", content_md: "# Draft thesis" }),
+    );
   });
 
   it("[IMP-01] [IMP-07] imports a thesis as a new policy, or into the draft of a policy", async () => {

@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,7 @@ import { NativeSelect } from "@/components/ui/select";
 import { PriceSourceControl } from "@/features/prices/price-source";
 import type { ReviewBrief } from "@/features/reviews/api";
 import { ReviewPane } from "@/features/reviews/pane";
-import { formatPct } from "@/lib/format";
+import { formatPct, formatTime } from "@/lib/format";
 
 import {
   useAssets,
@@ -23,6 +23,8 @@ import {
   type PositionIn,
   type Version,
 } from "./api";
+import { useAutoSave, type SaveStatus } from "./auto-save";
+import { DiscardDraft } from "./discard";
 import { assetTypeLabel } from "./positions";
 
 const TYPES = ["ETF", "stock", "crypto", "cash_buffer"] as const;
@@ -89,6 +91,7 @@ export function DraftEditorPage({ policyId }: { policyId: number }) {
       policyName={policy.data.name}
       version={version.data}
       brief={draft?.review}
+      neverActivated={policy.data.versions.every((v) => v.is_draft)}
     />
   );
 }
@@ -98,11 +101,13 @@ function DraftForm({
   policyName,
   version,
   brief,
+  neverActivated,
 }: {
   policyId: number;
   policyName: string;
   version: Version;
   brief: ReviewBrief | null | undefined;
+  neverActivated: boolean;
 }) {
   const { t } = useTranslation();
   const { saveDraft } = usePolicyActions(policyId);
@@ -119,8 +124,6 @@ function DraftForm({
   const cashBuffers = rows.filter(
     (r) => (known.get(r.ticker.trim().toUpperCase())?.type ?? r.type) === "cash_buffer",
   ).length;
-  const back = () =>
-    navigate({ to: "/policies/$policyId", params: { policyId: String(policyId) } });
 
   const update = (i: number, patch: Partial<Row>) =>
     setRows((current) => current.map((r, k) => (k === i ? { ...r, ...patch } : r)));
@@ -131,7 +134,7 @@ function DraftForm({
       : undefined;
 
   // A row left completely empty is no position; a new policy may have none yet
-  const positions = (): PositionIn[] =>
+  const positions = (rows: Row[]): PositionIn[] =>
     rows
       .filter((r) => r.ticker.trim() !== "")
       .map((r) => {
@@ -147,20 +150,49 @@ function DraftForm({
           rationale_md: r.rationale_md,
         };
       });
-  const body = () => ({
-    positions: positions(),
-    thesis: { title, content_md: content },
+  // POL-14: everything in the editor is saved automatically; there is no save button
+  const body = (draft: Content) => ({
+    positions: positions(draft.rows),
+    thesis: { title: draft.title, content_md: draft.content },
   });
-  const submit = () => saveDraft.mutate(body(), { onSuccess: back });
+  const autoSave = useAutoSave<Content>(
+    { title, content, rows },
+    (draft) => saveDraft.mutateAsync(body(draft)),
+    (draft) =>
+      // Leaving the page: sent without waiting for the answer
+      void fetch(`${api_base()}/api/policies/${policyId}/draft`, {
+        method: "PUT",
+        keepalive: true,
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body(draft)),
+      }).catch(() => undefined),
+  );
+  const finalize = async () => {
+    await autoSave.flush();
+    await navigate({
+      to: "/policies/$policyId/draft/summary",
+      params: { policyId: String(policyId) },
+    });
+  };
 
   // Not a <form>: the review pane below has forms of its own (REV-18)
   return (
     <div className="grid gap-4">
-      <div className="grid gap-1">
-        <h1 className="text-2xl font-semibold">
-          {t("policies.editor.title", { name: policyName, no: version.version_no })}
-        </h1>
-        <p className="text-sm text-muted-foreground">{t("policies.editor.hint")}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="grid gap-1">
+          <Link
+            to="/policies/$policyId"
+            params={{ policyId: String(policyId) }}
+            className="text-sm underline"
+          >
+            {t("policies.editor.back", { name: policyName })}
+          </Link>
+          <h1 className="text-2xl font-semibold">
+            {t("policies.editor.title", { name: policyName, no: version.version_no })}
+          </h1>
+        </div>
+        <SaveState status={autoSave.status} />
       </div>
 
       {/* THS-01: the thesis of the draft, with the review of the whole draft next to it
@@ -182,12 +214,18 @@ function DraftForm({
               <ReviewPane
                 policyId={policyId}
                 brief={brief}
-                save={() => saveDraft.mutateAsync(body())}
+                save={autoSave.flush}
                 onDraft={(draft) => {
                   // REV-07: a suggestion changed the draft on the server
-                  setTitle(draft.thesis_title);
-                  setContent(draft.thesis_md);
-                  setRows(draft.positions.length ? rowsOf(draft) : [emptyRow()]);
+                  const next = {
+                    title: draft.thesis_title,
+                    content: draft.thesis_md,
+                    rows: draft.positions.length ? rowsOf(draft) : [emptyRow()],
+                  };
+                  autoSave.markSaved(next);
+                  setTitle(next.title);
+                  setContent(next.content);
+                  setRows(next.rows);
                 }}
               />
             ),
@@ -336,15 +374,49 @@ function DraftForm({
           ),
         )}
       />
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={back}>
-          {t("common.cancel")}
-        </Button>
-        <Button type="button" onClick={submit} disabled={saveDraft.isPending}>
-          {t("policies.editor.saveDraft")}
+      {/* POL-16, POL-17 */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <DiscardDraft policyId={policyId} neverActivated={neverActivated} />
+        <Button type="button" onClick={() => void finalize().catch(() => undefined)}>
+          {t("policies.editor.finalize")}
         </Button>
       </div>
     </div>
+  );
+}
+
+interface Content {
+  title: string;
+  content: string;
+  rows: Row[];
+}
+
+const api_base = () => globalThis.location?.origin ?? "";
+
+/** POL-14: when the draft was saved last, or that saving failed and is retried. */
+function SaveState({ status }: { status: SaveStatus }) {
+  const { t } = useTranslation();
+  const text =
+    status.state === "saving"
+      ? t("policies.editor.saving")
+      : status.state === "failed"
+        ? t("policies.editor.saveFailed")
+        : status.state === "invalid"
+          ? t("policies.editor.saveInvalid")
+          : status.at
+            ? t("policies.editor.savedAt", { time: formatTime(status.at.toISOString()) })
+            : t("policies.editor.savedAuto");
+  return (
+    <p
+      role="status"
+      className={
+        status.state === "failed" || status.state === "invalid"
+          ? "text-sm text-destructive"
+          : "text-sm text-muted-foreground"
+      }
+    >
+      {text}
+    </p>
   );
 }
 

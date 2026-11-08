@@ -338,8 +338,8 @@ describe("reviews", () => {
       { "GET /api/reviews/30": () => json(review({ state: "running", aspects: [] })) },
       brief(30, 0, { state: "running", total: null }),
     );
-    await openPane();
-    expect(await screen.findByRole("status")).toHaveTextContent(/you can leave the page/);
+    const pane = await openPane();
+    expect(await within(pane).findByRole("status")).toHaveTextContent(/you can leave the page/);
   });
 
   it("[REV-08] shows why a review failed and offers to start it again", async () => {
@@ -710,7 +710,8 @@ describe("reviews", () => {
     expect(within(pane).getByRole("listitem", { name: "Remove XUS" })).toBeInTheDocument();
     expect(within(pane).getAllByRole("button", { name: "Take over" })).toHaveLength(4);
 
-    // Take over: the editor is saved first, then the change is applied on the server
+    // Take over: what was typed is saved first (POL-14), then the change is applied
+    await userEvent.type(screen.getByLabelText("Title"), " 2");
     await userEvent.click(within(changeCard).getByRole("button", { name: "Take over" }));
     expect(await within(changeCard).findByText("Taken over")).toBeInTheDocument();
     expect(within(changeCard).getByText("+25 % → +50 %")).toBeInTheDocument();

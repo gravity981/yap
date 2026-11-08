@@ -595,7 +595,10 @@ export interface paths {
         put: operations["update_draft_api_policies__policy_id__draft_put"];
         /** Create Draft */
         post: operations["create_draft_api_policies__policy_id__draft_post"];
-        /** Delete Draft */
+        /**
+         * Delete Draft
+         * @description POL-16: discards the draft and its review.
+         */
         delete: operations["delete_draft_api_policies__policy_id__draft_delete"];
         options?: never;
         head?: never;
@@ -613,6 +616,26 @@ export interface paths {
         put?: never;
         /** Activate Draft */
         post: operations["activate_draft_api_policies__policy_id__draft_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/change-note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Change Note
+         * @description POL-14, POL-17: saves the change note of the draft.
+         */
+        put: operations["update_change_note_api_policies__policy_id__draft_change_note_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1546,6 +1569,11 @@ export interface components {
             /** Base Currency */
             base_currency: string;
         };
+        /** ChangeNote */
+        ChangeNote: {
+            /** Change Note */
+            change_note: string | null;
+        };
         /**
          * Choice
          * @description USR-08: the default review method; `manual` wins over an AI reviewer.
@@ -1635,6 +1663,14 @@ export interface components {
                 string,
                 string | null
             ][];
+        };
+        /**
+         * Discarded
+         * @description POL-16: whether the policy was deleted with the draft (it was never activated).
+         */
+        Discarded: {
+            /** Policy Deleted */
+            policy_deleted: boolean;
         };
         /** DraftIn */
         DraftIn: {
@@ -1926,6 +1962,8 @@ export interface components {
             created_at: string;
             /** Id */
             id: number;
+            /** Mark */
+            mark: string | null;
             /** Name */
             name: string;
             /** Portfolios */
@@ -1947,6 +1985,8 @@ export interface components {
             has_draft: boolean;
             /** Id */
             id: number;
+            /** Mark */
+            mark: string | null;
             /** Name */
             name: string;
             /** Semaphore */
@@ -2728,6 +2768,8 @@ export interface components {
             is_draft: boolean;
             /** Label */
             label: string;
+            /** Mark */
+            mark: string | null;
             /** Positions */
             positions: components["schemas"]["PositionOut"][];
             review: components["schemas"]["ReviewBrief"] | null;
@@ -2757,6 +2799,8 @@ export interface components {
             is_draft: boolean;
             /** Label */
             label: string;
+            /** Mark */
+            mark: string | null;
             /** Policy Id */
             policy_id: number;
             /** Policy Name */
@@ -2787,6 +2831,8 @@ export interface components {
             is_draft: boolean;
             /** Label */
             label: string;
+            /** Mark */
+            mark: string | null;
             review: components["schemas"]["ReviewBrief"] | null;
             /** Reviews */
             reviews: components["schemas"]["ReviewBrief"][];
@@ -4105,11 +4151,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Discarded"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -4136,6 +4184,43 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["Activation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_change_note_api_policies__policy_id__draft_change_note_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeNote"];
             };
         };
         responses: {

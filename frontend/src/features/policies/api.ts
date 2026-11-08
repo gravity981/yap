@@ -90,6 +90,15 @@ export function usePolicyActions(id: number) {
     deleteDraft: usePolicyMutation(() =>
       unwrap(api.DELETE("/api/policies/{policy_id}/draft", path(id))),
     ),
+    // POL-14, POL-17: the change note is saved like every other change of the draft
+    saveChangeNote: usePolicyMutation((change_note: string | null) =>
+      unwrap(
+        api.PUT("/api/policies/{policy_id}/draft/change-note", {
+          ...path(id),
+          body: { change_note },
+        }),
+      ),
+    ),
     activate: usePolicyMutation((change_note: string | null) =>
       unwrap(
         api.POST("/api/policies/{policy_id}/draft/activate", {

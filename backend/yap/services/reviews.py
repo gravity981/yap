@@ -28,6 +28,7 @@ from yap.db.models import (
     ReviewSource,
     ReviewSuggestion,
 )
+from yap.domain.fingerprint import fingerprint
 from yap.domain.reviews import (
     SCORING_VERSION,
     ReviewKind,
@@ -205,6 +206,7 @@ def start_review(
         policy_version_id=draft.id,
         started_by=actor.id,
         state="queued",
+        fingerprint=draft_fingerprint(draft),
         news_from=now - timedelta(days=news_days),
         news_to=now,
         scoring_version=SCORING_VERSION,
@@ -234,9 +236,8 @@ def review_prompt(
     would receive. Making it changes nothing; it counts towards no limit (REV-16)."""
     _check_news_days(news_days)
     draft = _policy_draft(session, actor, policy_id)
-    return review_prompts.review_prompt(
-        draft, review_prompts.PromptRef(draft.id, clock.now(), news_days)
-    )
+    ref = review_prompts.PromptRef(draft.id, clock.now(), news_days, draft_fingerprint(draft))
+    return review_prompts.review_prompt(draft, ref)
 
 
 # --- Manual review (REV-18) ------------------------------------------------------------
@@ -277,6 +278,8 @@ def submit_manual_review(
         scoring_version=SCORING_VERSION,
         method="manual",
         prompt_id=ref.prompt_id,
+        # REV-09: the content when the prompt was copied
+        fingerprint=ref.fingerprint or None,
         provider="manual",
         model=None,
         started_at=ref.issued_at,
@@ -315,6 +318,7 @@ def run_review(
                 raise ConflictError(reason)
             config = llm_config(reviewer, keys)
             prompt = _prompt(session, review)
+            review.fingerprint = draft_fingerprint(draft_of(session, review))
         except ConflictError as e:
             _fail(review, clock, str(e))
             session.commit()
@@ -415,13 +419,24 @@ def is_outdated(session: Session, review: Review) -> bool:
     return outdated(review, draft_of(session, review))
 
 
-def outdated(review: Review, draft: PolicyVersion) -> bool:
-    """REV-09: the draft changed after the review was started."""
-    return (
-        draft.activated_at is None
-        and draft.updated_at is not None
-        and draft.updated_at > review.started_at
+def draft_fingerprint(version: PolicyVersion) -> str:
+    """REV-09: the fingerprint of a version's title, thesis and target structure."""
+    return fingerprint(
+        version.thesis_title,
+        version.thesis_md,
+        [(p.asset.ticker, p) for p in version.positions],
     )
+
+
+def outdated(review: Review, draft: PolicyVersion) -> bool:
+    """REV-09: the review no longer matches its open draft; it matches again when the
+    draft gets back the reviewed content. Reviews from before fingerprints compare
+    times."""
+    if draft.activated_at is not None:
+        return False
+    if review.fingerprint is not None:
+        return review.fingerprint != draft_fingerprint(draft)
+    return draft.updated_at is not None and draft.updated_at > review.started_at
 
 
 def get_review(session: Session, actor: Investor, review_id: int) -> Review:
@@ -495,14 +510,34 @@ def delete_with_draft(session: Session, draft: PolicyVersion) -> None:
     session.flush()
 
 
-def prepare_activation(session: Session, draft: PolicyVersion) -> None:
-    """Before a draft is activated: no review may be running, and failed ones are
-    dropped, as they cannot be changed once the draft is activated (REV-11)."""
+MARK_NOT_REVIEWED = "not_reviewed"
+MARK_DID_NOT_MATCH = "review_did_not_match"
+
+
+def activation_mark(session: Session, draft: PolicyVersion) -> str | None:
+    """REV-20: the mark the draft gets if it is activated now: none with a matching
+    review."""
+    session.expire(draft, ["reviews"])
+    review = current_review(draft)
+    if review is None or review.state != "done":
+        return MARK_NOT_REVIEWED
+    return MARK_DID_NOT_MATCH if outdated(review, draft) else None
+
+
+def prepare_activation(session: Session, draft: PolicyVersion, now: datetime) -> str | None:
+    """Before a draft is activated: no review may be running, failed ones are dropped,
+    and the others are confirmed as they are: saved with the version (REV-11). Returns the
+    version's mark (REV-20). Reviews never block the activation."""
     check_draft_can_change(session, draft)
     for review in draft_reviews(session, draft):
         if review.state == "failed":
             session.delete(review)
     session.flush()
+    mark = activation_mark(session, draft)
+    for review in draft_reviews(session, draft):
+        review.saved_at = now
+    session.flush()
+    return mark
 
 
 def confirm_with_draft(

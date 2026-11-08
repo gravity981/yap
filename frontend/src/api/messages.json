@@ -47,7 +47,6 @@
   "password_unchanged": "The new password must differ from the current one",
   "password_wrong": "The current password is wrong",
   "policy_archived": "Policy {name} is archived",
-  "policy_first_version_kept": "The first version cannot be deleted; it is the policy's only version",
   "policy_has_draft": "Policy {name} already has a draft",
   "policy_has_no_draft": "Policy {name} has no draft",
   "policy_has_portfolios": "A policy with assigned portfolios cannot be archived",

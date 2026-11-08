@@ -14,6 +14,7 @@ import { applyLanguage } from "@/i18n";
 import { applyTimeZone } from "@/lib/format";
 import { DashboardPage } from "@/features/dashboard/dashboard";
 import { DraftEditorPage } from "@/features/policies/draft-editor";
+import { DraftSummaryPage } from "@/features/policies/summary";
 import { PolicyPage } from "@/features/policies/detail";
 import { PoliciesPage } from "@/features/policies/list";
 import { PortfolioPage } from "@/features/portfolios/detail";
@@ -124,6 +125,15 @@ const draftRoute = createRoute({
   component: function Draft() {
     const { policyId } = draftRoute.useParams();
     return <WithId value={policyId} render={(id) => <DraftEditorPage key={id} policyId={id} />} />;
+  },
+});
+// POL-17: the summary of the draft, from which it is activated
+const draftSummaryRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/policies/$policyId/draft/summary",
+  component: function DraftSummary() {
+    const { policyId } = draftSummaryRoute.useParams();
+    return <WithId value={policyId} render={(id) => <DraftSummaryPage key={id} policyId={id} />} />;
   },
 });
 const timelineRoute = createRoute({
@@ -321,6 +331,7 @@ const routeTree = rootRoute.addChildren([
     policiesRoute,
     policyRoute,
     draftRoute,
+    draftSummaryRoute,
     timelineRoute,
     accountsRoute,
     aiReviewersRoute,

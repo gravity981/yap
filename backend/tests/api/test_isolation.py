@@ -78,6 +78,7 @@ BODIES: dict[tuple[str, str], Any] = {
         "thesis": {"title": "t", "content_md": ""},
     },
     ("POST", "/api/policies/{policy_id}/draft/activate"): {"change_note": "x"},
+    ("PUT", "/api/policies/{policy_id}/draft/change-note"): {"change_note": "x"},
     ("POST", "/api/policies/{policy_id}/import"): json.dumps(
         {"schema_version": "1.0", "positions": POSITIONS}
     ),

@@ -4,6 +4,7 @@ structures (IMP-01, IMP-02)."""
 from typing import Any
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from yap.api.deps import AppClock, CurrentUser, DbSession, RawBody
 from yap.api.schemas import (
@@ -58,6 +59,7 @@ def _thesis_warning(active: PolicyVersion | None) -> dict[str, Any]:
     return {
         "thesis_warning": semaphore in (Verdict.WARNING, Verdict.BROKEN),
         "semaphore": semaphore.value if semaphore else None,
+        "mark": active.mark if active is not None else None,
     }
 
 
@@ -170,9 +172,29 @@ def update_draft(
     return _version(draft.policy, draft)
 
 
-@router.delete("/{policy_id}/draft", status_code=204)
-def delete_draft(policy_id: int, session: DbSession, user: CurrentUser) -> None:
-    policies.delete_draft(session, user, policy_id)
+class Discarded(BaseModel):
+    """POL-16: whether the policy was deleted with the draft (it was never activated)."""
+
+    policy_deleted: bool
+
+
+@router.delete("/{policy_id}/draft")
+def delete_draft(policy_id: int, session: DbSession, user: CurrentUser) -> Discarded:
+    """POL-16: discards the draft and its review."""
+    return Discarded(policy_deleted=policies.delete_draft(session, user, policy_id))
+
+
+class ChangeNote(BaseModel):
+    change_note: str | None
+
+
+@router.put("/{policy_id}/draft/change-note")
+def update_change_note(
+    policy_id: int, body: ChangeNote, session: DbSession, clock: AppClock, user: CurrentUser
+) -> VersionOut:
+    """POL-14, POL-17: saves the change note of the draft."""
+    draft = policies.update_change_note(session, user, clock, policy_id, body.change_note)
+    return _version(draft.policy, draft)
 
 
 @router.post("/{policy_id}/draft/activate")

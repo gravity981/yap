@@ -258,8 +258,10 @@ class PolicyVersion(Base):
     thesis_title: Mapped[str] = mapped_column(String(200))
     thesis_md: Mapped[str] = mapped_column(Text)
     change_note: Mapped[str | None] = mapped_column(Text)
+    # REV-20: not_reviewed | review_did_not_match, set at activation; null otherwise
+    mark: Mapped[str | None] = mapped_column(String(30))
     activated_at: Mapped[datetime | None]
-    updated_at: Mapped[datetime | None]  # last change of a draft (REV-09)
+    updated_at: Mapped[datetime | None]  # last auto-save of a draft (POL-14)
     created_at: Mapped[datetime]
 
     policy: Mapped[Policy] = relationship(back_populates="versions")
@@ -432,6 +434,10 @@ class Review(Base):
     # broken (REV-06); null for policy reviews before stage 2
     verdict: Mapped[str | None] = mapped_column(String(20))
     verdict_reason: Mapped[str | None] = mapped_column(Text)  # since scoring version 3
+    # REV-09: of the reviewed content; null for reviews from before fingerprints
+    fingerprint: Mapped[str | None] = mapped_column(String(64))
+    # REV-11, REV-23: when confirmed by activation; null while the draft is open
+    saved_at: Mapped[datetime | None]
     # Investor changes of reviews from before REV-10 was dropped, read-only (JSON: note,
     # verdict, scores per aspect); null for all newer reviews
     legacy_modification: Mapped[str | None] = mapped_column(Text)

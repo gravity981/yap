@@ -504,6 +504,26 @@
         "title": "BaseCurrency",
         "type": "object"
       },
+      "ChangeNote": {
+        "properties": {
+          "change_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Note"
+          }
+        },
+        "required": [
+          "change_note"
+        ],
+        "title": "ChangeNote",
+        "type": "object"
+      },
       "Choice": {
         "description": "USR-08: the default review method; `manual` wins over an AI reviewer.",
         "properties": {
@@ -799,6 +819,20 @@
           "new_tickers"
         ],
         "title": "CurrentStructurePreviewOut",
+        "type": "object"
+      },
+      "Discarded": {
+        "description": "POL-16: whether the policy was deleted with the draft (it was never activated).",
+        "properties": {
+          "policy_deleted": {
+            "title": "Policy Deleted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "policy_deleted"
+        ],
+        "title": "Discarded",
         "type": "object"
       },
       "DraftIn": {
@@ -1649,6 +1683,17 @@
             "title": "Id",
             "type": "integer"
           },
+          "mark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mark"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -1691,7 +1736,8 @@
           "versions",
           "portfolios",
           "thesis_warning",
-          "semaphore"
+          "semaphore",
+          "mark"
         ],
         "title": "PolicyOut",
         "type": "object"
@@ -1729,6 +1775,17 @@
             "title": "Id",
             "type": "integer"
           },
+          "mark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mark"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -1756,7 +1813,8 @@
           "active_version_label",
           "has_draft",
           "thesis_warning",
-          "semaphore"
+          "semaphore",
+          "mark"
         ],
         "title": "PolicySummary",
         "type": "object"
@@ -4246,6 +4304,17 @@
             "title": "Label",
             "type": "string"
           },
+          "mark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mark"
+          },
           "positions": {
             "items": {
               "$ref": "#/components/schemas/PositionOut"
@@ -4289,6 +4358,7 @@
           "label",
           "thesis_title",
           "change_note",
+          "mark",
           "active_from",
           "active_until",
           "is_draft",
@@ -4350,6 +4420,17 @@
             "title": "Label",
             "type": "string"
           },
+          "mark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mark"
+          },
           "policy_id": {
             "title": "Policy Id",
             "type": "integer"
@@ -4401,6 +4482,7 @@
           "label",
           "thesis_title",
           "change_note",
+          "mark",
           "active_from",
           "active_until",
           "is_draft",
@@ -4463,6 +4545,17 @@
             "title": "Label",
             "type": "string"
           },
+          "mark": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mark"
+          },
           "review": {
             "anyOf": [
               {
@@ -4495,6 +4588,7 @@
           "label",
           "thesis_title",
           "change_note",
+          "mark",
           "active_from",
           "active_until",
           "is_draft",
@@ -6565,6 +6659,7 @@
     },
     "/api/policies/{policy_id}/draft": {
       "delete": {
+        "description": "POL-16: discards the draft and its review.",
         "operationId": "delete_draft_api_policies__policy_id__draft_delete",
         "parameters": [
           {
@@ -6594,7 +6689,14 @@
           }
         ],
         "responses": {
-          "204": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Discarded"
+                }
+              }
+            },
             "description": "Successful Response"
           },
           "422": {
@@ -6799,6 +6901,75 @@
           }
         },
         "summary": "Activate Draft",
+        "tags": [
+          "policies"
+        ]
+      }
+    },
+    "/api/policies/{policy_id}/draft/change-note": {
+      "put": {
+        "description": "POL-14, POL-17: saves the change note of the draft.",
+        "operationId": "update_change_note_api_policies__policy_id__draft_change_note_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeNote"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Change Note",
         "tags": [
           "policies"
         ]

@@ -37,7 +37,7 @@ export const en = {
     importThesisPreview: 'Replaces the thesis of the draft v{{no}} with "{{title}}".',
     importTarget: "Import target structure",
     editDraft: "Edit draft",
-    activateDraft: "Activate draft",
+    finalize: "Finalize draft",
     newDraft: "New draft",
     thesisWarningBefore: "The review of the active version rates its thesis ",
     thesisWarningAfter:
@@ -46,8 +46,6 @@ export const en = {
     tabStructure: "Target structure",
     tabVersions: "Versions",
     tabCompare: "Compare",
-    deleteDraft: "Delete draft",
-    firstCannotBeDeleted: "The first version cannot be deleted",
     importDescription:
       "Replaces the content of the draft of {{name}} (a draft is created if there is none). Nothing is activated.",
     importChanges: "Changes compared with the latest version:",
@@ -111,7 +109,7 @@ export const en = {
   editor: {
     noDraft: "This policy has no draft. Create one on the policy page.",
     title: "{{name}}-v{{no}} (draft)",
-    hint: "Thresholds are relative to the target: buy −20 means 20 % below the target. Saving keeps the draft; activate it on the policy page.",
+    back: "← {{name}}",
     position: "Position {{no}}",
     ticker: "Ticker",
     name: "Name",
@@ -130,7 +128,43 @@ export const en = {
     total: "Total target: {{total}}",
     totalMust: " (must be 100 % to activate)",
     oneCashBuffer: "At most one cash buffer position is allowed.",
-    saveDraft: "Save draft",
+    saving: "Saving …",
+    savedAuto: "Saved automatically",
+    savedAt: "Saved automatically · {{time}}",
+    saveFailed: "Saving failed; it is retried",
+    saveInvalid: "Not saved yet: correct the marked fields",
+    finalize: "Finalize →",
+  },
+  discard: {
+    button: "Discard draft",
+    title: "Discard the draft?",
+    backToActive: "Its content and its review are deleted. The policy stays at its active version.",
+    deletesPolicy:
+      "The policy was never activated, so it is deleted with its draft and its review.",
+    confirm: "Discard",
+  },
+  summary: {
+    back: "← Back to the editor",
+    title: "{{name}}-v{{no}}: summary",
+    review: "Review",
+    noReview:
+      "Not reviewed. You can activate the draft anyway; the version is marked as not reviewed.",
+    running: "The review is still running; wait for it before activating.",
+    matches: "matches the draft",
+    doesNotMatch: "no longer matches the draft",
+    broken:
+      "The review rates the thesis as broken. Activating records it as broken and sells nothing; the portfolios offer to sell when they are rebalanced.",
+    structure: "Target structure",
+    total: "Total of the targets: {{total}}",
+    incomplete:
+      "The targets must sum to 100 % with at most one cash buffer before the draft can be activated.",
+    changes: "Changes against v{{no}}",
+    portfolios: "Portfolios",
+    toEditor: "Back to the editor",
+  },
+  marks: {
+    not_reviewed: "not reviewed",
+    review_did_not_match: "review did not match",
   },
 };
 
@@ -171,7 +205,7 @@ export const de: Messages<typeof en> = {
     importThesisPreview: "Ersetzt die Anlagethese des Entwurfs v{{no}} durch «{{title}}».",
     importTarget: "Zielstruktur importieren",
     editDraft: "Entwurf bearbeiten",
-    activateDraft: "Entwurf aktivieren",
+    finalize: "Entwurf abschliessen",
     newDraft: "Neuer Entwurf",
     thesisWarningBefore: "Die Prüfung der aktiven Version bewertet ihre Anlagethese als ",
     thesisWarningAfter:
@@ -180,8 +214,6 @@ export const de: Messages<typeof en> = {
     tabStructure: "Zielstruktur",
     tabVersions: "Versionen",
     tabCompare: "Vergleichen",
-    deleteDraft: "Entwurf löschen",
-    firstCannotBeDeleted: "Die erste Version kann nicht gelöscht werden",
     importDescription:
       "Ersetzt den Inhalt des Entwurfs von {{name}} (gibt es keinen, wird einer erstellt). Es wird nichts aktiviert.",
     importChanges: "Änderungen gegenüber der neusten Version:",
@@ -246,7 +278,7 @@ export const de: Messages<typeof en> = {
     noDraft:
       "Diese Anlagestrategie hat keinen Entwurf. Erstelle einen auf der Seite der Anlagestrategie.",
     title: "{{name}}-v{{no}} (Entwurf)",
-    hint: "Die Schwellen sind relativ zum Ziel: Kaufen −20 heisst 20 % unter dem Ziel. Speichern behält den Entwurf; aktiviere ihn auf der Seite der Anlagestrategie.",
+    back: "← {{name}}",
     position: "Position {{no}}",
     ticker: "Ticker",
     name: "Name",
@@ -265,6 +297,43 @@ export const de: Messages<typeof en> = {
     total: "Ziel gesamt: {{total}}",
     totalMust: " (muss für die Aktivierung 100 % sein)",
     oneCashBuffer: "Höchstens eine Position darf eine Liquiditätsreserve sein.",
-    saveDraft: "Entwurf speichern",
+    saving: "Speichert …",
+    savedAuto: "Automatisch gespeichert",
+    savedAt: "Automatisch gespeichert · {{time}}",
+    saveFailed: "Speichern fehlgeschlagen; es wird erneut versucht",
+    saveInvalid: "Noch nicht gespeichert: korrigiere die markierten Felder",
+    finalize: "Abschliessen →",
+  },
+  discard: {
+    button: "Entwurf verwerfen",
+    title: "Entwurf verwerfen?",
+    backToActive:
+      "Sein Inhalt und seine Prüfung werden gelöscht. Die Anlagestrategie bleibt bei ihrer aktiven Version.",
+    deletesPolicy:
+      "Die Anlagestrategie wurde nie aktiviert; sie wird mit ihrem Entwurf und seiner Prüfung gelöscht.",
+    confirm: "Verwerfen",
+  },
+  summary: {
+    back: "← Zurück zum Editor",
+    title: "{{name}}-v{{no}}: Zusammenfassung",
+    review: "Prüfung",
+    noReview:
+      "Nicht geprüft. Du kannst den Entwurf trotzdem aktivieren; die Version wird als nicht geprüft markiert.",
+    running: "Die Prüfung läuft noch; warte vor dem Aktivieren auf sie.",
+    matches: "passt zum Entwurf",
+    doesNotMatch: "passt nicht mehr zum Entwurf",
+    broken:
+      "Die Prüfung bewertet die Anlagethese als gebrochen. Das Aktivieren hält sie als gebrochen fest und verkauft nichts; die Portfolios bieten beim Rebalancing den Verkauf an.",
+    structure: "Zielstruktur",
+    total: "Summe der Ziele: {{total}}",
+    incomplete:
+      "Die Ziele müssen 100 % ergeben, mit höchstens einer Liquiditätsreserve, bevor der Entwurf aktiviert werden kann.",
+    changes: "Änderungen gegenüber v{{no}}",
+    portfolios: "Portfolios",
+    toEditor: "Zurück zum Editor",
+  },
+  marks: {
+    not_reviewed: "nicht geprüft",
+    review_did_not_match: "Prüfung passte nicht",
   },
 };

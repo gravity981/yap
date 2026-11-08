@@ -165,6 +165,7 @@ class VersionSummary(BaseModel):
     label: str
     thesis_title: str
     change_note: str | None
+    mark: str | None  # REV-20: not_reviewed | review_did_not_match
     active_from: datetime | None
     active_until: datetime | None
     is_draft: bool
@@ -198,6 +199,7 @@ def version_summary(
         label=version.label,
         thesis_title=version.thesis_title,
         change_note=version.change_note,
+        mark=version.mark,
         active_from=active_from,
         active_until=active_until,
         is_draft=version.activated_at is None,
@@ -228,6 +230,7 @@ class PolicyOut(BaseModel):
     # POL-11, THS-04: the semaphore of the active version is warning or broken
     thesis_warning: bool
     semaphore: str | None  # of the active version; null: not reviewed
+    mark: str | None  # REV-20: of the active version
 
 
 class PolicySummary(BaseModel):
@@ -238,6 +241,7 @@ class PolicySummary(BaseModel):
     has_draft: bool
     thesis_warning: bool
     semaphore: str | None
+    mark: str | None  # REV-20: of the active version
 
 
 class PositionChangeOut(BaseModel):

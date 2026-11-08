@@ -15,8 +15,6 @@ export const de = {
   buy_threshold_range: "Die Kaufschwelle muss zwischen -100 und 0 liegen",
   sell_threshold_min: "Die Verkaufsschwelle muss 0 oder mehr sein",
   one_cash_buffer: "Es ist höchstens eine Liquiditätsreserve erlaubt",
-  policy_first_version_kept:
-    "Die erste Version kann nicht gelöscht werden; sie ist die einzige der Anlagestrategie",
   target_sum:
     "Die Ziele ergeben zusammen {{sum}} %, das weicht um {{difference}} Prozentpunkte von 100 % ab",
   multiple_cash_buffers: "Die Anlagestrategie enthält mehr als eine Liquiditätsreserve",

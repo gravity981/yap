@@ -56,11 +56,14 @@ def test_a_thesis_section_is_taken_over_and_undone(session: Session, factory: Fa
     assert not reviews.outdated(review, draft)
     draft = _take_over(session, factory, owner, s)
     assert section_text(draft.thesis_md, 7) == "- GDP below 2 %"
-    assert (s.state, s.previous) == ("taken_over", {"section": 7, "text": None})
+    assert s.state == "taken_over"
+    assert s.previous is not None
+    assert (s.previous["section"], s.previous["text"]) == (7, None)
+    assert s.previous["thesis_md"] == "# Thesis"
     # Taking over changes the draft, so the review no longer matches it (REV-09)
     assert reviews.outdated(review, draft)
     draft = _undo(session, factory, owner, s)
-    assert draft.thesis_md.rstrip() == "# Thesis"
+    assert draft.thesis_md == "# Thesis"  # exactly as before (REV-09)
     assert (s.state, s.previous) == ("open", None)
 
 
@@ -76,7 +79,8 @@ def test_an_existing_section_gets_its_old_text_back_on_undo(
     s = factory.suggestion(review, change={"section": 1, "text": "New belief."})
     draft = _take_over(session, factory, owner, s)
     assert section_text(draft.thesis_md, 1) == "New belief."
-    assert s.previous == {"section": 1, "text": "Old belief."}
+    assert s.previous is not None
+    assert (s.previous["section"], s.previous["text"]) == (1, "Old belief.")
     draft = _undo(session, factory, owner, s)
     assert draft.thesis_md == thesis
 

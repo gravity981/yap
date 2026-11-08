@@ -594,6 +594,78 @@ def test_suggestions_get_a_change_and_a_state_and_lose_them_again(
     assert _triggers(engine) == at_head
 
 
+def _trigger_sql(engine: Engine) -> list[tuple[str, str]]:
+    with engine.connect() as connection:
+        rows = connection.execute(
+            text("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' ORDER BY name")
+        )
+        return [(row[0], row[1]) for row in rows]
+
+
+@pytest.mark.req("NFR-09", "NFR-05", "REV-09", "REV-11", "REV-20")
+def test_reviews_get_fingerprints_and_confirmation_times_and_versions_marks(
+    db_url: str, engine: Engine
+) -> None:
+    """0021: reviews of activated versions are confirmed at the activation time; versions
+    activated without a finished review are marked not reviewed; the triggers stay."""
+    from alembic import command
+
+    from yap.db.migrate import upgrade
+
+    at_head = _trigger_sql(engine)
+    command.downgrade(_alembic(db_url), "0020")
+    t0 = "'2026-01-01T00:00:00.000000+00:00'"
+    t1 = "'2026-02-01T00:00:00.000000+00:00'"
+    with engine.begin() as connection:
+        for sql in (
+            "INSERT INTO investor (id, username, password_hash, is_admin, is_investor,"
+            " base_currency, active, must_change_password, created_at, manual_review_default)"
+            f" VALUES (1, 'alice', 'x', 0, 1, 'CHF', 1, 0, {t0}, 0)",
+            f"INSERT INTO policy (id, owner_id, name, created_at) VALUES (1, 1, 'core', {t0})",
+            # v1 activated without a review, v2 with one, v3 a draft with one
+            *(
+                "INSERT INTO policy_version (id, policy_id, version_no, thesis_title,"
+                f" thesis_md, activated_at, created_at) VALUES ({n}, 1, {n}, 'T', 'text',"
+                f" NULL, {t0})"
+                for n in (1, 2, 3)
+            ),
+            *(
+                "INSERT INTO review (id, kind, policy_version_id, started_by, state, verdict,"
+                " scoring_version, provider, model, started_at, method) VALUES"
+                f" ({n}, 'full', {n}, 1, 'done', 'good', '3', 'openai', 'm', {t0}, 'ai')"
+                for n in (2, 3)
+            ),
+            f"UPDATE policy_version SET activated_at = {t0} WHERE id = 1",
+            f"UPDATE policy_version SET activated_at = {t1} WHERE id = 2",
+        ):
+            connection.execute(text(sql))
+    upgrade(db_url)
+    assert _trigger_sql(engine) == at_head
+    with engine.connect() as connection:
+        marks = connection.execute(text("SELECT id, mark FROM policy_version ORDER BY id")).all()
+        assert [tuple(r) for r in marks] == [(1, "not_reviewed"), (2, None), (3, None)]
+        saved = connection.execute(
+            text("SELECT id, saved_at, fingerprint FROM review ORDER BY id")
+        ).all()
+        assert [tuple(r) for r in saved] == [(2, t1.strip("'"), None), (3, None, None)]
+    # History stays protected after the backfill
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(text("UPDATE policy_version SET mark = NULL WHERE id = 1"))
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(text("UPDATE review SET saved_at = NULL WHERE id = 2"))
+
+    command.downgrade(_alembic(db_url), "0020")
+    with engine.connect() as connection:
+        version_columns = {
+            r[1] for r in connection.execute(text("PRAGMA table_info(policy_version)"))
+        }
+        review_columns = {r[1] for r in connection.execute(text("PRAGMA table_info(review)"))}
+        assert "mark" not in version_columns
+        assert not review_columns & {"fingerprint", "saved_at"}
+    upgrade(db_url)
+    assert _trigger_sql(engine) == at_head
+
+
 @pytest.mark.req("NFR-09", "NFR-05", "PTF-03", "CMP-10")
 def test_portfolios_get_a_currency_and_snapshots_keep_their_values(
     db_url: str, engine: Engine, session: Session, factory: Factory

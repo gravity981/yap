@@ -14,9 +14,6 @@ MESSAGES: dict[str, str] = {
     "buy_threshold_range": "Buy threshold must be between -100 and 0",
     "sell_threshold_min": "Sell threshold must be 0 or more",
     "one_cash_buffer": "At most one cash buffer position is allowed",
-    "policy_first_version_kept": (
-        "The first version cannot be deleted; it is the policy's only version"
-    ),
     "target_sum": (
         "Target allocations sum to {sum} %, which differs from 100 % "
         "by {difference} percentage points"

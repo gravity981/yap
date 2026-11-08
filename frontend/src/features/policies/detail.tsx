@@ -1,26 +1,19 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { FileImport } from "@/components/file-import";
 import { filePositions, ImportPriceSources } from "@/features/prices/import-price-sources";
-import { Field, FormError, fieldError } from "@/components/form";
+import { FormError } from "@/components/form";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Markdown } from "@/components/markdown";
-import {
-  ReviewBriefLine,
-  ReviewSection,
-  activationWarning,
-  reviewTitle,
-} from "@/features/reviews/review";
+import { ReviewBriefLine, ReviewSection, reviewTitle } from "@/features/reviews/review";
 import { ScoreCourse } from "@/features/reviews/score-course";
 import { SemaphoreBadge, semaphoreLabel } from "@/features/reviews/semaphore";
 import { formatDateTime } from "@/lib/format";
@@ -35,6 +28,8 @@ import {
   useVersion,
   type Policy,
 } from "./api";
+import { DiscardDraft } from "./discard";
+import { MarkBadge } from "./mark";
 import { PositionsTable, VersionDiffView } from "./positions";
 
 /** POL-08 to POL-13: versions, draft, warnings, comparison. */
@@ -44,7 +39,6 @@ export function PolicyPage({ policyId }: { policyId: number }) {
   const actions = usePolicyActions(policyId);
   const navigate = useNavigate();
   const client = useQueryClient();
-  const [activating, setActivating] = useState(false);
   const [importing, setImporting] = useState<"target" | "thesis" | null>(null);
   const [tab, setTab] = useState("thesis");
   // Counts finished imports and activations; remounts the version view so it shows the
@@ -59,7 +53,7 @@ export function PolicyPage({ policyId }: { policyId: number }) {
   const archived = p.archived_at !== null;
   const editDraft = () =>
     navigate({ to: "/policies/$policyId/draft", params: { policyId: String(p.id) } });
-  const error = actions.createDraft.error ?? actions.deleteDraft.error ?? actions.archive.error;
+  const error = actions.createDraft.error ?? actions.archive.error;
 
   return (
     <div className="grid gap-4">
@@ -78,6 +72,7 @@ export function PolicyPage({ policyId }: { policyId: number }) {
               </Badge>
             )}
             {archived && <Badge variant="secondary">{t("policies.detail.archived")}</Badge>}
+            <MarkBadge mark={p.mark} />
           </div>
         </div>
         {!archived && (
@@ -93,8 +88,16 @@ export function PolicyPage({ policyId }: { policyId: number }) {
                 <Button variant="outline" onClick={editDraft}>
                   {t("policies.detail.editDraft")}
                 </Button>
-                <Button onClick={() => setActivating(true)}>
-                  {t("policies.detail.activateDraft")}
+                {/* POL-17: activation goes through the summary of the draft */}
+                <Button
+                  onClick={() =>
+                    void navigate({
+                      to: "/policies/$policyId/draft/summary",
+                      params: { policyId: String(p.id) },
+                    })
+                  }
+                >
+                  {t("policies.detail.finalize")}
                 </Button>
               </>
             ) : (
@@ -136,16 +139,11 @@ export function PolicyPage({ policyId }: { policyId: number }) {
           <VersionList policy={p} />
           {draft && !archived && (
             <div>
-              <Button
-                variant="outline"
-                onClick={() => actions.deleteDraft.mutate(undefined)}
-                disabled={draft.version_no === 1}
-                title={
-                  draft.version_no === 1 ? t("policies.detail.firstCannotBeDeleted") : undefined
-                }
-              >
-                {t("policies.detail.deleteDraft")}
-              </Button>
+              <DiscardDraft
+                policyId={p.id}
+                neverActivated={!active}
+                onDiscarded={() => setImports((n) => n + 1)}
+              />
             </div>
           )}
           <PortfoliosUsing
@@ -159,18 +157,6 @@ export function PolicyPage({ policyId }: { policyId: number }) {
         </TabsContent>
       </Tabs>
 
-      {activating && draft && (
-        <ActivateDialog
-          policy={p}
-          draftNo={draft.version_no}
-          onClose={() => setActivating(false)}
-          // Shows the version that is active now, not the one selected before
-          onActivated={() => {
-            setActivating(false);
-            setImports((n) => n + 1);
-          }}
-        />
-      )}
       {importing === "thesis" && (
         <FileImport
           title={t("policies.detail.importThesis")}
@@ -450,74 +436,5 @@ function CompareVersions({ policy }: { policy: Policy }) {
       </div>
       {diff.data && <VersionDiffView diff={diff.data} />}
     </div>
-  );
-}
-
-/** POL-06 to POL-08: activation takes effect now and applies to all listed portfolios. */
-function ActivateDialog({
-  policy,
-  draftNo,
-  onClose,
-  onActivated,
-}: {
-  policy: Policy;
-  draftNo: number;
-  onClose: () => void;
-  onActivated: () => void;
-}) {
-  const { t } = useTranslation();
-  const { activate } = usePolicyActions(policy.id);
-  const [note, setNote] = useState("");
-  // REV-11: the review of the draft
-  const draft = policy.versions.find((v) => v.is_draft);
-  const warning = activationWarning(draft?.review);
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    activate.mutate(note.trim() || null, { onSuccess: onActivated });
-  };
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogTitle>
-          {t("policies.activate.title", { name: policy.name, no: draftNo })}
-        </DialogTitle>
-        <DialogDescription>
-          {t("policies.activate.fixed")}{" "}
-          {policy.portfolios.length > 0
-            ? t("policies.activate.appliesTo", {
-                portfolios: policy.portfolios.map((p) => p.name).join(", "),
-              })
-            : t("policies.activate.noPortfolio")}
-        </DialogDescription>
-        <form className="mt-4 grid gap-4" onSubmit={submit}>
-          {warning && <Alert variant="warning">{warning}</Alert>}
-          <Field
-            id="activation-note"
-            label={
-              draftNo > 1
-                ? t("policies.activate.changeNote")
-                : t("policies.activate.changeNoteOptional")
-            }
-            error={fieldError(activate.error, "change_note")}
-          >
-            <Input
-              id="activation-note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              required={draftNo > 1}
-            />
-          </Field>
-          <FormError error={activate.error} fields={["change_note"]} />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={activate.isPending}>
-              {warning ? t("policies.activate.activateAnyway") : t("policies.activate.activate")}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }

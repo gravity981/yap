@@ -105,12 +105,14 @@ def _apply(
     """Applies a change to the draft; returns what it replaced."""
     if kind == SuggestionKind.THESIS_SECTION:
         section = int(change["section"])
-        old_text = section_text(draft.thesis_md, section)
-        thesis = replace_section(draft.thesis_md, section, change["text"])
+        before = draft.thesis_md
+        old_text = section_text(before, section)
+        thesis = replace_section(before, section, change["text"])
         policies.update_thesis(
             session, actor, clock, draft.policy_id, ThesisSpec(draft.thesis_title, thesis)
         )
-        return {"section": section, "text": old_text}
+        # The whole text before and after, so an undo right after restores it exactly
+        return {"section": section, "text": old_text, "thesis_md": before, "applied_md": thesis}
     rows = _rows(draft)
     if kind == SuggestionKind.PROPOSAL:
         _save_rows(session, actor, clock, draft, list(change["positions"]))
@@ -148,7 +150,10 @@ def _revert(
 ) -> None:
     """Undoes a change with what it replaced."""
     if kind == SuggestionKind.THESIS_SECTION:
-        thesis = replace_section(draft.thesis_md, int(previous["section"]), previous["text"])
+        if "thesis_md" in previous and draft.thesis_md == previous.get("applied_md"):
+            thesis = previous["thesis_md"]  # unchanged since: exactly as before (REV-09)
+        else:  # changed since: only the section goes back
+            thesis = replace_section(draft.thesis_md, int(previous["section"]), previous["text"])
         policies.update_thesis(
             session, actor, clock, draft.policy_id, ThesisSpec(draft.thesis_title, thesis)
         )
