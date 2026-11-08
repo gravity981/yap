@@ -7,13 +7,13 @@
 [![Dependabot](https://github.com/gravity981/yap/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/gravity981/yap/actions/workflows/dependabot/dependabot-updates)
 
 YAP helps you invest by your own rules: you write down **why** you
-invest (theses), turn that into a **target structure** (policies), compare your
+invest (a thesis), turn that into a **target structure** (together a policy), compare your
 **portfolios** against it and get **rebalancing instructions**. Every decision is kept, so
 you can always see what you decided, when and why.
 
 <p align="center">
-  <img src="docs/screenshots/thesis-with-review.png" width="600"
-       alt="An investment thesis with its AI review: six scored aspects with comments, sources and a suggestion">
+  <img src="docs/screenshots/policy-editor.png" width="600"
+       alt="The policy editor: thesis and target structure with the AI review beside it: scores, semaphore and suggestions">
 </p>
 
 > **Not financial advice.** YAP applies the rules you define and records your decisions;

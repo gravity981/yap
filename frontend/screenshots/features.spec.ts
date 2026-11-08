@@ -47,52 +47,6 @@ worldwide at very low cost. No single country or sector decides the outcome.
 - [ ] Currency hedging reconsidered
 `;
 
-// A shorter version of the core thesis for the README teaser: thesis and review on one page.
-// Keeps a section for every aspect the fake review comments on (value drivers, two warning signals)
-const TEASER_THESIS = `# Global equities for the long run
-
-## Role in the portfolio
-Core holding, 65 % of the portfolio. Holding period: 15+ years.
-
-## Core thesis
-A broadly diversified world equity fund captures the long-term growth of listed companies
-worldwide at very low cost. No single country or sector decides the outcome.
-
-## Why this asset and not an alternative
-- One fund instead of many regional ones: fewer decisions, lower costs.
-
-## Value drivers
-- Earnings growth of global companies
-
-## Risks
-- Drawdowns of 40–50 % are possible and can last years.
-- Currency risk against CHF.
-
-## Break conditions
-- The fund's total costs rise above 0.4 % per year.
-
-## Warning signals
-- Tracking difference worse than −0.5 % per year for two years in a row.
-- The fund's assets shrink for several years in a row.
-`;
-
-const BONDS_THESIS = `# Bonds as stabiliser
-
-## Role in the portfolio
-Stabiliser and source of cash for rebalancing after equity drawdowns.
-
-## Core thesis
-High-quality bonds fall less than equities in most crises, so they reduce drawdowns and
-provide money to buy equities when they are cheap.
-
-## Risks
-- Rising rates lower bond prices.
-- In inflation shocks, bonds and equities can fall together.
-
-## Break conditions
-- Bonds and equities fall together for more than two years.
-`;
-
 const BITCOIN_THESIS = `# Bitcoin as a small satellite
 
 ## Role in the portfolio
@@ -107,6 +61,8 @@ world. The outcome is uncertain, so the position stays small.
 
 ## Break conditions
 - A major jurisdiction bans holding it.
+
+<!-- [fake-verdict: broken] -->
 `;
 
 /** Seeding only: the answers are used loosely, the app's own types matter in src/. */
@@ -127,14 +83,6 @@ async function call(
 async function login(page: Page, username: string, password: string) {
   await page.context().clearCookies();
   await call(page.request, "POST", "/auth/login", { username, password });
-}
-
-async function thesis(request: APIRequestContext, title: string, content: string) {
-  const created = await call(request, "POST", "/theses", { title, content_md: content });
-  await call(request, "POST", `/theses/${created.id}/draft/activate`, {
-    change_note: "First version",
-  });
-  return created.id as number;
 }
 
 async function waitForReview(request: APIRequestContext, id: number) {
@@ -245,46 +193,67 @@ test("feature screenshots", async ({ page, browser }) => {
     await call(page.request, "PUT", "/ai-reviewers/choice", { ai_reviewer_id: reviewers[0].id });
   });
 
-  const ids = await test.step("seed: theses, policy, portfolio and rebalance", async () => {
+  const ids = await test.step("seed: policies, portfolios and a rebalance", async () => {
     const request = page.request;
-    const core = await thesis(request, "Global equities for the long run", CORE_THESIS);
-    const bonds = await thesis(request, "Bonds as stabiliser", BONDS_THESIS);
-    await thesis(request, "Bitcoin as a small satellite", BITCOIN_THESIS);
-    await call(request, "PUT", `/theses/${core}/visibility`, { visibility: "shared" });
-
-    // A second revision of the core thesis with a confirmed review
-    await call(request, "POST", `/theses/${core}/draft`);
-    await call(request, "PUT", `/theses/${core}/draft`, {
-      title: "Global equities for the long run",
-      content_md: CORE_THESIS.replace("about two thirds", "65 %"),
-      status: "intact",
-      change_note: "Target share made explicit",
-    });
-    const review = await call(request, "POST", `/theses/${core}/draft/review`, {
-      news_days: 90,
-    });
-    await waitForReview(request, review.id);
-    await call(request, "POST", `/theses/${core}/draft/activate`, {
-      change_note: "Reviewed",
-    });
-
+    const title = "Global equities for the long run";
     const policy = await call(request, "POST", "/policies", {
       name: "Long-term core",
-      thesis_id: core,
+      thesis_title: title,
+      thesis_md: CORE_THESIS,
     });
-    await call(request, "PUT", `/policies/${policy.id}/draft`, {
+    const draft = `/policies/${policy.id}/draft`;
+    await call(request, "PUT", draft, {
       positions: positions(
         "Core of the portfolio, see the thesis.",
         "Stabiliser; source of cash after equity drawdowns.",
       ),
     });
-    const policyReview = await call(request, "POST", `/policies/${policy.id}/draft/review`, {});
-    await waitForReview(request, policyReview.id);
-    await call(request, "POST", `/policies/${policy.id}/draft/activate`, {
-      change_note: "Initial target structure",
+    const first = await call(request, "POST", `${draft}/review`, {});
+    await waitForReview(request, first.id);
+    await call(request, "POST", `${draft}/activate`, { change_note: "Initial target structure" });
+
+    // A second version with a made-explicit thesis, reviewed again later
+    await call(request, "POST", draft);
+    await call(request, "PUT", draft, {
+      positions: positions(
+        "Core of the portfolio, see the thesis.",
+        "Stabiliser; source of cash after equity drawdowns.",
+      ),
+      thesis: { title, content_md: CORE_THESIS.replace("about two thirds", "65 %") },
     });
+    const second = await call(request, "POST", `${draft}/review`, {});
+    await waitForReview(request, second.id);
+    await call(request, "POST", `${draft}/activate`, { change_note: "Target share made explicit" });
+    const again = await call(request, "POST", `/policies/${policy.id}/active/review`);
+    await waitForReview(request, again.id);
+    await call(request, "PUT", `/policies/${policy.id}/sharing`, { sharing: "text" });
     const detail = await call(request, "GET", `/policies/${policy.id}`);
     const versionId = detail.versions.at(-1).id;
+
+    // A satellite whose thesis the (fake) review finds broken
+    const satellite = await call(request, "POST", "/policies", {
+      name: "Bitcoin satellite",
+      thesis_title: "Bitcoin as a small satellite",
+      thesis_md: BITCOIN_THESIS,
+    });
+    await call(request, "PUT", `/policies/${satellite.id}/draft`, {
+      positions: [
+        {
+          ticker: "BTC",
+          name: "Bitcoin",
+          type: "crypto",
+          target_pct: 100,
+          buy_threshold_pct: -40,
+          sell_threshold_pct: 60,
+          rationale_md: "The whole satellite.",
+        },
+      ],
+    });
+    const broken = await call(request, "POST", `/policies/${satellite.id}/draft/review`, {});
+    await waitForReview(request, broken.id);
+    await call(request, "POST", `/policies/${satellite.id}/draft/activate`, {
+      change_note: "Initial version",
+    });
 
     const portfolio = await call(request, "POST", "/portfolios", {
       name: "Retirement",
@@ -297,7 +266,7 @@ test("feature screenshots", async ({ page, browser }) => {
       BTC: { broker: "Kryptobank" },
       CASH: { broker: "Bank" },
     });
-    const first = await call(request, "POST", `/portfolios/${portfolio.id}/snapshots`, {
+    const earlier = await call(request, "POST", `/portfolios/${portfolio.id}/snapshots`, {
       values: [
         { ticker: "VT", units: 510, price: 120 },
         { ticker: "BND", units: 350, price: 74 },
@@ -306,9 +275,10 @@ test("feature screenshots", async ({ page, browser }) => {
       ],
     });
     await call(request, "POST", `/portfolios/${portfolio.id}/rebalances`, {
-      snapshot_id: first.id,
+      snapshot_id: earlier.id,
       contribution: 1500,
       policy_version_id: versionId,
+      mode: "normal",
       executed: [],
     });
     // The latest values: bitcoin ran above its band, the cash buffer below
@@ -320,9 +290,24 @@ test("feature screenshots", async ({ page, browser }) => {
         { ticker: "CASH", value: 2500 },
       ],
     });
-    // An open draft for the editor screenshot
-    await call(request, "POST", `/theses/${bonds}/draft`);
-    return { core, bonds, policy: policy.id as number, portfolio: portfolio.id as number };
+
+    const small = await call(request, "POST", "/portfolios", {
+      name: "Satellite",
+      policy_id: satellite.id,
+    });
+    await call(request, "POST", `/portfolios/${small.id}/snapshots`, {
+      values: [{ ticker: "BTC", units: 0.2, price: 95000 }],
+    });
+
+    // An open draft of the core policy, reviewed, for the editor screenshot
+    await call(request, "POST", draft);
+    const open = await call(request, "POST", `${draft}/review`, {});
+    await waitForReview(request, open.id);
+    return {
+      policy: policy.id as number,
+      portfolio: portfolio.id as number,
+      small: small.id as number,
+    };
   });
 
   await test.step("dashboard", async () => {
@@ -332,36 +317,31 @@ test("feature screenshots", async ({ page, browser }) => {
     await shot(page, "dashboard");
   });
 
-  await test.step("theses", async () => {
-    await page.goto("/theses");
-    await expect(page.getByRole("link", { name: "Bonds as stabiliser" })).toBeVisible();
-    await shot(page, "theses");
-    await page.goto(`/theses/${ids.core}`);
-    await expect(
-      page.getByRole("heading", { name: "Global equities for the long run" }).first(),
-    ).toBeVisible();
-    await shot(page, "thesis");
-  });
-
-  await test.step("thesis editor", async () => {
-    await page.goto(`/theses/${ids.bonds}/edit`);
-    await expect(page.getByText("Bonds as stabiliser").first()).toBeVisible();
-    await page.waitForTimeout(500); // the editor chunk loads lazily
-    await shot(page, "thesis-editor");
-  });
-
-  await test.step("review", async () => {
-    await page.goto(`/theses/${ids.core}`);
-    const review = page.getByRole("region", { name: M.reviews.section.thesis });
-    await expect(review.getByText(`T6 ${M.reviews.aspects.T6}`)).toBeVisible();
-    await page.mouse.move(0, 0);
-    await review.screenshot({ path: `${OUT}/thesis-review.png` });
+  await test.step("policies", async () => {
+    await page.goto("/policies");
+    await expect(page.getByRole("link", { name: "Bitcoin satellite" })).toBeVisible();
+    await shot(page, "policies");
   });
 
   await test.step("policy", async () => {
     await page.goto(`/policies/${ids.policy}`);
     await expect(page.getByText("Long-term core").first()).toBeVisible();
     await shot(page, "policy");
+  });
+
+  await test.step("review log", async () => {
+    await page.goto(`/policies/${ids.policy}`);
+    await page.getByRole("tab", { name: M.policies.detail.tabReviews }).click();
+    await expect(page.getByRole("region", { name: M.reviews.log.title })).toBeVisible();
+    await shot(page, "policy-reviews");
+  });
+
+  await test.step("draft editor with the review", async () => {
+    await page.goto(`/policies/${ids.policy}/draft`);
+    const review = page.getByRole("region", { name: M.reviews.section.title, exact: true });
+    await expect(review.getByRole("img", { name: /^(Score|Bewertung)/ })).toBeVisible();
+    await page.waitForTimeout(800); // the editor chunk loads lazily
+    await shot(page, "policy-editor");
   });
 
   await test.step("portfolio", async () => {
@@ -377,6 +357,17 @@ test("feature screenshots", async ({ page, browser }) => {
     await expect(page.getByText(M.rebalance.cash.sellProceeds, { exact: true })).toBeVisible();
     // Up to the printable report; the confirmation form below is left out
     await shot(page, "rebalance", 670);
+  });
+
+  await test.step("rebalance with a broken thesis", async () => {
+    await page.goto(`/portfolios/${ids.small}/rebalance`);
+    await page.getByRole("button", { name: M.portfolios.values.saveAndRebalance }).click();
+    await expect(
+      page.getByText(
+        M.rebalance.page.thesis.brokenTitle.replace("{{policy}}", "Bitcoin satellite"),
+      ),
+    ).toBeVisible();
+    await shot(page, "rebalance-broken", 760);
   });
 
   await test.step("timeline", async () => {
@@ -412,30 +403,5 @@ test("feature screenshots", async ({ page, browser }) => {
     await expect(mobile.getByText(M.timeline.types.rebalance_confirmed)).toBeVisible();
     await shot(mobile, "phone-dashboard");
     await phone.close();
-  });
-
-  // Last, so that the extra thesis appears in no other screenshot
-  await test.step("README teaser: thesis with its review", async () => {
-    const request = page.request;
-    const title = "Global equities for the long run";
-    const created = await call(request, "POST", "/theses", { title, content_md: TEASER_THESIS });
-    await call(request, "PUT", `/theses/${created.id}/draft`, {
-      title,
-      content_md: TEASER_THESIS,
-      status: "intact",
-      change_note: "First version",
-    });
-    const review = await call(request, "POST", `/theses/${created.id}/draft/review`, {
-      news_days: 90,
-    });
-    await waitForReview(request, review.id);
-    await call(request, "POST", `/theses/${created.id}/draft/activate`, {
-      change_note: "Reviewed",
-    });
-    await page.goto(`/theses/${created.id}`);
-    const section = page.getByRole("region", { name: M.reviews.section.thesis });
-    await expect(section.getByText(`T6 ${M.reviews.aspects.T6}`)).toBeVisible();
-    await page.mouse.move(0, 0);
-    await page.screenshot({ path: `${OUT}/thesis-with-review.png`, fullPage: true });
   });
 });

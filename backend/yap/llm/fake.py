@@ -44,8 +44,7 @@ class FakeAdapter:
                 {"code": code, "score": score, "reasoning": REASONING[code]}
                 for code, score in zip(codes, SCORES, strict=False)
             ],
-            "verdict": "good",
-            "verdict_reason": "Recent news supports the thesis; no break condition is met [1].",
+            **_verdict(request.prompt),
             "sources": [
                 {
                     "title": "Example news: global equity funds see steady inflows",
@@ -57,6 +56,22 @@ class FakeAdapter:
             "proposals": [] if "P1" in codes else PROPOSALS,
         }
         return json.dumps(answer)
+
+
+BROKEN_MARKER = "[fake-verdict: broken]"
+
+
+def _verdict(prompt: str) -> dict[str, str]:
+    """A thesis that contains the marker is reviewed as broken (RB-25 in the e2e tests)."""
+    if BROKEN_MARKER in prompt:
+        return {
+            "verdict": "broken",
+            "verdict_reason": "A break condition of the thesis is met [1].",
+        }
+    return {
+        "verdict": "good",
+        "verdict_reason": "Recent news supports the thesis; no break condition is met [1].",
+    }
 
 
 _EMPTY = {

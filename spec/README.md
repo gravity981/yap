@@ -44,7 +44,7 @@ Each stage is one branch, each step one commit; the investor creates branches an
 |---|---|---|
 | First release | Everything in section 3 of sw-architecture.md as of the first release | Implemented, not yet released |
 | 1 Review rework | Simpler thesis template, new review aspects, review in the draft editor with an AI reviewer or manually, per-aspect modification (REV-10) dropped | Done with steps 1.1–1.7; the planned steps 1.8–1.10 are replaced by stage 2 |
-| 2 Merged policies | Policy = thesis + target structure in one editor with auto-save, discard and Finalize; one review of everything with take-over suggestions and proposals; reviews that warn, never block; re-reviews and a review log; semaphore instead of thesis status; sharing levels; selling a portfolio with a broken thesis | Specified; UX approved (mockups: "YAP policy workflow", https://claude.ai/artifact/4aSR83yFceaCZ3KUwEo6Wu) |
+| 2 Merged policies | Policy = thesis + target structure in one editor with auto-save, discard and Finalize; one review of everything with take-over suggestions and proposals; reviews that warn, never block; re-reviews and a review log; semaphore instead of thesis status; sharing levels; selling a portfolio with a broken thesis | Done with steps 2.1–2.8 (UX mockups: "YAP policy workflow", https://claude.ai/artifact/4aSR83yFceaCZ3KUwEo6Wu) |
 | 3 Catalog | Example policies and shared policies in one catalog, copied into own policies | Specified (THS-10 to THS-15); after stage 2 |
 
 ### Stage 2: merged policies

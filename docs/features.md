@@ -1,8 +1,9 @@
 # Features
 
-A web app for managing investment strategies: investors write theses, derive policies
-(thesis + target structure) from them, compare their portfolios against the policy that
-applies, get rebalancing instructions and keep a consistent history of every decision.
+A web app for managing investment strategies: investors write policies (an investment
+thesis and the target structure that follows from it) in one editor, have them reviewed,
+compare their portfolios against the policy that applies, get rebalancing instructions and
+keep a consistent history of every decision.
 It runs on a server in the home LAN and supports several investors, each with their own
 login.
 
@@ -13,7 +14,6 @@ The screenshots show fictional demo data. They are generated with `npm run scree
 > investment, legal or tax advice, and its AI reviews can be wrong.
 
 - [Dashboard](#dashboard)
-- [Theses](#theses)
 - [Policies](#policies)
 - [Portfolios](#portfolios)
 - [Rebalancing](#rebalancing)
@@ -26,40 +26,33 @@ The screenshots show fictional demo data. They are generated with `npm run scree
 
 ## Dashboard
 
-All portfolios at a glance: how many positions are outside their band, warnings about the
-theses behind your policies (broken, or a newer revision available) and your latest
-decisions.
+All portfolios at a glance: how many positions are outside their band, the semaphore of
+the policy behind each of them (good, warning, broken) and your latest decisions.
 
 ![Dashboard with one portfolio and the recent events](screenshots/dashboard.png)
 
-## Theses
-
-A thesis explains why you hold an asset: its role, value drivers, risks, break
-conditions and warning signals. You write it in Markdown, starting from a template, with a
-live preview next to the editor.
-
-![Markdown editor with live preview](screenshots/thesis-editor.png)
-
-- Every change is a draft first. Activating it creates a new revision; earlier revisions
-  never change, so old reasoning stays traceable.
-- Compare any two revisions side by side.
-- A thesis has no status of its own: its semaphore (*good*, *warning* or *broken*) is the
-  verdict of its latest review.
-- Share a thesis with the other investors on your server, or keep it private.
-- Import and export theses as JSON files.
-
-![List of theses with status and visibility](screenshots/theses.png)
-
-![A thesis with its current revision](screenshots/thesis.png)
-
 ## Policies
 
-A policy combines one thesis revision with a target structure: each position with its
-target share, a band (buy below, sell above), an optional exit flag and a rationale. Cash
-buffers, ETFs, stocks and crypto are supported. Policies have versions as well; a version
-always points to the exact thesis revision it was made for.
+A policy is one document: the **thesis** (why you invest, written in Markdown from a
+template, with a live preview) and the **target structure** (each position with its target
+share, a band to buy below and sell above, an optional exit flag and a rationale). Cash
+buffers, ETFs, stocks and crypto are supported.
 
-![Policy with its target structure and a confirmed policy review](screenshots/policy.png)
+- **Drafts.** You edit a draft that saves itself; nothing changes until you finalize it.
+  Finalize shows a summary: the review, the sum of the targets, the changes against the
+  active version and the portfolios that follow the policy. Then you activate it as a new
+  version. Earlier versions never change, so old reasoning stays traceable.
+- **One review of everything** (next to the editor, see [AI reviews](#ai-reviews)).
+- **Versions** can be compared side by side, and so can reviews.
+- **Sharing.** Keep a policy private, or share its thesis, or thesis and target structure,
+  with the other investors on your server. Portfolios always stay private.
+- Import and export thesis and target structure as JSON files.
+
+![The draft editor: thesis and target structure on the left, the review beside it](screenshots/policy-editor.png)
+
+![Policies with their latest review: stars, semaphore, draft and portfolios](screenshots/policies.png)
+
+![A policy with its target structure](screenshots/policy.png)
 
 ## Portfolios
 
@@ -87,32 +80,46 @@ anything missing is sold from the positions furthest above target. The instructi
 trading, you confirm what was actually executed; the rebalance and the resulting values are
 stored. A simulation shows how several rebalancing cycles would play out.
 
+The thesis semaphore informs you; it never trades for you. With a **warning**, the page shows
+an amber hint with the reason of the latest review and a link to the policy; the calculation
+stays as usual. With a **broken** thesis, the page shows the reason in red and asks how you
+want to rebalance: **sell the whole portfolio** (preselected: every position is sold
+completely, nothing is bought, the cash stays in the portfolio unless you enter a
+withdrawal) or rebalance as usual. The choice is stored with the confirmed rebalance and
+named in the timeline.
+
 ![Rebalancing instructions with the cash summary](screenshots/rebalance.png)
+
+![A broken thesis offers to sell the whole portfolio](screenshots/rebalance-broken.png)
 
 ## AI reviews
 
-An AI reviewer judges a thesis draft or a policy draft on six fixed aspects, each scored
-from 0 to 10 in half points, with its reasoning:
+An AI reviewer (or an AI of your choice, by copying a prompt and pasting its answer) reviews
+the whole policy at once: six aspects of the thesis (belief, fit and implementation,
+opportunity, downside, invalidation, warnings and monitoring, current evidence from a web
+search for recent news, with sources) and six of the target structure (coverage, weighting,
+bands, exits, concentration, rationales). Each is scored from 0 to 10 in half points, with
+its reasoning. The review gives a score and the thesis a **semaphore**: *good*, *warning* or
+*broken*, with a reason.
 
-- **Thesis review:** the sections of the thesis template (belief, fit and implementation,
-  opportunity, downside, invalidation, warnings and monitoring), and current evidence from
-  a web search for recent news, with sources. It also gives a verdict: intact, needs
-  adaptation or broken.
-- **Policy review:** how well the target structure matches its thesis (coverage,
-  weighting, bands, exits, concentration, rationales). It sends no amounts.
+- **Suggestions** change a thesis section or a position (change, add, remove) and are never
+  applied automatically: take them over with a click, dismiss them, or undo.
+- **Proposals:** when a policy has no positions yet, the review proposes target structures.
+- A review **warns, never blocks**: you can activate a draft without a review or with a
+  review that no longer matches; the version is marked, and you confirm.
+- **Review again** any time for the active version, without a new version. The results are
+  kept in a review log that you can compare, and the latest review sets the score and
+  semaphore shown on the policy and on its portfolios.
 
-Suggestions are never applied automatically, and the result itself cannot be changed: run
-the review again instead. Activating the draft confirms the review, and
-it stays with that revision. For each review you choose which AI reviewer to use; your
-default is set in your settings.
+![The review log with the score course and the comparison of two reviews](screenshots/policy-reviews.png)
 
-![Thesis review with six scored aspects, sources and a suggestion](screenshots/thesis-review.png)
+For each review you choose which AI reviewer to use; your default is in your settings.
 
 ## Timeline
 
-The history of your decisions: thesis revisions, policy activations, portfolio changes,
-confirmed rebalances and confirmed reviews, filterable by portfolio, policy, period and
-type.
+The history of your decisions: policy activations, portfolio changes, confirmed
+rebalances (also when a whole portfolio was sold) and reviews, filterable by portfolio,
+policy, period and type. Each entry opens its details.
 
 ![Timeline of decisions](screenshots/timeline.png)
 

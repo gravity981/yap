@@ -167,7 +167,7 @@ export function ReviewShort({ review, actions }: { review: Review; actions?: Sug
       </div>
       <Total review={review} />
       {review.kind === "full" && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(18rem,1fr))]">
           <ShortGroup
             title={t("reviews.score.thesis", { score: formatScore(review.thesis_score ?? 0) })}
             review={review}

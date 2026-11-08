@@ -383,6 +383,77 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
   });
 });
 
+test("[REV-03] [POL-17] [PTF-07] [RB-25] [TL-02] sells a portfolio whose thesis is broken", async ({
+  page,
+}) => {
+  await asAlice(page);
+  await test.step("write a policy whose thesis the fake reviewer finds broken", async () => {
+    await page.goto("/policies");
+    await page.getByRole("button", { name: "New policy" }).click();
+    await page.getByLabel("Name").fill("satellite");
+    await page.getByRole("button", { name: "Create" }).click();
+    await expect(page.getByRole("heading", { name: "satellite-v1 (draft)" })).toBeVisible();
+    await page.getByLabel("Title").fill("Satellite");
+    await page.locator(".cm-content").first().click();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.type("# Satellite\n\nThe bet has failed. [fake-verdict: broken]");
+    const first = page.getByRole("group", { name: "Position 1" });
+    await first.getByLabel("Ticker").fill("XUS");
+    await first.getByLabel("Target %").fill("100");
+    await expect(page.getByText(/Saved automatically · /)).toBeVisible();
+  });
+  const review = page.getByRole("region", { name: "Review", exact: true });
+  await test.step("the review gives the thesis a broken semaphore", async () => {
+    await review.getByRole("button", { name: "Start review" }).click();
+    await expect(review.getByText("broken", { exact: true })).toBeVisible({ timeout: 15_000 });
+  });
+  await test.step("the summary says activating sells nothing; activate", async () => {
+    await page.getByRole("button", { name: "Finalize →" }).click();
+    await expect(page.getByText(/Activating records it as broken and sells nothing/)).toBeVisible();
+    await page.getByRole("button", { name: "Activate", exact: true }).click();
+    await expect(page.getByText("active: satellite-v1")).toBeVisible();
+  });
+  await test.step("a portfolio following it shows the semaphore", async () => {
+    await page.goto("/portfolios");
+    await page.getByRole("button", { name: "New portfolio" }).click();
+    await page.getByLabel("Name").fill("Satellite");
+    await page.getByLabel("Policy").selectOption({ label: "satellite (satellite-v1)" });
+    await page.getByRole("button", { name: "Create" }).click();
+    await expect(page.getByRole("heading", { name: "Satellite", exact: true })).toBeVisible();
+    await expect(page.getByText("broken", { exact: true }).first()).toBeVisible();
+  });
+  await test.step("rebalancing offers to sell the whole portfolio, preselected", async () => {
+    await page.getByRole("link", { name: "Enter values" }).click();
+    await page.getByLabel("Units of XUS").fill("10");
+    await page.getByLabel("Price of XUS").fill("100");
+    await page.getByRole("button", { name: "Save values" }).click();
+    await page.getByRole("link", { name: "Rebalance" }).click();
+    await page.getByRole("button", { name: "Save and rebalance" }).click();
+    await expect(page.getByText("The thesis of satellite is broken")).toBeVisible();
+    await expect(page.getByText(/A break condition of the thesis is met/)).toBeVisible();
+    await expect(page.getByRole("radio", { name: /Sell the whole portfolio/ })).toBeChecked();
+    const sells = page.getByRole("list", { name: "Sell", exact: true });
+    await expect(sells).toContainText("XUS");
+    await expect(sells).toContainText("1,000");
+  });
+  await test.step("rebalancing as usual stays possible", async () => {
+    await page.getByRole("radio", { name: /Rebalance as usual/ }).check();
+    await expect(page.getByRole("list", { name: "Sell", exact: true })).toHaveCount(0);
+    await expect(page.getByText("Nothing to do.")).toHaveCount(3);
+    await page.getByRole("radio", { name: /Sell the whole portfolio/ }).check();
+    await expect(page.getByRole("list", { name: "Sell", exact: true })).toContainText("1,000");
+  });
+  await test.step("confirm; the timeline names the sale", async () => {
+    await page.getByRole("button", { name: "Confirm rebalance" }).click();
+    await expect(page.getByText("Sold completely, thesis broken")).toBeVisible();
+    await page
+      .getByRole("navigation", { name: "Main" })
+      .getByRole("link", { name: "Timeline" })
+      .click();
+    await expect(page.getByText("Satellite: sold completely, thesis broken")).toBeVisible();
+  });
+});
+
 test("[USR-09] the admin becomes an investor too", async ({ page }) => {
   await login(page, "admin", ADMIN_PASSWORD);
   await test.step("admin gives the own account the investor role", async () => {

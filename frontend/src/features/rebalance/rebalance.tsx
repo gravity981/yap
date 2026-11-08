@@ -397,7 +397,9 @@ export function CashCard({
             </>
           ) : (
             <>
-              <dt className="font-medium">{t("rebalance.cash.available")}</dt>
+              <dt className="font-medium">
+                {t(sellAll ? "rebalance.cash.stays" : "rebalance.cash.available")}
+              </dt>
               <dd className="text-right font-medium tabular-nums">
                 {formatAmount(r.available_cash, precise)}
               </dd>
@@ -409,12 +411,10 @@ export function CashCard({
               <dd className="text-right tabular-nums">{formatAmount(r.rounding_cash, precise)}</dd>
             </>
           )}
-          {Number(r.unallocated_cash) - Number(r.rounding_cash) > 0.005 && (
+          {!sellAll && Number(r.unallocated_cash) - Number(r.rounding_cash) > 0.005 && (
             <>
-              <dt className={sellAll ? undefined : "text-destructive"}>
-                {t(sellAll ? "rebalance.cash.stays" : "rebalance.cash.unallocated")}
-              </dt>
-              <dd className={`text-right tabular-nums ${sellAll ? "" : "text-destructive"}`}>
+              <dt className="text-destructive">{t("rebalance.cash.unallocated")}</dt>
+              <dd className="text-right tabular-nums text-destructive">
                 {formatAmount(Number(r.unallocated_cash) - Number(r.rounding_cash), precise)}
               </dd>
             </>
