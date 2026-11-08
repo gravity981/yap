@@ -70,7 +70,9 @@ export function RebalancePage({
   const [withdrawal, setWithdrawal] = useState<string | undefined>(undefined);
   const [draft, setDraft] = useState("");
   const [withdrawalDraft, setWithdrawalDraft] = useState("");
-  const plan = usePlan(portfolioId, snapshotId, contribution, withdrawal);
+  // RB-25: undefined until the investor chooses; the server preselects selling for a broken thesis
+  const [mode, setMode] = useState<string | undefined>(undefined);
+  const plan = usePlan(portfolioId, snapshotId, contribution, withdrawal, mode);
   const id = String(portfolioId);
 
   const apply = (event: FormEvent) => {
@@ -126,6 +128,7 @@ export function RebalancePage({
               </Button>
             </Alert>
           )}
+          <ThesisNotice plan={plan.data} onChoose={setMode} />
           <form className="flex flex-wrap items-end gap-2" onSubmit={apply}>
             <div className="grid gap-1.5">
               <Label htmlFor="contribution">{t("rebalance.page.contribution")}</Label>
@@ -173,6 +176,7 @@ export function RebalancePage({
                   snapshot: plan.data.snapshot_id,
                   contribution: plan.data.contribution,
                   withdrawal: plan.data.withdrawal,
+                  mode: plan.data.mode === "sell_all" ? plan.data.mode : undefined,
                 }}
               >
                 {t("rebalance.page.report")}
@@ -181,7 +185,7 @@ export function RebalancePage({
           </div>
           {/* Recalculating changes the instructions; the form starts again from them */}
           <ConfirmForm
-            key={`${plan.data.snapshot_id}:${plan.data.contribution}:${plan.data.withdrawal}`}
+            key={`${plan.data.snapshot_id}:${plan.data.contribution}:${plan.data.withdrawal}:${plan.data.mode}`}
             portfolioId={portfolioId}
             plan={plan.data}
           />
@@ -189,6 +193,65 @@ export function RebalancePage({
         </>
       )}
     </div>
+  );
+}
+
+// RB-25: the choices of a broken thesis, as the API names them, with their text keys
+const MODES = [
+  ["sell_all", "sellAll"],
+  ["normal", "normal"],
+] as const;
+
+/** RB-25, RB-26: a broken thesis offers to sell the whole portfolio (preselected) or to
+ * rebalance as usual; a warning gives an amber hint. */
+function ThesisNotice({ plan, onChoose }: { plan: Plan; onChoose: (mode: string) => void }) {
+  const { t } = useTranslation();
+  if (plan.semaphore !== "broken" && plan.semaphore !== "warning") return null;
+  const broken = plan.semaphore === "broken";
+  const values = { policy: plan.policy_name };
+  return (
+    <Alert variant={broken ? "destructive" : "warning"} className="grid gap-2">
+      <p className="font-medium">
+        {t(
+          broken ? "rebalance.page.thesis.brokenTitle" : "rebalance.page.thesis.warningTitle",
+          values,
+        )}
+      </p>
+      <p>
+        {plan.semaphore_reason
+          ? t("rebalance.page.thesis.brokenReason", { reason: plan.semaphore_reason })
+          : t("rebalance.page.thesis.noReason")}{" "}
+        <Link
+          to="/policies/$policyId"
+          params={{ policyId: String(plan.policy_id) }}
+          className="underline"
+        >
+          {t("rebalance.page.thesis.openPolicy")}
+        </Link>
+      </p>
+      {broken && (
+        <fieldset className="grid gap-2 text-foreground">
+          <legend className="mb-1 font-medium">{t("rebalance.page.thesis.choice")}</legend>
+          {MODES.map(([value, key]) => (
+            <label key={value} className="flex items-start gap-2">
+              <input
+                type="radio"
+                name="rebalance-mode"
+                className="mt-1"
+                checked={plan.mode === value}
+                onChange={() => onChoose(value)}
+              />
+              <span>
+                <span className="font-medium">{t(`rebalance.page.thesis.${key}`)}</span>
+                <span className="block text-muted-foreground">
+                  {t(`rebalance.page.thesis.${key}Help`)}
+                </span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+    </Alert>
   );
 }
 
@@ -202,6 +265,7 @@ export function PlanView({ plan, printable = false }: { plan: Plan; printable?: 
         withdrawal={plan.withdrawal}
         result={plan.result}
         precise={plan.precise_amounts}
+        sellAll={plan.mode === "sell_all"}
       />
       <CalculationSteps
         contribution={plan.contribution}
@@ -209,6 +273,7 @@ export function PlanView({ plan, printable = false }: { plan: Plan; printable?: 
         result={plan.result}
         precise={plan.precise_amounts}
         open={printable}
+        sellAll={plan.mode === "sell_all"}
       />
       <ResultTable result={plan.result} precise={plan.precise_amounts} open={printable} />
       {/* NFR-15: also on the printed report */}
@@ -289,11 +354,13 @@ export function CashCard({
   withdrawal,
   result: r,
   precise,
+  sellAll = false,
 }: {
   contribution: string;
   withdrawal: string;
   result: Result;
   precise: boolean;
+  sellAll?: boolean;
 }) {
   const { t } = useTranslation();
   const toSell = Number(r.total_withdrawal_sells);
@@ -344,8 +411,10 @@ export function CashCard({
           )}
           {Number(r.unallocated_cash) - Number(r.rounding_cash) > 0.005 && (
             <>
-              <dt className="text-destructive">{t("rebalance.cash.unallocated")}</dt>
-              <dd className="text-right tabular-nums text-destructive">
+              <dt className={sellAll ? undefined : "text-destructive"}>
+                {t(sellAll ? "rebalance.cash.stays" : "rebalance.cash.unallocated")}
+              </dt>
+              <dd className={`text-right tabular-nums ${sellAll ? "" : "text-destructive"}`}>
                 {formatAmount(Number(r.unallocated_cash) - Number(r.rounding_cash), precise)}
               </dd>
             </>
@@ -533,6 +602,7 @@ function ConfirmForm({ portfolioId, plan }: { portfolioId: number; plan: Plan })
         snapshot_id: plan.snapshot_id,
         contribution: plan.contribution,
         withdrawal: plan.withdrawal,
+        mode: plan.mode,
         policy_version_id: plan.policy_version_id,
         executed: plan.instructions.map((i) => ({
           phase: i.phase,

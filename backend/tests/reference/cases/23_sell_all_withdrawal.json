@@ -1,0 +1,73 @@
+{
+  "description": "Sell the whole portfolio, with a withdrawal larger than the proceeds (RB-25, case k)",
+  "approved": false,
+  "calculation": [
+    "Proceeds 80000 as before. Cash = 1000 + 80000 - 85000 = -4000: the missing 4000 is paid from the cash buffer (10000 -> 6000).",
+    "Nothing is bought, nothing is left over; value after = 91000 - 85000 = 6000."
+  ],
+  "input": {
+    "mode": "sell_all",
+    "contribution": 1000,
+    "withdrawal": 85000,
+    "positions": [
+      {
+        "ticker": "A",
+        "name": "A Equity",
+        "type": "ETF",
+        "value": 50000,
+        "target_pct": 60,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 25,
+        "exit": false,
+        "broker": "Northbank"
+      },
+      {
+        "ticker": "B",
+        "name": "B Crypto",
+        "type": "crypto",
+        "value": 30000,
+        "target_pct": 30,
+        "buy_threshold_pct": -30,
+        "sell_threshold_pct": 40,
+        "exit": false,
+        "broker": "Bitexchange"
+      },
+      {
+        "ticker": "CASH",
+        "name": "Cash Buffer",
+        "type": "cash_buffer",
+        "value": 10000,
+        "target_pct": 10,
+        "buy_threshold_pct": -100,
+        "sell_threshold_pct": 10,
+        "exit": false,
+        "broker": "Northbank"
+      }
+    ]
+  },
+  "expected": {
+    "positions": {
+      "A": {
+        "sell_amount": 50000,
+        "phase1_action": "Sell All (Exit)",
+        "phase3_action": "-"
+      },
+      "B": {
+        "sell_amount": 30000,
+        "phase1_action": "Sell All (Exit)",
+        "phase3_action": "-"
+      },
+      "CASH": {
+        "withdrawal_sell": 4000,
+        "phase1_action": "Hold",
+        "phase3_action": "Sell (Withdrawal)"
+      }
+    },
+    "total_sell_proceeds": 80000,
+    "available_cash": 0,
+    "total_buffer_used": 0,
+    "total_withdrawal_sells": 4000,
+    "unallocated_cash": 0,
+    "total_value_after": 6000
+  }
+}

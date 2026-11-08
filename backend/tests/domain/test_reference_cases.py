@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 
 from tests.reference.case_io import case_files, has_units, load_case, positions_from_case
-from yap.domain.rebalancing import RebalanceResult, rebalance, to_units
+from yap.domain.rebalancing import Mode, RebalanceResult, rebalance, to_units
 
 # Expected amounts are rounded to cents; units are exact
 TOLERANCE = Decimal("0.01")
@@ -29,6 +29,7 @@ def _run(case: dict[str, Any]) -> RebalanceResult:
         positions_from_case(case),
         Decimal(str(case["input"]["contribution"])),
         Decimal(str(case["input"].get("withdrawal", 0))),
+        Mode(case["input"].get("mode", "normal")),
     )
     return to_units(result) if has_units(case) else result
 
@@ -49,6 +50,7 @@ def _close(actual: Decimal, expected: Any) -> bool:
     "RB-21",
     "RB-22",
     "RB-24",
+    "RB-25",
 )
 @pytest.mark.parametrize("path", case_files(), ids=lambda p: p.stem)
 def test_reference_case(path: Path) -> None:

@@ -71,6 +71,11 @@ const plan = (extra: Record<string, unknown> = {}) => ({
   snapshot_taken_at: new Date().toISOString(),
   policy_version_id: 202,
   policy_version_label: "core-v2",
+  policy_id: 9,
+  policy_name: "core",
+  mode: "normal",
+  semaphore: null,
+  semaphore_reason: null,
   contribution: "500",
   withdrawal: "0",
   precise_amounts: false,
@@ -426,6 +431,7 @@ describe("rebalancing", () => {
       snapshot_id: 41,
       contribution: "500",
       withdrawal: "0",
+      mode: "normal",
       policy_version_id: 202,
       executed: [
         { phase: "1B", ticker: "AAA", amount: "140" },
@@ -481,5 +487,89 @@ describe("rebalancing", () => {
       withdrawal: "0",
       snapshot_id: 41,
     });
+  });
+
+  it("[RB-26] shows an amber hint with the reason and a link for a thesis warning", async () => {
+    setup({
+      "GET /api/portfolios/5/rebalance": () =>
+        json(plan({ semaphore: "warning", semaphore_reason: "Rates rose faster than assumed." })),
+    });
+    renderApp("/portfolios/5/rebalance?snapshot=41");
+    const hint = await screen.findByRole("alert", { name: "" });
+    expect(hint).toHaveTextContent("The thesis of core needs attention");
+    expect(hint).toHaveTextContent("Rates rose faster than assumed.");
+    expect(within(hint).getByRole("link", { name: "Open the policy" })).toHaveAttribute(
+      "href",
+      "/policies/9",
+    );
+    expect(within(hint).queryByRole("radio")).toBeNull(); // the calculation is the usual one
+    expect(screen.getByRole("list", { name: "Buy" })).toBeInTheDocument();
+  });
+
+  it("[RB-25] offers to sell the whole portfolio, preselected, or to rebalance as usual", async () => {
+    const sellAll = plan({
+      mode: "sell_all",
+      semaphore: "broken",
+      semaphore_reason: "The company lost its main customer.",
+      instructions: [
+        {
+          phase: "1B",
+          ticker: "AAA",
+          action: "Sell All (Exit)",
+          broker: "Southbank",
+          amount: "500",
+          units: null,
+          whole_units: null,
+        },
+      ],
+    });
+    const usual = plan({
+      semaphore: "broken",
+      semaphore_reason: "The company lost its main customer.",
+    });
+    const calls = setup({
+      "GET /api/portfolios/5/rebalance": (request) =>
+        json(new URL(request.url).searchParams.get("mode") === "normal" ? usual : sellAll),
+    });
+    renderApp("/portfolios/5/rebalance?snapshot=41");
+    const alert = await screen.findByRole("alert", { name: "" });
+    expect(alert).toHaveTextContent("The thesis of core is broken");
+    expect(alert).toHaveTextContent("The company lost its main customer.");
+    expect(screen.getByRole("radio", { name: /Sell the whole portfolio/ })).toBeChecked();
+    expect(screen.getByRole("list", { name: "Sell" })).toHaveTextContent("Sell All (Exit)");
+
+    await userEvent.click(screen.getByRole("radio", { name: /Rebalance as usual/ }));
+    expect(await screen.findByRole("list", { name: "Buy" })).toHaveTextContent("BBB");
+    expect(screen.getByRole("radio", { name: /Rebalance as usual/ })).toBeChecked();
+    const modes = calls.filter((c) => c.method === "GET" && c.path.includes("/rebalance?"));
+    expect(modes[0]?.path).not.toContain("mode=");
+    expect(modes.at(-1)?.path).toContain("mode=normal");
+  });
+
+  it("[RB-25] confirms the sale of the whole portfolio with its mode", async () => {
+    const calls = setup({
+      "GET /api/portfolios/5/rebalance": () =>
+        json(plan({ mode: "sell_all", semaphore: "broken", semaphore_reason: null })),
+      "POST /api/portfolios/5/rebalances": () => json({ id: 78 }, 201),
+      "GET /api/rebalances/78": () =>
+        json({
+          id: 78,
+          portfolio_id: 5,
+          confirmed_at: "2026-03-01T10:00:00+00:00",
+          input_snapshot_id: 41,
+          result_snapshot_id: 42,
+          policy_version_id: 202,
+          contribution: "500",
+          withdrawal: "0",
+          mode: "sell_all",
+          precise_amounts: false,
+          actions: [],
+        }),
+    });
+    renderApp("/portfolios/5/rebalance?snapshot=41");
+    await screen.findByText("The latest review gave no reason.", { exact: false });
+    await userEvent.click(await screen.findByRole("button", { name: "Confirm rebalance" }));
+    expect(await screen.findByText("Sold completely, thesis broken")).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({ mode: "sell_all" });
   });
 });

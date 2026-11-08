@@ -71,6 +71,30 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
     "Main: Rebalancing, verkauft 190, gekauft 2’718, entnommen 200",
   ],
   [
+    event("rebalance_confirmed", {
+      portfolio: "Main",
+      sold: "3000",
+      bought: "0",
+      withdrawal: null,
+      mode: "sell_all",
+      precise: false,
+    }),
+    "Main: sold completely, thesis broken",
+    "Main: vollständig verkauft, Anlagethese gebrochen",
+  ],
+  [
+    event("rebalance_confirmed", {
+      portfolio: "Main",
+      sold: "3000",
+      bought: "0",
+      withdrawal: "1000",
+      mode: "sell_all",
+      precise: false,
+    }),
+    "Main: sold completely, thesis broken, withdrew 1,000",
+    "Main: vollständig verkauft, Anlagethese gebrochen, entnommen 1’000",
+  ],
+  [
     event("thesis_review_confirmed", {
       title: "Core thesis",
       revision: 2,

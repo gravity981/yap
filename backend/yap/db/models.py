@@ -393,6 +393,7 @@ class Rebalance(Base):
     policy_version_id: Mapped[int] = mapped_column(ForeignKey("policy_version.id"))
     contribution: Mapped[Decimal]
     withdrawal: Mapped[Decimal]
+    mode: Mapped[str] = mapped_column(String(10), server_default="normal")  # RB-25
     precise_amounts: Mapped[bool] = mapped_column(Boolean)
     result_snapshot_id: Mapped[int | None] = mapped_column(ForeignKey("snapshot.id"))
     confirmed_at: Mapped[datetime]

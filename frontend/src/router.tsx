@@ -221,10 +221,11 @@ const planReportRoute = createRoute({
   path: "/portfolios/$portfolioId/rebalance/report",
   validateSearch: (
     search: Record<string, unknown>,
-  ): { snapshot?: number; contribution?: string; withdrawal?: string } => ({
+  ): { snapshot?: number; contribution?: string; withdrawal?: string; mode?: string } => ({
     snapshot: snapshotParam(search.snapshot),
     contribution: amountParam(search.contribution),
     withdrawal: amountParam(search.withdrawal),
+    mode: search.mode === "sell_all" ? "sell_all" : undefined,
   }),
   component: function PlanReport() {
     const { portfolioId } = planReportRoute.useParams();
@@ -238,6 +239,7 @@ const planReportRoute = createRoute({
             snapshotId={snapshotParam(search.snapshot)}
             contribution={amountParam(search.contribution)}
             withdrawal={amountParam(search.withdrawal)}
+            mode={search.mode}
           />
         )}
       />

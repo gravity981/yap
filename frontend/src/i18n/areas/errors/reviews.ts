@@ -57,6 +57,9 @@ export const de = {
   rebalance_snapshot_not_found: "Stand {{id}} nicht gefunden",
   rebalance_policy_changed:
     "Die Anlagestrategie hat sich seit der Vorschau geändert; berechne das Rebalancing neu",
+  rebalance_sell_all_not_broken:
+    "Das ganze Portfolio zu verkaufen wird nur angeboten, wenn die Anlagethese gebrochen ist",
+  rebalance_mode_invalid: "Der Modus muss normal oder sell_all sein",
   rebalance_no_instruction: "Keine Anweisung {{phase}} für {{ticker}}",
   rebalance_executed_negative: "Ausgeführte Beträge müssen 0 oder mehr sein",
   rebalance_buffer_exceeded:

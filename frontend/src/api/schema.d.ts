@@ -1728,6 +1728,11 @@ export interface components {
              * @default []
              */
             executed?: components["schemas"]["ExecutedIn"][];
+            /**
+             * Mode
+             * @default normal
+             */
+            mode?: string;
             /** Policy Version Id */
             policy_version_id: number;
             /** Snapshot Id */
@@ -2049,6 +2054,12 @@ export interface components {
             contribution: string;
             /** Instructions */
             instructions: components["schemas"]["InstructionOut"][];
+            /** Mode */
+            mode: string;
+            /** Policy Id */
+            policy_id: number;
+            /** Policy Name */
+            policy_name: string;
             /** Policy Version Id */
             policy_version_id: number;
             /** Policy Version Label */
@@ -2056,6 +2067,10 @@ export interface components {
             /** Precise Amounts */
             precise_amounts: boolean;
             result: components["schemas"]["ResultOut"];
+            /** Semaphore */
+            semaphore: string | null;
+            /** Semaphore Reason */
+            semaphore_reason: string | null;
             /** Snapshot Id */
             snapshot_id: number;
             /**
@@ -2553,6 +2568,8 @@ export interface components {
             id: number;
             /** Input Snapshot Id */
             input_snapshot_id: number;
+            /** Mode */
+            mode: string;
             /** Policy Version Id */
             policy_version_id: number;
             /** Portfolio Id */
@@ -5344,6 +5361,7 @@ export interface operations {
                 snapshot_id?: number | null;
                 contribution?: number | string | null;
                 withdrawal?: number | string | null;
+                mode?: string | null;
             };
             header?: never;
             path: {

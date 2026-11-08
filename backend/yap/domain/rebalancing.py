@@ -1,4 +1,4 @@
-"""Rebalancing calculation (spec section 3.7, RB-04 to RB-12, RB-22).
+"""Rebalancing calculation (spec section 3.7, RB-04 to RB-12, RB-22, RB-25).
 
 Pure functions on Decimal values, no database access. The rules are based on
 the earlier script invest_calc.py (no longer in the repository) with the deliberate
@@ -10,7 +10,7 @@ withdrawal of a rebalance (RB-22). The calculation works on values; to_units con
 its amounts into units afterwards (RB-24).
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal, localcontext
 from enum import StrEnum
 
@@ -199,14 +199,31 @@ def validate_positions(positions: list[PositionInput]) -> None:
         raise MultipleCashBuffersError()
 
 
+class Mode(StrEnum):
+    """RB-25: the usual calculation, or selling the whole portfolio."""
+
+    NORMAL = "normal"
+    SELL_ALL = "sell_all"
+
+
 def rebalance(
-    positions: list[PositionInput], contribution: Decimal, withdrawal: Decimal = Decimal(0)
+    positions: list[PositionInput],
+    contribution: Decimal,
+    withdrawal: Decimal = Decimal(0),
+    mode: Mode = Mode.NORMAL,
 ) -> RebalanceResult:
+    """The phases of RB-06. With `Mode.SELL_ALL` (RB-25) every position except the cash
+    buffer is sold completely like an exit (RB-08), nothing is bought, and the cash stays
+    in the portfolio; a withdrawal larger than contribution and proceeds is paid from
+    the cash buffer."""
     if contribution < 0:
         raise NegativeContributionError()
     if withdrawal < 0:
         raise NegativeWithdrawalError()
     validate_positions(positions)
+    sell_all = mode is Mode.SELL_ALL
+    if sell_all:
+        positions = [p if p.is_cash_buffer else replace(p, exit=True) for p in positions]
 
     results = [PositionResult(position=p) for p in positions]
     values = {id(r): r.position.value for r in results}
@@ -218,7 +235,7 @@ def rebalance(
     final_total = total + contribution - withdrawal
 
     buffer_used = _phase1a_dip_buying(results, values, total)
-    total_sells = _phase1b_sells(results, values, total, final_total)
+    total_sells = _phase1b_sells(results, values, total, final_total, sell_all)
 
     value_after_sells = sum(values.values(), Decimal(0))
     for r in results:
@@ -232,8 +249,12 @@ def rebalance(
     available = max(cash, Decimal(0))
     to_sell = max(-cash, Decimal(0))
 
-    unallocated = _phase3_buys(results, values, final_total, available)
-    _phase3_withdrawal_sells(results, values, final_total, to_sell)
+    if sell_all:
+        unallocated = available  # stays in the portfolio (RB-25)
+        _sell_all_withdrawal(results, values, to_sell)
+    else:
+        unallocated = _phase3_buys(results, values, final_total, available)
+        _phase3_withdrawal_sells(results, values, final_total, to_sell)
 
     buys_by_broker: dict[str | None, Decimal] = {}
     for r in results:
@@ -257,6 +278,21 @@ def rebalance(
         unallocated_cash=unallocated,
         buys_by_broker=buys_by_broker,
     )
+
+
+def _sell_all_withdrawal(
+    results: list[PositionResult], values: dict[int, Decimal], to_sell: Decimal
+) -> None:
+    """RB-25: what a withdrawal needs beyond contribution and proceeds comes from the cash
+    buffer; it holds enough, as the withdrawal is at most the portfolio value plus the
+    contribution."""
+    if to_sell <= 0:
+        return
+    for r in results:
+        if r.position.is_cash_buffer:
+            r.withdrawal_sell = min(to_sell, values[id(r)])
+            values[id(r)] -= r.withdrawal_sell
+            return
 
 
 def _phase1a_dip_buying(
@@ -315,9 +351,10 @@ def _phase1b_sells(
     values: dict[int, Decimal],
     total: Decimal,
     final: Decimal,
+    sell_all: bool = False,
 ) -> Decimal:
     """RB-08: full sells (exit, not in policy) and sells down to the midband of the
-    final value F = V + C - W."""
+    final value F = V + C - W. Selling the whole portfolio (RB-25) has full sells only."""
     full_sells = Decimal(0)
     candidates: list[PositionResult] = []
     for r in results:
@@ -327,7 +364,7 @@ def _phase1b_sells(
             if value > 0:
                 r.sell_amount = value
                 full_sells += value
-        elif p.band is not None and allocation_pct(value, total) > p.band.sell_abs:
+        elif not sell_all and p.band is not None and allocation_pct(value, total) > p.band.sell_abs:
             candidates.append(r)
 
     # Each candidate i is sold to midband m_i: sell_i = v_i - m_i × F. A large

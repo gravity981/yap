@@ -60,6 +60,10 @@ MESSAGES: dict[str, str] = {
     "rebalance_policy_changed": (
         "The policy changed since the preview; calculate the rebalance again"
     ),
+    "rebalance_sell_all_not_broken": (
+        "Selling the whole portfolio is only offered when the thesis is broken"
+    ),
+    "rebalance_mode_invalid": "The mode must be normal or sell_all",
     "rebalance_no_instruction": "No {phase} instruction for {ticker}",
     "rebalance_executed_negative": "Executed amounts must be 0 or more",
     "rebalance_buffer_exceeded": "Buffer buys together exceed the cash buffer",

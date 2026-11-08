@@ -14,12 +14,15 @@ export function CalculationSteps({
   result: r,
   precise,
   open = false,
+  sellAll = false,
 }: {
   contribution: string;
   withdrawal: string;
   result: Result;
   precise: boolean;
   open?: boolean;
+  /** RB-25: the whole portfolio is sold */
+  sellAll?: boolean;
 }) {
   const { t } = useTranslation();
   const amount = (value: string | number) => formatAmount(value, precise);
@@ -34,6 +37,7 @@ export function CalculationSteps({
 
   const sellText = (p: Position) => {
     const values = { amount: amount(p.sell_amount) };
+    if (sellAll && p.in_policy) return t("rebalance.explanation.sells.sellAll", values);
     if (!p.in_policy) return t("rebalance.explanation.sells.notInPolicy", values);
     if (p.exit) return t("rebalance.explanation.sells.exit", values);
     return t("rebalance.explanation.sells.threshold", {
@@ -101,7 +105,11 @@ export function CalculationSteps({
                     amount: amount(r.total_withdrawal_sells),
                   })
                 : positive(r.available_cash)
-                  ? t("rebalance.explanation.cash.available")
+                  ? t(
+                      sellAll
+                        ? "rebalance.explanation.cash.stays"
+                        : "rebalance.explanation.cash.available",
+                    )
                   : t("rebalance.explanation.cash.nothing")}
             </p>
           </Step>
@@ -121,7 +129,9 @@ export function CalculationSteps({
             </Step>
           ) : (
             <Step title={t("rebalance.explanation.buys.title")}>
-              {buys.length === 0 ? (
+              {sellAll ? (
+                <p>{t("rebalance.explanation.buys.sellAll")}</p>
+              ) : buys.length === 0 ? (
                 <p>{t("rebalance.explanation.buys.none")}</p>
               ) : (
                 <>
@@ -140,7 +150,7 @@ export function CalculationSteps({
                   {t("rebalance.explanation.buys.rounding", { amount: amount(r.rounding_cash) })}
                 </p>
               )}
-              {Number(r.unallocated_cash) - Number(r.rounding_cash) > 0.005 && (
+              {!sellAll && Number(r.unallocated_cash) - Number(r.rounding_cash) > 0.005 && (
                 <p className="text-destructive">
                   {t("rebalance.explanation.buys.unallocated", {
                     amount: amount(Number(r.unallocated_cash) - Number(r.rounding_cash)),

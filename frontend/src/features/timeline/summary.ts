@@ -58,6 +58,13 @@ export function eventSummary(event: TimelineEvent): string {
         bought: amount(p.bought),
         withdrawal: amount(p.withdrawal),
       };
+      if (p.mode === "sell_all")
+        return i18n.t(
+          p.withdrawal
+            ? "timeline.summary.soldCompletelyWithdrawal"
+            : "timeline.summary.soldCompletely",
+          values,
+        );
       return p.withdrawal
         ? i18n.t("timeline.summary.rebalanceWithdrawal", values)
         : i18n.t("timeline.summary.rebalance", values);

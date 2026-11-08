@@ -135,6 +135,12 @@ class PlanOut(BaseModel):
     snapshot_taken_at: datetime
     policy_version_id: int
     policy_version_label: str
+    policy_id: int
+    policy_name: str
+    mode: str  # RB-25: normal | sell_all
+    # THS-04, RB-25, RB-26: the semaphore of the active version, with the reason of its review
+    semaphore: str | None
+    semaphore_reason: str | None
     contribution: PlainDecimal
     withdrawal: PlainDecimal
     precise_amounts: bool
@@ -148,6 +154,11 @@ class PlanOut(BaseModel):
             snapshot_taken_at=plan.snapshot.taken_at,
             policy_version_id=plan.version.id,
             policy_version_label=plan.version.label,
+            policy_id=plan.version.policy_id,
+            policy_name=plan.version.policy.name,
+            mode=plan.mode.value,
+            semaphore=plan.semaphore.value if plan.semaphore else None,
+            semaphore_reason=plan.semaphore_reason,
             contribution=plan.contribution,
             withdrawal=plan.withdrawal,
             precise_amounts=plan.portfolio.precise_amounts,
@@ -179,6 +190,7 @@ class Confirmation(BaseModel):
     contribution: PlainDecimal
     withdrawal: PlainDecimal = Decimal(0)
     policy_version_id: int
+    mode: str = "normal"  # RB-25
     executed: list[ExecutedIn] = []
 
 
@@ -203,6 +215,7 @@ class RebalanceOut(BaseModel):
     policy_version_id: int
     contribution: PlainDecimal
     withdrawal: PlainDecimal
+    mode: str
     precise_amounts: bool
     actions: list[ActionOut]
 
@@ -230,6 +243,7 @@ def _rebalance(session: DbSession, record: Rebalance) -> RebalanceOut:
         policy_version_id=record.policy_version_id,
         contribution=record.contribution,
         withdrawal=record.withdrawal,
+        mode=record.mode,
         precise_amounts=record.precise_amounts,
         actions=[
             ActionOut(
@@ -257,6 +271,7 @@ def preview(
     snapshot_id: int | None = None,
     contribution: PlainDecimal | None = None,
     withdrawal: PlainDecimal | None = None,
+    mode: str | None = None,  # RB-25: without one, a broken thesis preselects the sale
 ) -> PlanOut:
     return PlanOut.of(
         rebalances.plan(
@@ -267,6 +282,7 @@ def preview(
             snapshot_id=snapshot_id,
             contribution=contribution,
             withdrawal=withdrawal,
+            mode=rebalances.parse_mode(mode) if mode else None,
         )
     )
 
@@ -289,6 +305,7 @@ def confirm(
         withdrawal=body.withdrawal,
         policy_version_id=body.policy_version_id,
         executed=[Executed(e.phase, e.ticker, e.amount, e.units) for e in body.executed],
+        mode=rebalances.parse_mode(body.mode),
     )
     return _rebalance(session, record)
 

@@ -709,6 +709,11 @@
             "title": "Executed",
             "type": "array"
           },
+          "mode": {
+            "default": "normal",
+            "title": "Mode",
+            "type": "string"
+          },
           "policy_version_id": {
             "title": "Policy Version Id",
             "type": "integer"
@@ -1666,6 +1671,18 @@
             "title": "Instructions",
             "type": "array"
           },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "policy_id": {
+            "title": "Policy Id",
+            "type": "integer"
+          },
+          "policy_name": {
+            "title": "Policy Name",
+            "type": "string"
+          },
           "policy_version_id": {
             "title": "Policy Version Id",
             "type": "integer"
@@ -1680,6 +1697,28 @@
           },
           "result": {
             "$ref": "#/components/schemas/ResultOut"
+          },
+          "semaphore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semaphore"
+          },
+          "semaphore_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semaphore Reason"
           },
           "snapshot_id": {
             "title": "Snapshot Id",
@@ -1700,6 +1739,11 @@
           "snapshot_taken_at",
           "policy_version_id",
           "policy_version_label",
+          "policy_id",
+          "policy_name",
+          "mode",
+          "semaphore",
+          "semaphore_reason",
           "contribution",
           "withdrawal",
           "precise_amounts",
@@ -3374,6 +3418,10 @@
             "title": "Input Snapshot Id",
             "type": "integer"
           },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
           "policy_version_id": {
             "title": "Policy Version Id",
             "type": "integer"
@@ -3411,6 +3459,7 @@
           "policy_version_id",
           "contribution",
           "withdrawal",
+          "mode",
           "precise_amounts",
           "actions"
         ],
@@ -9140,6 +9189,22 @@
                 }
               ],
               "title": "Withdrawal"
+            }
+          },
+          {
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Mode"
             }
           },
           {

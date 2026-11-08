@@ -14,6 +14,7 @@ from yap.db.models import (
     Portfolio,
     Rebalance,
     RebalanceAction,
+    Review,
     Snapshot,
     SnapshotValue,
 )
@@ -21,15 +22,17 @@ from yap.domain.bands import Band
 from yap.domain.rebalancing import (
     UNITS_PRECISION,
     AmountError,
+    Mode,
     PositionInput,
     RebalanceResult,
     RebalancingError,
     rebalance,
     to_units,
 )
+from yap.domain.reviews import Verdict
 from yap.domain.types import AssetType
 from yap.messages import Message, msg
-from yap.services import snapshots
+from yap.services import reviews, snapshots
 from yap.services.assets import find_asset
 from yap.services.common import (
     Clock,
@@ -70,6 +73,10 @@ class Plan:
     contribution: Decimal
     withdrawal: Decimal
     result: RebalanceResult
+    mode: Mode = Mode.NORMAL
+    # THS-04, RB-25, RB-26: the semaphore of the active version and the reason of its review
+    semaphore: Verdict | None = None
+    semaphore_reason: str | None = None
 
     @property
     def actions(self) -> list[Instruction]:
@@ -132,11 +139,21 @@ def position_inputs(
     return inputs
 
 
+def parse_mode(value: str) -> Mode:
+    try:
+        return Mode(value)
+    except ValueError:
+        raise ValidationError.single(msg("rebalance_mode_invalid"), "mode") from None
+
+
 def _calculate(
-    inputs: list[PositionInput], contribution: Decimal, withdrawal: Decimal
+    inputs: list[PositionInput],
+    contribution: Decimal,
+    withdrawal: Decimal,
+    mode: Mode = Mode.NORMAL,
 ) -> RebalanceResult:
     try:
-        return to_units(rebalance(inputs, contribution, withdrawal))
+        return to_units(rebalance(inputs, contribution, withdrawal, mode))
     except RebalancingError as err:
         field = err.field if isinstance(err, AmountError) else ""
         raise ValidationError.single(err.message, field) from None
@@ -151,8 +168,11 @@ def plan(
     snapshot_id: int | None = None,
     contribution: Decimal | None = None,
     withdrawal: Decimal | None = None,
+    mode: Mode | None = None,
 ) -> Plan:
-    """RB-01 to RB-03: instructions for the given or latest snapshot, active version now."""
+    """RB-01 to RB-03: instructions for the given or latest snapshot, active version now.
+    Selling the whole portfolio (RB-25) is only for a broken thesis, and is preselected
+    for it: without a mode, a broken thesis gives the sale, any other the usual calculation."""
     portfolio = get_owned(session, Portfolio, portfolio_id, actor)
     if snapshot_id is None:
         snapshot = snapshots.latest_snapshot(session, actor, portfolio.id)
@@ -166,8 +186,15 @@ def plan(
     assert version is not None  # a portfolio's policy always has an active version (PTF-02)
     amount = portfolio.default_contribution if contribution is None else contribution
     out = Decimal(0) if withdrawal is None else withdrawal
-    result = _calculate(position_inputs(portfolio, snapshot, version), amount, out)
-    return Plan(portfolio, snapshot, version, amount, out, result)
+    review: Review | None = reviews.current_review(version)
+    semaphore = reviews.review_semaphore(review)
+    if mode is None:
+        mode = Mode.SELL_ALL if semaphore is Verdict.BROKEN else Mode.NORMAL
+    if mode is Mode.SELL_ALL and semaphore is not Verdict.BROKEN:
+        raise ConflictError(msg("rebalance_sell_all_not_broken"))
+    result = _calculate(position_inputs(portfolio, snapshot, version), amount, out, mode)
+    reason = review.verdict_reason if review is not None and semaphore else None
+    return Plan(portfolio, snapshot, version, amount, out, result, mode, semaphore, reason)
 
 
 @dataclass(frozen=True)
@@ -189,6 +216,7 @@ def confirm(
     withdrawal: Decimal = Decimal(0),
     policy_version_id: int,
     executed: list[Executed],
+    mode: Mode = Mode.NORMAL,
 ) -> Rebalance:
     """RB-16, RB-17: stores the rebalance with calculated and executed amounts, the
     resulting snapshot and a timeline event. The plan is recalculated here, so the
@@ -201,6 +229,7 @@ def confirm(
         snapshot_id=snapshot_id,
         contribution=contribution,
         withdrawal=withdrawal,
+        mode=mode,
     )
     if p.version.id != policy_version_id:
         raise ConflictError(msg("rebalance_policy_changed"))
@@ -279,6 +308,8 @@ def confirm(
         value = position.value + done("1A", ticker) - done("1B", ticker) + sign * done("3", ticker)
         if position.is_cash_buffer:
             value -= buffer_buys
+            if mode is Mode.SELL_ALL:  # the cash stays in the portfolio (RB-25)
+                value += p.result.unallocated_cash
         if position.in_policy or value > 0:
             resulting.append(ValueSpec(ticker, value))
     result_snapshot = snapshots.create_snapshot(
@@ -292,6 +323,7 @@ def confirm(
         policy_version_id=p.version.id,
         contribution=p.contribution,
         withdrawal=p.withdrawal,
+        mode=mode.value,
         precise_amounts=p.portfolio.precise_amounts,
         result_snapshot_id=result_snapshot.id,
         confirmed_at=now,
@@ -321,6 +353,8 @@ def confirm(
     bought = sum((a for key, a in amounts.items() if key not in sells), Decimal(0))
     fmt = ",.2f" if p.portfolio.precise_amounts else ",.0f"
     summary = f"{p.portfolio.name}: rebalanced, sold {sold:{fmt}}, bought {bought:{fmt}}"
+    if mode is Mode.SELL_ALL:
+        summary = f"{p.portfolio.name}: sold completely, thesis broken"
     if p.withdrawal > 0:
         summary += f", withdrew {p.withdrawal:{fmt}}"
     add_event(
@@ -334,6 +368,7 @@ def confirm(
             "sold": str(sold),
             "bought": str(bought),
             "withdrawal": str(p.withdrawal) if p.withdrawal > 0 else None,
+            "mode": mode.value,
             "precise": p.portfolio.precise_amounts,
         },
         portfolio_id=p.portfolio.id,
@@ -382,7 +417,7 @@ def recalculate(session: Session, actor: Investor, rebalance_id: int) -> Rebalan
         elif asset_id in whole_units:
             p = replace(p, whole_units=whole_units[asset_id])
         inputs.append(p)
-    return _calculate(inputs, record.contribution, record.withdrawal)
+    return _calculate(inputs, record.contribution, record.withdrawal, Mode(record.mode))
 
 
 def list_rebalances(session: Session, actor: Investor, portfolio_id: int) -> list[Rebalance]:
@@ -429,6 +464,7 @@ def simulate(
         snapshot_id=snapshot_id,
         contribution=contribution,
         withdrawal=withdrawal,
+        mode=Mode.NORMAL,
     )
     results = [first.result]
     for _ in range(cycles - 1):
