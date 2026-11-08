@@ -579,9 +579,10 @@ def test_suggestions_get_a_change_and_a_state_and_lose_them_again(
             text("SELECT kind, change, previous, state FROM review_suggestion WHERE id = 1")
         ).one()
         assert tuple(row) == ("thesis_text", None, None, "open")
-    # A suggestion of a confirmed review stays as it is (REV-11)
+    # The content of a suggestion of a confirmed review stays as it is (REV-11); since 0022
+    # its state may change (REV-07, POL-20)
     with pytest.raises(IntegrityError), engine.begin() as connection:
-        connection.execute(text("UPDATE review_suggestion SET state = 'dismissed'"))
+        connection.execute(text("UPDATE review_suggestion SET content_md = 'Changed.'"))
 
     command.downgrade(_alembic(db_url), "0019")
     with engine.connect() as connection:
@@ -662,6 +663,75 @@ def test_reviews_get_fingerprints_and_confirmation_times_and_versions_marks(
         review_columns = {r[1] for r in connection.execute(text("PRAGMA table_info(review)"))}
         assert "mark" not in version_columns
         assert not review_columns & {"fingerprint", "saved_at"}
+    upgrade(db_url)
+    assert _trigger_sql(engine) == at_head
+
+
+@pytest.mark.req("NFR-09", "NFR-05", "POL-18", "POL-20", "REV-12", "REV-23")
+def test_versions_keep_every_saved_review_and_policies_get_a_sharing_level(
+    db_url: str, engine: Engine
+) -> None:
+    """0022: no more one review per kind and version; reviews are immutable once saved,
+    not once their version is active; policies are private."""
+    from alembic import command
+
+    from yap.db.migrate import upgrade
+
+    at_head = _trigger_sql(engine)
+    t0 = "'2026-01-01T00:00:00.000000+00:00'"
+    t1 = "'2026-02-01T00:00:00.000000+00:00'"
+    command.downgrade(_alembic(db_url), "0021")
+    with engine.begin() as connection:
+        for sql in (
+            "INSERT INTO investor (id, username, password_hash, is_admin, is_investor,"
+            " base_currency, active, must_change_password, created_at, manual_review_default)"
+            f" VALUES (1, 'alice', 'x', 0, 1, 'CHF', 1, 0, {t0}, 0)",
+            f"INSERT INTO policy (id, owner_id, name, created_at) VALUES (1, 1, 'core', {t0})",
+            "INSERT INTO policy_version (id, policy_id, version_no, thesis_title, thesis_md,"
+            f" activated_at, created_at) VALUES (1, 1, 1, 'T', 'text', NULL, {t0})",
+            "INSERT INTO review (id, kind, policy_version_id, started_by, state, verdict,"
+            " scoring_version, provider, model, started_at, method, saved_at) VALUES"
+            f" (1, 'full', 1, 1, 'done', 'good', '3', 'openai', 'm', {t0}, 'ai', {t1})",
+            f"UPDATE policy_version SET activated_at = {t1} WHERE id = 1",
+        ):
+            connection.execute(text(sql))
+    # Before 0022 a second review of the same kind is refused
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO review (id, kind, policy_version_id, started_by, state,"
+                " scoring_version, provider, started_at, method) VALUES"
+                f" (2, 'full', 1, 1, 'queued', '3', 'openai', {t1}, 'ai')"
+            )
+        )
+    upgrade(db_url)
+    assert _trigger_sql(engine) == at_head
+    with engine.begin() as connection:
+        assert connection.execute(text("SELECT sharing FROM policy")).scalar() == "private"
+        # A review of the active version: written while open, immutable once saved
+        connection.execute(
+            text(
+                "INSERT INTO review (id, kind, policy_version_id, started_by, state,"
+                " scoring_version, provider, started_at, method) VALUES"
+                f" (2, 'full', 1, 1, 'queued', '3', 'openai', {t1}, 'ai')"
+            )
+        )
+        connection.execute(text("INSERT INTO review_aspect VALUES (2, 'T1', 14, 'r')"))
+        connection.execute(text(f"UPDATE review SET state = 'done', saved_at = {t1} WHERE id = 2"))
+    for statement in (
+        "UPDATE review SET verdict = 'broken' WHERE id = 2",
+        "INSERT INTO review_aspect VALUES (2, 'T2', 14, 'r')",
+        "DELETE FROM review WHERE id = 1",
+    ):
+        with pytest.raises(IntegrityError), engine.begin() as connection:
+            connection.execute(text(statement))
+
+    command.downgrade(_alembic(db_url), "0021")
+    with engine.connect() as connection:
+        assert [r[0] for r in connection.execute(text("SELECT id FROM review"))] == [2]
+        assert connection.execute(text("SELECT COUNT(*) FROM review_aspect")).scalar() == 1
+        policy_columns = {r[1] for r in connection.execute(text("PRAGMA table_info(policy)"))}
+        assert "sharing" not in policy_columns
     upgrade(db_url)
     assert _trigger_sql(engine) == at_head
 

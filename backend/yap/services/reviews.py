@@ -53,6 +53,7 @@ from yap.services.common import (
 )
 from yap.services.secrets import KeyBox
 from yap.services.timeline import EventType, add_event
+from yap.services.versioning import active_version
 
 log = logging.getLogger(__name__)
 
@@ -144,23 +145,94 @@ def _policy_draft(session: Session, actor: Investor, policy_id: int) -> PolicyVe
     return draft
 
 
+def _target(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, active: bool
+) -> PolicyVersion:
+    """The draft (REV-01), or the active version to review again (POL-20)."""
+    if not active:
+        return _policy_draft(session, actor, policy_id)
+    policy = get_owned(session, Policy, policy_id, actor)
+    version = active_version(policy, clock.now())
+    if version is None:
+        raise NotFoundError(msg("review_policy_not_active", name=policy.name))
+    return version
+
+
+# Of the reviews saved at the same moment (versions from before stage 2), the one of the
+# whole policy counts first, then the thesis review
+_KIND_ORDER = {ReviewKind.FULL: 2, ReviewKind.THESIS: 1, ReviewKind.POLICY: 0}
+
+
 def current_review(version: PolicyVersion) -> Review | None:
-    """The review that gives a version its score and semaphore (REV-21): its review of
-    the whole policy, or for a version from before stage 2 its thesis review, else its
-    policy review. The review log of step 2.6 will replace this choice."""
-    order = (ReviewKind.FULL, ReviewKind.THESIS, ReviewKind.POLICY)
-    found = {r.kind: r for r in version.reviews}
-    return next((found[k] for k in order if k in found), None)
+    """The review that gives a version its score and semaphore (REV-21): for a draft its
+    open review, for an activated version the latest saved one (the one confirmed at
+    activation, or a later one saved on it, POL-20)."""
+    if version.activated_at is None:
+        candidates = list(version.reviews)
+    else:
+        candidates = [r for r in version.reviews if r.saved_at is not None]
+    if not candidates:
+        return None
+    return max(
+        candidates,
+        key=lambda r: (r.saved_at or r.started_at, _KIND_ORDER.get(ReviewKind(r.kind), 0), r.id),
+    )
 
 
-def _replace_previous(session: Session, draft: PolicyVersion) -> None:
+def pending_review(version: PolicyVersion) -> Review | None:
+    """A review of an activated version that is not saved yet: running or failed (POL-20)."""
+    if version.activated_at is None:
+        return None
+    open_reviews = [r for r in version.reviews if r.saved_at is None]
+    return max(open_reviews, key=lambda r: r.id) if open_reviews else None
+
+
+def effective_mark(version: PolicyVersion) -> str | None:
+    """REV-20: a version's mark counts until it gets a review saved after its activation
+    (POL-20), which always matches the immutable version."""
+    if version.mark is None or version.activated_at is None:
+        return version.mark
+    activated = version.activated_at
+    if any(r.saved_at is not None and r.saved_at > activated for r in version.reviews):
+        return None
+    return version.mark
+
+
+def review_log(version_reviews: list[Review]) -> list[Review]:
+    """REV-23: the saved reviews, newest first."""
+    saved = [r for r in version_reviews if r.saved_at is not None and r.state == "done"]
+    return sorted(saved, key=lambda r: (r.saved_at, r.id), reverse=True)
+
+
+def _replace_previous(session: Session, version: PolicyVersion) -> None:
     """A draft has at most one review; a new one replaces it, and any reviews it has from
-    before stage 2 (REV-09)."""
-    previous = draft_reviews(session, draft)
+    before stage 2 (REV-09). On an active version, only a failed review that was never
+    saved is replaced; the saved ones stay in its review log (REV-23)."""
+    previous = [r for r in draft_reviews(session, version) if r.saved_at is None]
     if any(r.state in UNFINISHED for r in previous):
         raise ConflictError(msg("review_running"))
     for review in previous:
         session.delete(review)
+    session.flush()
+
+
+def _save_on_active(
+    session: Session, review: Review, version: PolicyVersion, owner_id: int, now: datetime
+) -> None:
+    """POL-20: a finished review of the active version goes into its review log at once
+    and appears in the timeline (TL-01). It is immutable from then on."""
+    session.flush()  # its aspects and suggestions are written first
+    review.saved_at = now
+    add_event(
+        session,
+        owner_id,
+        now,
+        EventType.REVIEW_SAVED,
+        f"Review of {version.label} (again): {_summary(review)}",
+        {**_summary_params(review), "version": version.label, "method": review.method},
+        review_id=review.id,
+        policy_version_id=version.id,
+    )
     session.flush()
 
 
@@ -179,11 +251,13 @@ def start_review(
     policy_id: int,
     news_days: int = NEWS_DAYS_DEFAULT,
     reviewer_id: int | None = None,
+    active: bool = False,
 ) -> Review:
-    """REV-01, REV-04: a review of the policy draft, with news of the last `news_days`, by
-    the given AI reviewer or the investor's default (USR-08)."""
+    """REV-01, REV-04: a review of the policy draft, or with `active` of its active version
+    (POL-20), with news of the last `news_days`, by the given AI reviewer or the
+    investor's default (USR-08)."""
     _check_news_days(news_days)
-    draft = _policy_draft(session, actor, policy_id)
+    draft = _target(session, actor, clock, policy_id, active)
     status = usage(session, actor, clock, keys, reviewer_id)
     if status.unavailable_reason:
         raise ConflictError(status.unavailable_reason)
@@ -231,11 +305,13 @@ def review_prompt(
     clock: Clock,
     policy_id: int,
     news_days: int = NEWS_DAYS_DEFAULT,
+    active: bool = False,
 ) -> review_prompts.ReviewPrompt:
-    """The review prompt of the policy draft as it is saved now, the same an AI reviewer
-    would receive. Making it changes nothing; it counts towards no limit (REV-16)."""
+    """The review prompt of the policy draft as it is saved now (or of its active version,
+    POL-20), the same an AI reviewer would receive. Making it changes nothing; it counts
+    towards no limit (REV-16)."""
     _check_news_days(news_days)
-    draft = _policy_draft(session, actor, policy_id)
+    draft = _target(session, actor, clock, policy_id, active)
     ref = review_prompts.PromptRef(draft.id, clock.now(), news_days, draft_fingerprint(draft))
     return review_prompts.review_prompt(draft, ref)
 
@@ -244,13 +320,19 @@ def review_prompt(
 
 
 def submit_manual_review(
-    session: Session, actor: Investor, clock: Clock, policy_id: int, answer: str
+    session: Session,
+    actor: Investor,
+    clock: Clock,
+    policy_id: int,
+    answer: str,
+    active: bool = False,
 ) -> Review:
     """REV-18: stores the answer of an AI outside the app as the review of the policy
     draft; it counts towards no limit (REV-16) and names no model (REV-17). It is made
     when its prompt was copied, so a later change of the draft makes it outdated (REV-09).
-    Every problem of the answer is reported at once."""
-    draft = _policy_draft(session, actor, policy_id)
+    Every problem of the answer is reported at once. With `active`, the review of the
+    active version is saved in its review log (POL-20)."""
+    draft = _target(session, actor, clock, policy_id, active)
     prompt_id = review_prompts.answer_prompt_id(answer)
     ref = review_prompts.parse_prompt_id(prompt_id) if prompt_id else None
     with_positions = bool(draft.positions)
@@ -288,6 +370,8 @@ def submit_manual_review(
     _store(review, parsed)
     session.add(review)
     session.flush()
+    if draft.activated_at is not None:
+        _save_on_active(session, review, draft, draft.policy.owner_id, clock.now())
     return review
 
 
@@ -348,6 +432,9 @@ def run_review(
             _store(stored, parsed)
             stored.state = "done"
             stored.completed_at = clock.now()
+            version = draft_of(session, stored)
+            if version.activated_at is not None:  # POL-20
+                _save_on_active(session, stored, version, version.policy.owner_id, clock.now())
         session.commit()
 
 

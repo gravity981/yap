@@ -23,7 +23,7 @@ from yap.api.schemas import (
 )
 from yap.db.models import Asset, Investor, PolicyVersion, Portfolio
 from yap.imports import importer
-from yap.services import portfolios, snapshots
+from yap.services import portfolios, reviews, snapshots
 from yap.services.common import Clock, get_owned
 from yap.services.portfolios import PositionSettings
 from yap.services.snapshots import ValueSpec
@@ -37,8 +37,16 @@ def _latest(session: DbSession, user: Investor, portfolio: Portfolio) -> Snapsho
     return SnapshotOut.of(snapshots.compare(latest)) if latest else None
 
 
-def _summary(session: DbSession, user: Investor, portfolio: Portfolio) -> PortfolioSummary:
+def _summary(
+    session: DbSession, user: Investor, clock: Clock, portfolio: Portfolio
+) -> PortfolioSummary:
+    # PTF-07: the semaphore of the active version of the portfolio's policy
+    version = active_version(portfolio.policy, clock.now())
+    latest = reviews.current_review(version) if version is not None else None
+    semaphore = reviews.review_semaphore(latest)
     return PortfolioSummary(
+        policy_semaphore=semaphore.value if semaphore else None,
+        policy_semaphore_reason=latest.verdict_reason if latest and semaphore else None,
         id=portfolio.id,
         name=portfolio.name,
         currency=portfolio.currency,
@@ -79,7 +87,7 @@ def _portfolio(
 ) -> PortfolioOut:
     version = active_version(portfolio.policy, clock.now())
     return PortfolioOut(
-        **_summary(session, user, portfolio).model_dump(),
+        **_summary(session, user, clock, portfolio).model_dump(),
         default_contribution=portfolio.default_contribution,
         precise_amounts=portfolio.precise_amounts,
         currency_locked=portfolios.has_snapshots(session, portfolio),
@@ -94,9 +102,11 @@ def _portfolio(
 
 
 @router.get("/portfolios")
-def list_portfolios(session: DbSession, user: CurrentUser) -> list[PortfolioSummary]:
+def list_portfolios(
+    session: DbSession, clock: AppClock, user: CurrentUser
+) -> list[PortfolioSummary]:
     """CMP-09: overview of all portfolios."""
-    return [_summary(session, user, p) for p in portfolios.list_portfolios(session, user)]
+    return [_summary(session, user, clock, p) for p in portfolios.list_portfolios(session, user)]
 
 
 @router.post("/portfolios", status_code=201)

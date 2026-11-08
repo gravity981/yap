@@ -14,7 +14,7 @@ import { NativeSelect } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Markdown } from "@/components/markdown";
 import { ReviewBriefLine, ReviewSection, reviewTitle } from "@/features/reviews/review";
-import { ScoreCourse } from "@/features/reviews/score-course";
+import { ReviewLog } from "@/features/reviews/review-log";
 import { SemaphoreBadge, semaphoreLabel } from "@/features/reviews/semaphore";
 import { formatDateTime } from "@/lib/format";
 
@@ -29,6 +29,7 @@ import {
   type Policy,
 } from "./api";
 import { DiscardDraft } from "./discard";
+import { PolicyFacts, ReviewAgain, Sharing, SharingBadge } from "./policy-parts";
 import { MarkBadge } from "./mark";
 import { PositionsTable, VersionDiffView } from "./positions";
 
@@ -59,7 +60,16 @@ export function PolicyPage({ policyId }: { policyId: number }) {
     <div className="grid gap-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="grid gap-1">
-          <h1 className="text-2xl font-semibold">{p.name}</h1>
+          <Link to="/policies" className="text-sm underline">
+            {t("policies.detail.back")}
+          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold">{p.name}</h1>
+            {/* THS-04, POL-11, REV-20, POL-18 */}
+            {active && <SemaphoreBadge semaphore={p.semaphore} />}
+            <MarkBadge mark={p.mark} />
+            <SharingBadge sharing={p.sharing} />
+          </div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {active ? (
               <span>{t("policies.detail.active", { label: active.label })}</span>
@@ -72,8 +82,8 @@ export function PolicyPage({ policyId }: { policyId: number }) {
               </Badge>
             )}
             {archived && <Badge variant="secondary">{t("policies.detail.archived")}</Badge>}
-            <MarkBadge mark={p.mark} />
           </div>
+          <PolicyFacts policy={p} />
         </div>
         {!archived && (
           <div className="flex flex-wrap gap-2">
@@ -86,7 +96,7 @@ export function PolicyPage({ policyId }: { policyId: number }) {
             {draft ? (
               <>
                 <Button variant="outline" onClick={editDraft}>
-                  {t("policies.detail.editDraft")}
+                  {t("policies.list.continueDraft")}
                 </Button>
                 {/* POL-17: activation goes through the summary of the draft */}
                 <Button
@@ -104,7 +114,7 @@ export function PolicyPage({ policyId }: { policyId: number }) {
               <Button
                 onClick={() => actions.createDraft.mutate(undefined, { onSuccess: editDraft })}
               >
-                {t("policies.detail.newDraft")}
+                {t("policies.list.newVersion")}
               </Button>
             )}
           </div>
@@ -120,52 +130,61 @@ export function PolicyPage({ policyId }: { policyId: number }) {
       )}
       <FormError error={error} />
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="thesis">{t("policies.detail.tabThesis")}</TabsTrigger>
-          <TabsTrigger value="structure">{t("policies.detail.tabStructure")}</TabsTrigger>
-          <TabsTrigger value="versions">{t("policies.detail.tabVersions")}</TabsTrigger>
-          <TabsTrigger value="compare" disabled={p.versions.length < 2}>
-            {t("policies.detail.tabCompare")}
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="thesis">
-          <VersionView
-            key={`${imports}-${active?.version_no ?? 0}`}
-            policy={p}
-            part="thesis"
-            showDraft={imports > 0}
-          />
-        </TabsContent>
-        <TabsContent value="structure">
-          <VersionView
-            key={`${imports}-${active?.version_no ?? 0}`}
-            policy={p}
-            part="structure"
-            showDraft={imports > 0}
-          />
-        </TabsContent>
-        <TabsContent value="versions" className="grid gap-4">
-          <VersionList policy={p} />
-          {draft && !archived && (
-            <div>
-              <DiscardDraft
-                policyId={p.id}
-                neverActivated={!active}
-                onDiscarded={() => setImports((n) => n + 1)}
-              />
-            </div>
-          )}
-          <PortfoliosUsing
-            policy={p}
-            onArchive={() => actions.archive.mutate(undefined)}
-            archived={archived}
-          />
-        </TabsContent>
-        <TabsContent value="compare">
-          <CompareVersions policy={p} />
-        </TabsContent>
-      </Tabs>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <Tabs value={tab} onValueChange={setTab} className="min-w-0">
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="thesis">{t("policies.detail.tabThesis")}</TabsTrigger>
+            <TabsTrigger value="structure">{t("policies.detail.tabStructure")}</TabsTrigger>
+            <TabsTrigger value="reviews">{t("policies.detail.tabReviews")}</TabsTrigger>
+            <TabsTrigger value="versions">{t("policies.detail.tabVersions")}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="thesis">
+            <VersionView
+              key={`${imports}-${active?.version_no ?? 0}`}
+              policy={p}
+              part="thesis"
+              showDraft={imports > 0}
+            />
+          </TabsContent>
+          <TabsContent value="structure">
+            <VersionView
+              key={`${imports}-${active?.version_no ?? 0}`}
+              policy={p}
+              part="structure"
+              showDraft={imports > 0}
+            />
+          </TabsContent>
+          <TabsContent value="reviews">
+            {/* REV-23, THS-08 */}
+            <ReviewLog policyId={p.id} />
+          </TabsContent>
+          <TabsContent value="versions" className="grid gap-4">
+            <VersionList policy={p} />
+            {/* POL-09: any two versions, including the draft */}
+            {p.versions.length > 1 && <CompareVersions policy={p} />}
+            {draft && !archived && (
+              <div>
+                <DiscardDraft
+                  policyId={p.id}
+                  neverActivated={!active}
+                  onDiscarded={() => setImports((n) => n + 1)}
+                />
+              </div>
+            )}
+            <PortfoliosUsing
+              policy={p}
+              onArchive={() => actions.archive.mutate(undefined)}
+              archived={archived}
+            />
+          </TabsContent>
+        </Tabs>
+        {active && !archived && (
+          <aside className="grid min-w-0 gap-4">
+            <ReviewAgain policy={p} versionLabel={active.label} />
+            <Sharing policy={p} />
+          </aside>
+        )}
+      </div>
 
       {importing === "thesis" && (
         <FileImport
@@ -302,14 +321,8 @@ function VersionView({
         ))}
       {/* REV-02: one review of thesis and target structure; versions from before stage 2
           may have a thesis and a policy review */}
-      {summary &&
-        (summary.reviews.length === 0 ? (
-          <ReviewSection key={summary.version_no} brief={null} />
-        ) : (
-          summary.reviews.map((r) => (
-            <ReviewSection key={`${summary.version_no}-${r.id}`} brief={r} />
-          ))
-        ))}
+      {/* REV-21: the latest review of the version; all of them are in the review log */}
+      {summary && <ReviewSection key={summary.version_no} brief={summary.review} />}
       {/* REV-01: reviews are made in the draft editor */}
       {summary?.is_draft && policy.archived_at === null && (
         <p className="text-sm text-muted-foreground">
@@ -331,21 +344,12 @@ function VersionView({
   );
 }
 
-/** POL-12, THS-08: the versions with their reviews and the course of the review score. */
+/** POL-12, THS-08: the versions with their activation periods, change notes, marks and
+ * latest review; the course of the score is in the review log (REV-23). */
 function VersionList({ policy }: { policy: Policy }) {
   const { t } = useTranslation();
   return (
     <div className="grid gap-4">
-      <ScoreCourse
-        points={policy.versions
-          .filter((v) => !v.is_draft && v.review?.state === "done" && v.review.total !== null)
-          .map((v) => ({
-            label: v.label,
-            date: v.active_from ?? "",
-            score: v.review!.total!,
-            version: v.review!.scoring_version,
-          }))}
-      />
       <ol className="grid gap-2">
         {[...policy.versions].reverse().map((v) => (
           <li key={v.version_no} className="rounded-md border p-3 text-sm">
@@ -356,6 +360,7 @@ function VersionList({ policy }: { policy: Policy }) {
               ) : v.active_until === null ? (
                 <Badge variant="success">{t("policies.version.active")}</Badge>
               ) : null}
+              <MarkBadge mark={v.mark} />
               {v.active_from && (
                 <span className="text-muted-foreground">
                   {formatDateTime(v.active_from)}
@@ -364,15 +369,11 @@ function VersionList({ policy }: { policy: Policy }) {
               )}
             </div>
             {v.change_note && <p className="mt-1">{v.change_note}</p>}
-            {v.reviews.length > 0 && (
-              <div className="mt-2 grid gap-1">
-                {v.reviews.map((r) => (
-                  <span key={r.id} className="flex flex-wrap items-center gap-2">
-                    <span className="text-muted-foreground">{reviewTitle(r.kind)}:</span>
-                    <ReviewBriefLine brief={r} />
-                  </span>
-                ))}
-              </div>
+            {v.review && (
+              <span className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="text-muted-foreground">{reviewTitle(v.review.kind)}:</span>
+                <ReviewBriefLine brief={v.review} />
+              </span>
             )}
           </li>
         ))}

@@ -36,6 +36,41 @@ const reviewBrief = (extra: Record<string, unknown> = {}) => ({
   model: "m",
   ai_reviewer_name: null,
   outdated: false,
+  completed_at: "2026-02-01T10:00:00+00:00",
+  saved_at: "2026-02-01T10:00:00+00:00",
+  ...extra,
+});
+
+/** The state fields of a policy and of a policy in the list (POL-19, REV-21). */
+const state = (extra: Record<string, unknown> = {}) => ({
+  thesis_warning: false,
+  semaphore: null,
+  semaphore_reason: null,
+  mark: null,
+  sharing: "private",
+  active_version_no: 2,
+  active_from: "2026-02-01T10:00:00+00:00",
+  latest_review: null,
+  pending_review: null,
+  draft: {
+    version_no: 3,
+    label: "core-v3",
+    updated_at: "2026-03-05T10:00:00+00:00",
+    positions: 2,
+    review: null,
+  },
+  portfolios: [{ id: 5, name: "Main" }],
+  ...extra,
+});
+
+/** A policy in the policies list (POL-19). */
+const summary = (extra: Record<string, unknown> = {}) => ({
+  id: 3,
+  name: "core",
+  archived_at: null,
+  active_version_label: "core-v2",
+  has_draft: true,
+  ...state(),
   ...extra,
 });
 
@@ -64,9 +99,7 @@ const policy = (extra: Record<string, unknown> = {}) => ({
     version(2),
     version(3, { is_draft: true, active_from: null, change_note: null }),
   ],
-  portfolios: [{ id: 5, name: "Main" }],
-  thesis_warning: false,
-  semaphore: null,
+  ...state(),
   ...extra,
 });
 
@@ -74,17 +107,9 @@ function setup(handlers: Record<string, Handler> = {}) {
   return mockApi({
     "GET /api/version": () => json({ version: "1.2.0", commit: "abc" }),
     "GET /api/auth/me": () => json(investor),
-    "GET /api/policies": () =>
-      json([
-        {
-          id: 3,
-          name: "core",
-          archived_at: null,
-          active_version_label: "core-v2",
-          has_draft: true,
-        },
-      ]),
+    "GET /api/policies": () => json([summary()]),
     "GET /api/policies/3": () => json(policy()),
+    "GET /api/policies/3/reviews": () => json([]),
     "GET /api/policies/3/versions/2": () =>
       json({
         ...version(2),
@@ -204,10 +229,14 @@ describe("policies", () => {
     await waitFor(() => expect(calls.some((c) => c.path === "/api/policies/3/archive")).toBe(true));
   });
 
-  it("[POL-09] compares two versions", async () => {
-    setup();
+  it("[POL-09] compares two versions, including the draft, in the Versions tab", async () => {
+    const calls = setup();
     renderApp("/policies/3");
-    await userEvent.click(await screen.findByRole("tab", { name: "Compare" }));
+    await userEvent.click(await screen.findByRole("tab", { name: "Versions" }));
+    // The newest two by default: the active v2 and the draft v3
+    await waitFor(() =>
+      expect(calls.some((c) => c.path.includes("from_version=2&to_version=3"))).toBe(true),
+    );
     expect(await screen.findByText(/target: 50 → 40/)).toBeInTheDocument();
     expect(screen.getByText("removed")).toBeInTheDocument();
     expect(screen.getByText("The thesis changed:")).toBeInTheDocument();
@@ -382,18 +411,7 @@ describe("policies", () => {
   it("[REV-20] marks a version activated without a matching review", async () => {
     setup({
       "GET /api/policies": () =>
-        json([
-          {
-            id: 3,
-            name: "core",
-            archived_at: null,
-            active_version_label: "core-v2",
-            has_draft: false,
-            thesis_warning: false,
-            semaphore: null,
-            mark: "not_reviewed",
-          },
-        ]),
+        json([summary({ has_draft: false, draft: null, mark: "not_reviewed", semaphore: "good" })]),
       "GET /api/policies/3": () => json(policy({ mark: "review_did_not_match" })),
     });
     renderApp("/policies");
@@ -652,5 +670,142 @@ describe("policies", () => {
     await waitFor(() =>
       expect(calls.find((c) => c.path === "/api/policies/3/import-thesis")?.body).toEqual({ b: 2 }),
     );
+  });
+
+  it("[POL-19] [REV-21] lists each policy with score, semaphore, dates, portfolios, sharing and its draft", async () => {
+    const latest = reviewBrief({ total: 7.5, saved_at: "2026-11-03T10:00:00+00:00" });
+    const calls = setup({
+      "GET /api/policies": () =>
+        json([
+          summary({
+            semaphore: "good",
+            latest_review: latest,
+            sharing: "text",
+            portfolios: [
+              { id: 5, name: "Main" },
+              { id: 6, name: "Long-term" },
+            ],
+            draft: {
+              version_no: 3,
+              label: "core-v3",
+              updated_at: "2026-11-08T08:00:00+00:00",
+              positions: 2,
+              review: reviewBrief({ outdated: true, saved_at: null }),
+            },
+          }),
+          summary({
+            id: 4,
+            name: "income",
+            active_version_label: null,
+            active_version_no: null,
+            active_from: null,
+            portfolios: [],
+            draft: {
+              version_no: 1,
+              label: "income-v1",
+              updated_at: null,
+              positions: 0,
+              review: null,
+            },
+          }),
+          summary({
+            id: 8,
+            name: "crypto",
+            has_draft: false,
+            draft: null,
+            semaphore: "warning",
+            latest_review: reviewBrief({ total: 5.5, semaphore: "warning" }),
+            mark: "review_did_not_match",
+          }),
+        ]),
+      "POST /api/policies/8/draft": () => json(version(2, { is_draft: true }), 201),
+      "GET /api/policies/8": () => json(policy({ id: 8, name: "crypto" })),
+    });
+    renderApp("/policies");
+    const core = await screen.findByRole("listitem", { name: "core" });
+    expect(within(core).getByText("active v2")).toBeInTheDocument();
+    expect(within(core).getByRole("img", { name: "Score: 7.5 of 10" })).toBeInTheDocument();
+    expect(within(core).getByText("good")).toBeInTheDocument();
+    expect(within(core).getByText("shared: text")).toBeInTheDocument();
+    expect(
+      within(core).getByText(/active since .*· last reviewed .*· used by Main, Long-term/),
+    ).toBeInTheDocument();
+    // The draft: its version, the state of its review, when it was saved, and the actions
+    expect(within(core).getByText("Draft v3 in progress")).toBeInTheDocument();
+    expect(within(core).getByText(/no longer matches the draft · saved /)).toBeInTheDocument();
+    expect(within(core).getByRole("link", { name: "Continue draft" })).toHaveAttribute(
+      "href",
+      "/policies/3/draft",
+    );
+    expect(within(core).getByRole("button", { name: "Discard draft" })).toBeInTheDocument();
+    // A policy that was never activated: text only, not reviewed
+    const income = screen.getByRole("listitem", { name: "income" });
+    expect(within(income).getByText("draft v1")).toBeInTheDocument();
+    expect(within(income).getByText("Not active yet")).toBeInTheDocument();
+    expect(
+      within(income).getByText(/text only, no positions yet · not reviewed/),
+    ).toBeInTheDocument();
+    // Without a draft: a new version, and the marks (REV-20)
+    const crypto = screen.getByRole("listitem", { name: "crypto" });
+    expect(within(crypto).getByText("review did not match")).toBeInTheDocument();
+    expect(within(crypto).getByText("private")).toBeInTheDocument();
+    expect(within(crypto).getByText(/No draft/)).toBeInTheDocument();
+    await userEvent.click(within(crypto).getByRole("button", { name: "New version" }));
+    await waitFor(() => expect(calls.some((c) => c.path === "/api/policies/8/draft")).toBe(true));
+  });
+
+  it("[REV-21] [POL-11] shows the latest review, the dates and the portfolios on the policy page", async () => {
+    setup({
+      "GET /api/policies/3": () =>
+        json(
+          policy({
+            semaphore: "warning",
+            thesis_warning: true,
+            latest_review: reviewBrief({ total: 6.5, semaphore: "warning" }),
+          }),
+        ),
+    });
+    renderApp("/policies/3");
+    expect(await screen.findByRole("link", { name: "← Policies" })).toHaveAttribute(
+      "href",
+      "/policies",
+    );
+    expect(screen.getByRole("img", { name: "Score: 6.5 of 10" })).toBeInTheDocument();
+    expect(screen.getByText(/active since .*· last reviewed .*· used by Main/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/The review of the active version rates its thesis/),
+    ).toBeInTheDocument();
+  });
+
+  it("[POL-18] shares a reviewed policy; an unreviewed one stays private", async () => {
+    let current = policy({ latest_review: reviewBrief() });
+    const calls = setup({
+      "GET /api/policies/3": () => json(current),
+      "PUT /api/policies/3/sharing": (_request, body) => {
+        current = { ...current, sharing: (body as { sharing: string }).sharing };
+        return json(current);
+      },
+    });
+    renderApp("/policies/3");
+    const sharing = await screen.findByRole("group", { name: "Sharing" });
+    expect(within(sharing).getByRole("radio", { name: /Private/ })).toBeChecked();
+    await userEvent.click(within(sharing).getByRole("radio", { name: /Share the text/ }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ sharing: "text" }),
+    );
+    expect(
+      within(sharing).getByRole("radio", { name: /Share everything.*never amounts/ }),
+    ).toBeEnabled();
+  });
+
+  it("[POL-18] [REV-20] cannot share a policy whose active version has no review", async () => {
+    setup();
+    renderApp("/policies/3");
+    const sharing = await screen.findByRole("group", { name: "Sharing" });
+    expect(within(sharing).getByRole("radio", { name: /Share the text/ })).toBeDisabled();
+    expect(within(sharing).getByRole("radio", { name: /Share everything/ })).toBeDisabled();
+    expect(
+      within(sharing).getByText("Only a reviewed active version can be shared."),
+    ).toBeInTheDocument();
   });
 });

@@ -108,6 +108,12 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
     "Prüfung von core-v5: gut, 8 / 10",
   ],
   [
+    // REV-12, POL-20: a review of the active version saved later
+    event("review_saved", { version: "core-v5", verdict: "warning", total: 6.5, method: "ai" }),
+    "Review of core-v5 (again): warning, 6.5 / 10",
+    "Prüfung von core-v5 (erneut): Warnung, 6.5 / 10",
+  ],
+  [
     event("thesis_revised", { title: "Growth", revision: 3, version: "core-v1", used_revision: 2 }),
     "Thesis 'Growth' has a new revision 3 (policy core-v1 uses revision 2)",
     "Anlagethese «Growth» hat eine neue Revision 3 (Anlagestrategie core-v1 verwendet Revision 2)",
@@ -120,7 +126,7 @@ const swiss = (text: string) => text.replace(/'(?=\d{3})/g, "’");
 describe("timeline summaries", () => {
   afterEach(() => applyLanguage("en"));
 
-  it("[TL-02] [NFR-10] writes each entry like the backend in English", () => {
+  it("[TL-02] [NFR-10] [REV-12] writes each entry like the backend in English", () => {
     applyLanguage("en");
     for (const [e, english] of EXAMPLES) expect(eventSummary(e), e.type).toBe(english);
   });

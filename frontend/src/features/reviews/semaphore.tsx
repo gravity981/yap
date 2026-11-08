@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 
@@ -49,5 +50,47 @@ export function SemaphoreBadge({ semaphore }: { semaphore: string | null | undef
       <span aria-hidden="true" className={`size-2 rounded-full ${DOT[semaphore]}`} />
       {label}
     </Badge>
+  );
+}
+
+/** PTF-07: the semaphore of a portfolio's policy; `warning` in amber and `broken` in red,
+ * with the reason of the latest review's verdict and a link to the policy. */
+export function PolicySemaphore({
+  policyId,
+  semaphore,
+  reason,
+}: {
+  policyId: number;
+  semaphore: string | null | undefined;
+  reason: string | null | undefined;
+}) {
+  const { t } = useTranslation();
+  if (!semaphore) return null;
+  const alarming = semaphore === "warning" || semaphore === "broken";
+  return (
+    <div
+      className={
+        semaphore === "broken"
+          ? "grid gap-1 rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+          : alarming
+            ? "grid gap-1 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+            : "flex flex-wrap items-center gap-2 text-sm"
+      }
+    >
+      <span className="flex flex-wrap items-center gap-2">
+        <span>{t("reviews.semaphore.thesis")}</span>
+        <SemaphoreBadge semaphore={semaphore} />
+      </span>
+      {alarming && reason && <span>{reason}</span>}
+      {alarming && (
+        <Link
+          to="/policies/$policyId"
+          params={{ policyId: String(policyId) }}
+          className="justify-self-start underline"
+        >
+          {t("reviews.semaphore.toPolicy")}
+        </Link>
+      )}
+    </div>
   );
 }

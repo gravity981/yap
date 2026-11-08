@@ -546,6 +546,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/policies/{policy_id}/active/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Active Review
+         * @description POL-20: reviews the active version again; saved in its review log when done.
+         */
+        post: operations["start_active_review_api_policies__policy_id__active_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/active/review-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Review Prompt
+         * @description POL-20, REV-19: the prompt of the active version; changes nothing.
+         */
+        get: operations["get_active_review_prompt_api_policies__policy_id__active_review_prompt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/active/review/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Manual Active Review
+         * @description POL-20, REV-18: saves the pasted answer in the review log of the active version.
+         */
+        post: operations["submit_manual_active_review_api_policies__policy_id__active_review_manual_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/policies/{policy_id}/archive": {
         parameters: {
             query?: never;
@@ -767,6 +827,46 @@ export interface paths {
         put?: never;
         /** Preview Target Structure */
         post: operations["preview_target_structure_api_policies__policy_id__import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Review Log
+         * @description REV-23: all saved reviews of the policy's versions, newest first.
+         */
+        get: operations["get_review_log_api_policies__policy_id__reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Sharing
+         * @description POL-18: the sharing level; only a reviewed active version can be shared.
+         */
+        put: operations["set_sharing_api_policies__policy_id__sharing_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1672,6 +1772,21 @@ export interface components {
             /** Policy Deleted */
             policy_deleted: boolean;
         };
+        /**
+         * DraftBrief
+         * @description POL-19: a policy's draft in short.
+         */
+        DraftBrief: {
+            /** Label */
+            label: string;
+            /** Positions */
+            positions: number;
+            review: components["schemas"]["ReviewBrief"] | null;
+            /** Updated At */
+            updated_at: string | null;
+            /** Version No */
+            version_no: number;
+        };
         /** DraftIn */
         DraftIn: {
             /** Positions */
@@ -1708,7 +1823,7 @@ export interface components {
          * EventType
          * @enum {string}
          */
-        EventType: "policy_activated" | "portfolio_assigned" | "rebalance_confirmed" | "thesis_review_confirmed" | "policy_review_confirmed" | "review_confirmed" | "thesis_revised";
+        EventType: "policy_activated" | "portfolio_assigned" | "rebalance_confirmed" | "thesis_review_confirmed" | "policy_review_confirmed" | "review_confirmed" | "review_saved" | "thesis_revised";
         /** ExecutedIn */
         ExecutedIn: {
             /** Amount */
@@ -1953,6 +2068,10 @@ export interface components {
         };
         /** PolicyOut */
         PolicyOut: {
+            /** Active From */
+            active_from: string | null;
+            /** Active Version No */
+            active_version_no: number | null;
             /** Archived At */
             archived_at: string | null;
             /**
@@ -1960,37 +2079,60 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            draft: components["schemas"]["DraftBrief"] | null;
             /** Id */
             id: number;
+            latest_review: components["schemas"]["ReviewBrief"] | null;
             /** Mark */
             mark: string | null;
             /** Name */
             name: string;
+            pending_review: components["schemas"]["ReviewBrief"] | null;
             /** Portfolios */
             portfolios: components["schemas"]["PortfolioRef"][];
             /** Semaphore */
             semaphore: string | null;
+            /** Semaphore Reason */
+            semaphore_reason: string | null;
+            /** Sharing */
+            sharing: string;
             /** Thesis Warning */
             thesis_warning: boolean;
             /** Versions */
             versions: components["schemas"]["VersionSummary"][];
         };
-        /** PolicySummary */
+        /**
+         * PolicySummary
+         * @description POL-19: a policy in the policies list.
+         */
         PolicySummary: {
+            /** Active From */
+            active_from: string | null;
             /** Active Version Label */
             active_version_label: string | null;
+            /** Active Version No */
+            active_version_no: number | null;
             /** Archived At */
             archived_at: string | null;
+            draft: components["schemas"]["DraftBrief"] | null;
             /** Has Draft */
             has_draft: boolean;
             /** Id */
             id: number;
+            latest_review: components["schemas"]["ReviewBrief"] | null;
             /** Mark */
             mark: string | null;
             /** Name */
             name: string;
+            pending_review: components["schemas"]["ReviewBrief"] | null;
+            /** Portfolios */
+            portfolios: components["schemas"]["PortfolioRef"][];
             /** Semaphore */
             semaphore: string | null;
+            /** Semaphore Reason */
+            semaphore_reason: string | null;
+            /** Sharing */
+            sharing: string;
             /** Thesis Warning */
             thesis_warning: boolean;
         };
@@ -2024,6 +2166,10 @@ export interface components {
             policy_id: number;
             /** Policy Name */
             policy_name: string;
+            /** Policy Semaphore */
+            policy_semaphore: string | null;
+            /** Policy Semaphore Reason */
+            policy_semaphore_reason: string | null;
             /** Positions */
             positions: components["schemas"]["PositionSettingsOut"][];
             /** Precise Amounts */
@@ -2063,6 +2209,10 @@ export interface components {
             policy_id: number;
             /** Policy Name */
             policy_name: string;
+            /** Policy Semaphore */
+            policy_semaphore: string | null;
+            /** Policy Semaphore Reason */
+            policy_semaphore_reason: string | null;
         };
         /** PositionChangeOut */
         PositionChangeOut: {
@@ -2449,6 +2599,8 @@ export interface components {
         ReviewBrief: {
             /** Ai Reviewer Name */
             ai_reviewer_name: string | null;
+            /** Completed At */
+            completed_at: string | null;
             /** Id */
             id: number;
             /** Kind */
@@ -2459,6 +2611,8 @@ export interface components {
             model: string | null;
             /** Outdated */
             outdated: boolean;
+            /** Saved At */
+            saved_at: string | null;
             /** Scoring Version */
             scoring_version: string;
             /** Semaphore */
@@ -2471,6 +2625,43 @@ export interface components {
             thesis_score: number | null;
             /** Total */
             total: number | null;
+        };
+        /**
+         * ReviewLogEntry
+         * @description REV-23: a saved review of a version of the policy.
+         */
+        ReviewLogEntry: {
+            /** Ai Reviewer Name */
+            ai_reviewer_name: string | null;
+            /** At Activation */
+            at_activation: boolean;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Method */
+            method: string;
+            /** Model */
+            model: string | null;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Scoring Version */
+            scoring_version: string;
+            /** Semaphore */
+            semaphore: string | null;
+            /** Structure Score */
+            structure_score: number | null;
+            /** Thesis Score */
+            thesis_score: number | null;
+            /** Total */
+            total: number | null;
+            /** Version Label */
+            version_label: string;
+            /** Version No */
+            version_no: number;
         };
         /** ReviewOut */
         ReviewOut: {
@@ -2505,6 +2696,8 @@ export interface components {
             prompt_id: string | null;
             /** Provider */
             provider: string;
+            /** Saved At */
+            saved_at: string | null;
             /** Scoring Version */
             scoring_version: string;
             /** Semaphore */
@@ -2549,6 +2742,11 @@ export interface components {
             is_admin: boolean;
             /** Is Investor */
             is_investor: boolean;
+        };
+        /** SharingIn */
+        SharingIn: {
+            /** Sharing */
+            sharing: string;
         };
         /** SimulationIn */
         SimulationIn: {
@@ -2654,7 +2852,7 @@ export interface components {
          * @description The review with the suggestion's new state, and the draft as it is now.
          */
         SuggestionResult: {
-            draft: components["schemas"]["VersionOut"];
+            draft: components["schemas"]["VersionOut"] | null;
             review: components["schemas"]["ReviewOut"];
         };
         /**
@@ -3998,6 +4196,115 @@ export interface operations {
             };
         };
     };
+    start_active_review_api_policies__policy_id__active_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartReview"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_review_prompt_api_policies__policy_id__active_review_prompt_get: {
+        parameters: {
+            query?: {
+                news_days?: number;
+            };
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPromptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_manual_active_review_api_policies__policy_id__active_review_manual_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     archive_policy_api_policies__policy_id__archive_post: {
         parameters: {
             query?: never;
@@ -4472,6 +4779,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionDiffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_log_api_policies__policy_id__reviews_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewLogEntry"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_sharing_api_policies__policy_id__sharing_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
                 };
             };
             /** @description Validation Error */

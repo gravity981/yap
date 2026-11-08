@@ -239,6 +239,7 @@ class Policy(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("investor.id"))
     name: Mapped[str] = mapped_column(String(100))
+    sharing: Mapped[str] = mapped_column(String(10), default="private")  # | text | all (POL-18)
     archived_at: Mapped[datetime | None]
     created_at: Mapped[datetime]
 
@@ -420,11 +421,11 @@ class Review(Base):
     when its draft is activated (REV-11)."""
 
     __tablename__ = "review"
-    __table_args__ = (UniqueConstraint("policy_version_id", "kind"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[str] = mapped_column(String(10))  # full; thesis | policy before stage 2
-    # The reviewed version; at most one review of each kind (REV-09)
+    # The reviewed version: a draft has at most one open review (REV-09); a version keeps
+    # every saved review in its review log (REV-23)
     policy_version_id: Mapped[int] = mapped_column(ForeignKey("policy_version.id"))
     started_by: Mapped[int] = mapped_column(ForeignKey("investor.id"))
     state: Mapped[str] = mapped_column(String(10))  # queued | running | done | failed
@@ -436,7 +437,8 @@ class Review(Base):
     verdict_reason: Mapped[str | None] = mapped_column(Text)  # since scoring version 3
     # REV-09: of the reviewed content; null for reviews from before fingerprints
     fingerprint: Mapped[str | None] = mapped_column(String(64))
-    # REV-11, REV-23: when confirmed by activation; null while the draft is open
+    # REV-11, REV-23, POL-20: when confirmed by activation or saved on the active version;
+    # null while open. Saved reviews are immutable.
     saved_at: Mapped[datetime | None]
     # Investor changes of reviews from before REV-10 was dropped, read-only (JSON: note,
     # verdict, scores per aspect); null for all newer reviews

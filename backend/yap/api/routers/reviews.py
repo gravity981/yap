@@ -75,6 +75,7 @@ class ReviewOut(BaseModel):
     legacy_modification: LegacyModificationOut | None
     outdated: bool  # REV-09: the draft changed after the review was started
     confirmed: bool  # REV-11: the draft was activated
+    saved_at: datetime | None  # REV-23: in the review log since; null while open
     sources: list[SourceOut]
     suggestions: list[SuggestionOut]
 
@@ -122,6 +123,7 @@ def _out(session: DbSession, review: Review) -> ReviewOut:
         ),
         outdated=reviews.is_outdated(session, review),
         confirmed=reviews.is_confirmed(session, review),
+        saved_at=review.saved_at,
         sources=[
             SourceOut(title=s.title, published_on=s.published_on, url=s.url) for s in review.sources
         ],
@@ -257,15 +259,18 @@ class SuggestionResult(BaseModel):
     """The review with the suggestion's new state, and the draft as it is now."""
 
     review: ReviewOut
-    draft: VersionOut
+    draft: VersionOut | None  # null: a suggestion of the active version's review, no draft
 
 
 def _result(
-    session: DbSession, review_id: int, draft: PolicyVersion, user: Investor
+    session: DbSession, review_id: int, draft: PolicyVersion | None, user: Investor
 ) -> SuggestionResult:
     review = reviews.get_review(session, user, review_id)
     session.refresh(review)
-    return SuggestionResult(review=_out(session, review), draft=VersionOut.of(draft, None, None))
+    return SuggestionResult(
+        review=_out(session, review),
+        draft=VersionOut.of(draft, None, None) if draft is not None else None,
+    )
 
 
 @router.post("/reviews/{review_id}/suggestions/{suggestion_id}/take-over")
@@ -279,10 +284,10 @@ def take_over_suggestion(
 
 @router.post("/reviews/{review_id}/suggestions/{suggestion_id}/dismiss")
 def dismiss_suggestion(
-    review_id: int, suggestion_id: int, session: DbSession, user: CurrentUser
+    review_id: int, suggestion_id: int, session: DbSession, clock: AppClock, user: CurrentUser
 ) -> SuggestionResult:
     """REV-07: marks the suggestion as dismissed; the draft stays as it is."""
-    draft = suggestions.dismiss(session, user, review_id, suggestion_id)
+    draft = suggestions.dismiss(session, user, clock, review_id, suggestion_id)
     return _result(session, review_id, draft, user)
 
 
@@ -293,6 +298,104 @@ def undo_suggestion(
     """REV-07: reverts a taken over suggestion in the draft, or reopens a dismissed one."""
     draft = suggestions.undo(session, user, clock, review_id, suggestion_id)
     return _result(session, review_id, draft, user)
+
+
+# --- Review again (POL-20) ------------------------------------------------------------
+
+
+@router.post("/policies/{policy_id}/active/review", status_code=202)
+def start_active_review(
+    policy_id: int,
+    request: Request,
+    background: BackgroundTasks,
+    session: DbSession,
+    clock: AppClock,
+    keys: AppKeys,
+    adapters: LlmAdapters,
+    user: CurrentUser,
+    body: StartReview | None = None,
+) -> ReviewOut:
+    """POL-20: reviews the active version again; saved in its review log when done."""
+    body = body or StartReview()
+    review = reviews.start_review(
+        session, user, clock, keys, policy_id, body.news_days, body.ai_reviewer_id, active=True
+    )
+    _schedule(request, background, session, clock, keys, adapters, review)
+    return _out(session, review)
+
+
+@router.get("/policies/{policy_id}/active/review-prompt")
+def get_active_review_prompt(
+    policy_id: int,
+    session: DbSession,
+    clock: AppClock,
+    user: CurrentUser,
+    news_days: int = reviews.NEWS_DAYS_DEFAULT,
+) -> ReviewPromptOut:
+    """POL-20, REV-19: the prompt of the active version; changes nothing."""
+    prompt = reviews.review_prompt(session, user, clock, policy_id, news_days, active=True)
+    return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
+
+
+@router.post("/policies/{policy_id}/active/review/manual", status_code=201)
+def submit_manual_active_review(
+    policy_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
+) -> ReviewOut:
+    """POL-20, REV-18: saves the pasted answer in the review log of the active version."""
+    review = reviews.submit_manual_review(session, user, clock, policy_id, body.answer, active=True)
+    return _out(session, review)
+
+
+class ReviewLogEntry(BaseModel):
+    """REV-23: a saved review of a version of the policy."""
+
+    id: int
+    version_no: int
+    version_label: str
+    saved_at: datetime
+    at_activation: bool  # confirmed by the activation, or saved later (POL-20)
+    kind: str
+    method: str
+    model: str | None
+    ai_reviewer_name: str | None
+    scoring_version: str
+    total: float | None
+    thesis_score: float | None
+    structure_score: float | None
+    semaphore: str | None
+
+
+@router.get("/policies/{policy_id}/reviews")
+def get_review_log(policy_id: int, session: DbSession, user: CurrentUser) -> list[ReviewLogEntry]:
+    """REV-23: all saved reviews of the policy's versions, newest first."""
+    policy = policies.get_policy(session, user, policy_id)
+    version_of = {v.id: v for v in policy.versions}
+    entries = reviews.review_log([r for v in policy.versions for r in v.reviews])
+    result = []
+    for review in entries:
+        version = version_of[review.policy_version_id]
+        scores = reviews.scores(review)
+        semaphore = reviews.review_semaphore(review)
+        assert review.saved_at is not None
+        result.append(
+            ReviewLogEntry(
+                id=review.id,
+                version_no=version.version_no,
+                version_label=version.label,
+                saved_at=review.saved_at,
+                at_activation=review.saved_at == version.activated_at,
+                kind=review.kind,
+                method=review.method,
+                model=review.model,
+                ai_reviewer_name=review.ai_reviewer_name,
+                scoring_version=review.scoring_version,
+                total=half(scores.total),
+                thesis_score=half(scores.thesis),
+                structure_score=half(scores.structure),
+                semaphore=semaphore.value if semaphore else None,
+            )
+        )
+    return result
 
 
 @router.get("/reviews/{review_id}")

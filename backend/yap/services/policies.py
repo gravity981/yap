@@ -36,6 +36,7 @@ from yap.services.common import (
     require_text,
 )
 from yap.services.timeline import EventType, add_event
+from yap.services.versioning import active_version
 
 
 @dataclass(frozen=True)
@@ -261,6 +262,27 @@ def update_change_note(
     draft.change_note = note.strip() if note and note.strip() else None
     session.flush()
     return draft
+
+
+SHARING_LEVELS = ("private", "text", "all")
+
+
+def set_sharing(
+    session: Session, actor: Investor, clock: Clock, policy_id: int, level: str
+) -> Policy:
+    """POL-18: private, text (the thesis of the active version) or all (thesis and target
+    structure). Only a policy whose active version has a review can be shared (REV-20)."""
+    policy = get_policy(session, actor, policy_id)
+    if level not in SHARING_LEVELS:
+        raise ValidationError.single(msg("sharing_level_unknown", level=level), "sharing")
+    if level != "private":
+        active = active_version(policy, clock.now())
+        review = reviews.current_review(active) if active is not None else None
+        if review is None or review.state != "done":
+            raise ConflictError(msg("sharing_needs_review", name=policy.name))
+    policy.sharing = level
+    session.flush()
+    return policy
 
 
 def portfolios_using(session: Session, policy: Policy) -> list[Portfolio]:

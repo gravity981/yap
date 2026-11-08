@@ -57,6 +57,8 @@ class ReviewBrief(BaseModel):
     model: str | None  # null for a manual review
     ai_reviewer_name: str | None
     outdated: bool
+    completed_at: datetime | None
+    saved_at: datetime | None  # REV-21: the date of the latest review
 
     @classmethod
     def of(cls, version: PolicyVersion, review: Review) -> ReviewBrief:
@@ -77,6 +79,8 @@ class ReviewBrief(BaseModel):
             model=review.model,
             ai_reviewer_name=review.ai_reviewer_name,
             outdated=reviews.outdated(review, version),
+            completed_at=review.completed_at,
+            saved_at=review.saved_at,
         )
 
     @classmethod
@@ -230,10 +234,29 @@ class PolicyOut(BaseModel):
     # POL-11, THS-04: the semaphore of the active version is warning or broken
     thesis_warning: bool
     semaphore: str | None  # of the active version; null: not reviewed
-    mark: str | None  # REV-20: of the active version
+    semaphore_reason: str | None  # PTF-07: the reason of the latest review's verdict
+    mark: str | None  # REV-20: of the active version, until a later review is saved
+    sharing: str  # POL-18: private | text | all
+    active_version_no: int | None
+    active_from: datetime | None
+    latest_review: ReviewBrief | None  # REV-21: of the active version
+    pending_review: ReviewBrief | None  # POL-20: running or failed, not saved yet
+    draft: DraftBrief | None  # POL-19
+
+
+class DraftBrief(BaseModel):
+    """POL-19: a policy's draft in short."""
+
+    version_no: int
+    label: str
+    updated_at: datetime | None  # last saved (POL-14)
+    positions: int
+    review: ReviewBrief | None  # matches, no longer matches, or none (REV-09)
 
 
 class PolicySummary(BaseModel):
+    """POL-19: a policy in the policies list."""
+
     id: int
     name: str
     archived_at: datetime | None
@@ -241,7 +264,15 @@ class PolicySummary(BaseModel):
     has_draft: bool
     thesis_warning: bool
     semaphore: str | None
-    mark: str | None  # REV-20: of the active version
+    semaphore_reason: str | None
+    mark: str | None
+    sharing: str
+    active_version_no: int | None
+    active_from: datetime | None
+    latest_review: ReviewBrief | None
+    pending_review: ReviewBrief | None
+    draft: DraftBrief | None
+    portfolios: list[PortfolioRef]
 
 
 class PositionChangeOut(BaseModel):
@@ -410,6 +441,9 @@ class PortfolioSummary(BaseModel):
     currency: str
     policy_id: int
     policy_name: str
+    # PTF-07: the semaphore of the active version of the policy and the verdict's reason
+    policy_semaphore: str | None
+    policy_semaphore_reason: str | None
     archived_at: datetime | None
     latest_snapshot: SnapshotOut | None
 

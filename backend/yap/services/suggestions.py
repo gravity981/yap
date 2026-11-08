@@ -22,6 +22,7 @@ from yap.messages import msg
 from yap.services import policies, reviews
 from yap.services.common import Clock, ConflictError, NotFoundError
 from yap.services.policies import PositionSpec, ThesisSpec
+from yap.services.versioning import active_version
 
 
 def _row(p: PolicyPosition) -> dict[str, Any]:
@@ -56,18 +57,33 @@ def _value(p: PolicyPosition, name: str) -> Any:
 
 
 def _find(
-    session: Session, actor: Investor, review_id: int, suggestion_id: int
-) -> tuple[ReviewSuggestion, PolicyVersion]:
-    """The suggestion and the open draft its review belongs to."""
+    session: Session,
+    actor: Investor,
+    clock: Clock,
+    review_id: int,
+    suggestion_id: int,
+    create_draft: bool = False,
+) -> tuple[ReviewSuggestion, PolicyVersion | None]:
+    """The suggestion and the draft it changes: the open draft its review belongs to, or
+    for a saved review of the active version (POL-20) the policy's draft, created as a
+    copy of the active version if there is none and `create_draft` is set (REV-07).
+    Without a draft and `create_draft`, the draft is None. Suggestions of older versions'
+    reviews can only be read."""
     review = reviews.get_review(session, actor, review_id)
     suggestion = next((s for s in review.suggestions if s.id == suggestion_id), None)
     if suggestion is None:
         raise NotFoundError(msg("suggestion_not_found", id=suggestion_id))
-    draft = reviews.draft_of(session, review)
-    if draft.activated_at is not None:
-        raise ConflictError(msg("suggestion_review_confirmed"))
     if suggestion.change is None:
         raise ConflictError(msg("suggestion_without_change"))
+    version = reviews.draft_of(session, review)
+    if version.activated_at is None:
+        return suggestion, version
+    policy = version.policy
+    if review.saved_at is None or active_version(policy, clock.now()) is not version:
+        raise ConflictError(msg("suggestion_review_confirmed"))
+    draft = policies.get_draft(policy)
+    if draft is None and create_draft:
+        draft = policies.create_draft(session, actor, clock, policy.id)
     return suggestion, draft
 
 
@@ -178,10 +194,10 @@ def take_over(
     session: Session, actor: Investor, clock: Clock, review_id: int, suggestion_id: int
 ) -> PolicyVersion:
     """REV-07, REV-22: applies an open suggestion or proposal to the draft."""
-    suggestion, draft = _find(session, actor, review_id, suggestion_id)
+    suggestion, draft = _find(session, actor, clock, review_id, suggestion_id, create_draft=True)
     if suggestion.state != SuggestionState.OPEN:
         raise ConflictError(msg("suggestion_not_open"))
-    assert suggestion.change is not None
+    assert suggestion.change is not None and draft is not None
     suggestion.previous = _apply(
         session, actor, clock, draft, SuggestionKind(suggestion.kind), suggestion.change
     )
@@ -191,9 +207,11 @@ def take_over(
     return draft
 
 
-def dismiss(session: Session, actor: Investor, review_id: int, suggestion_id: int) -> PolicyVersion:
+def dismiss(
+    session: Session, actor: Investor, clock: Clock, review_id: int, suggestion_id: int
+) -> PolicyVersion | None:
     """REV-07: the investor does not want an open suggestion; the draft stays as it is."""
-    suggestion, draft = _find(session, actor, review_id, suggestion_id)
+    suggestion, draft = _find(session, actor, clock, review_id, suggestion_id)
     if suggestion.state != SuggestionState.OPEN:
         raise ConflictError(msg("suggestion_not_open"))
     suggestion.state = SuggestionState.DISMISSED.value
@@ -203,17 +221,20 @@ def dismiss(session: Session, actor: Investor, review_id: int, suggestion_id: in
 
 def undo(
     session: Session, actor: Investor, clock: Clock, review_id: int, suggestion_id: int
-) -> PolicyVersion:
+) -> PolicyVersion | None:
     """REV-07: a taken over suggestion is reverted in the draft, a dismissed one is open
     again."""
-    suggestion, draft = _find(session, actor, review_id, suggestion_id)
+    suggestion, draft = _find(session, actor, clock, review_id, suggestion_id)
     if suggestion.state == SuggestionState.OPEN:
         raise ConflictError(msg("suggestion_is_open"))
     if suggestion.state == SuggestionState.TAKEN_OVER:
         assert suggestion.previous is not None
+        if draft is None:  # the draft it was taken over into is gone
+            raise ConflictError(msg("suggestion_no_draft"))
         _revert(session, actor, clock, draft, SuggestionKind(suggestion.kind), suggestion.previous)
     suggestion.state = SuggestionState.OPEN.value
     suggestion.previous = None
     session.flush()
-    session.refresh(draft)
+    if draft is not None:
+        session.refresh(draft)
     return draft

@@ -835,6 +835,54 @@
         "title": "Discarded",
         "type": "object"
       },
+      "DraftBrief": {
+        "description": "POL-19: a policy's draft in short.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "positions": {
+            "title": "Positions",
+            "type": "integer"
+          },
+          "review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_no",
+          "label",
+          "updated_at",
+          "positions",
+          "review"
+        ],
+        "title": "DraftBrief",
+        "type": "object"
+      },
       "DraftIn": {
         "properties": {
           "positions": {
@@ -959,6 +1007,7 @@
           "thesis_review_confirmed",
           "policy_review_confirmed",
           "review_confirmed",
+          "review_saved",
           "thesis_revised"
         ],
         "title": "EventType",
@@ -1662,6 +1711,29 @@
       },
       "PolicyOut": {
         "properties": {
+          "active_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active From"
+          },
+          "active_version_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Version No"
+          },
           "archived_at": {
             "anyOf": [
               {
@@ -1679,9 +1751,29 @@
             "title": "Created At",
             "type": "string"
           },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "latest_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "mark": {
             "anyOf": [
@@ -1697,6 +1789,16 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "pending_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "portfolios": {
             "items": {
@@ -1715,6 +1817,21 @@
               }
             ],
             "title": "Semaphore"
+          },
+          "semaphore_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semaphore Reason"
+          },
+          "sharing": {
+            "title": "Sharing",
+            "type": "string"
           },
           "thesis_warning": {
             "title": "Thesis Warning",
@@ -1737,13 +1854,33 @@
           "portfolios",
           "thesis_warning",
           "semaphore",
-          "mark"
+          "semaphore_reason",
+          "mark",
+          "sharing",
+          "active_version_no",
+          "active_from",
+          "latest_review",
+          "pending_review",
+          "draft"
         ],
         "title": "PolicyOut",
         "type": "object"
       },
       "PolicySummary": {
+        "description": "POL-19: a policy in the policies list.",
         "properties": {
+          "active_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active From"
+          },
           "active_version_label": {
             "anyOf": [
               {
@@ -1754,6 +1891,17 @@
               }
             ],
             "title": "Active Version Label"
+          },
+          "active_version_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Version No"
           },
           "archived_at": {
             "anyOf": [
@@ -1767,6 +1915,16 @@
             ],
             "title": "Archived At"
           },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "has_draft": {
             "title": "Has Draft",
             "type": "boolean"
@@ -1774,6 +1932,16 @@
           "id": {
             "title": "Id",
             "type": "integer"
+          },
+          "latest_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "mark": {
             "anyOf": [
@@ -1790,6 +1958,23 @@
             "title": "Name",
             "type": "string"
           },
+          "pending_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "portfolios": {
+            "items": {
+              "$ref": "#/components/schemas/PortfolioRef"
+            },
+            "title": "Portfolios",
+            "type": "array"
+          },
           "semaphore": {
             "anyOf": [
               {
@@ -1800,6 +1985,21 @@
               }
             ],
             "title": "Semaphore"
+          },
+          "semaphore_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semaphore Reason"
+          },
+          "sharing": {
+            "title": "Sharing",
+            "type": "string"
           },
           "thesis_warning": {
             "title": "Thesis Warning",
@@ -1814,7 +2014,15 @@
           "has_draft",
           "thesis_warning",
           "semaphore",
-          "mark"
+          "semaphore_reason",
+          "mark",
+          "sharing",
+          "active_version_no",
+          "active_from",
+          "latest_review",
+          "pending_review",
+          "draft",
+          "portfolios"
         ],
         "title": "PolicySummary",
         "type": "object"
@@ -1897,6 +2105,28 @@
             "title": "Policy Name",
             "type": "string"
           },
+          "policy_semaphore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Semaphore"
+          },
+          "policy_semaphore_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Semaphore Reason"
+          },
           "positions": {
             "items": {
               "$ref": "#/components/schemas/PositionSettingsOut"
@@ -1915,6 +2145,8 @@
           "currency",
           "policy_id",
           "policy_name",
+          "policy_semaphore",
+          "policy_semaphore_reason",
           "archived_at",
           "latest_snapshot",
           "default_contribution",
@@ -2026,6 +2258,28 @@
           "policy_name": {
             "title": "Policy Name",
             "type": "string"
+          },
+          "policy_semaphore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Semaphore"
+          },
+          "policy_semaphore_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Semaphore Reason"
           }
         },
         "required": [
@@ -2034,6 +2288,8 @@
           "currency",
           "policy_id",
           "policy_name",
+          "policy_semaphore",
+          "policy_semaphore_reason",
           "archived_at",
           "latest_snapshot"
         ],
@@ -3240,6 +3496,18 @@
             ],
             "title": "Ai Reviewer Name"
           },
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
           "id": {
             "title": "Id",
             "type": "integer"
@@ -3266,6 +3534,18 @@
           "outdated": {
             "title": "Outdated",
             "type": "boolean"
+          },
+          "saved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved At"
           },
           "scoring_version": {
             "title": "Scoring Version",
@@ -3332,9 +3612,133 @@
           "method",
           "model",
           "ai_reviewer_name",
-          "outdated"
+          "outdated",
+          "completed_at",
+          "saved_at"
         ],
         "title": "ReviewBrief",
+        "type": "object"
+      },
+      "ReviewLogEntry": {
+        "description": "REV-23: a saved review of a version of the policy.",
+        "properties": {
+          "ai_reviewer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Reviewer Name"
+          },
+          "at_activation": {
+            "title": "At Activation",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "saved_at": {
+            "format": "date-time",
+            "title": "Saved At",
+            "type": "string"
+          },
+          "scoring_version": {
+            "title": "Scoring Version",
+            "type": "string"
+          },
+          "semaphore": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Semaphore"
+          },
+          "structure_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure Score"
+          },
+          "thesis_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thesis Score"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total"
+          },
+          "version_label": {
+            "title": "Version Label",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version_no",
+          "version_label",
+          "saved_at",
+          "at_activation",
+          "kind",
+          "method",
+          "model",
+          "ai_reviewer_name",
+          "scoring_version",
+          "total",
+          "thesis_score",
+          "structure_score",
+          "semaphore"
+        ],
+        "title": "ReviewLogEntry",
         "type": "object"
       },
       "ReviewOut": {
@@ -3471,6 +3875,18 @@
             "title": "Provider",
             "type": "string"
           },
+          "saved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved At"
+          },
           "scoring_version": {
             "title": "Scoring Version",
             "type": "string"
@@ -3591,6 +4007,7 @@
           "legacy_modification",
           "outdated",
           "confirmed",
+          "saved_at",
           "sources",
           "suggestions"
         ],
@@ -3643,6 +4060,19 @@
           "is_investor"
         ],
         "title": "Roles",
+        "type": "object"
+      },
+      "SharingIn": {
+        "properties": {
+          "sharing": {
+            "title": "Sharing",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sharing"
+        ],
+        "title": "SharingIn",
         "type": "object"
       },
       "SimulationIn": {
@@ -3928,7 +4358,14 @@
         "description": "The review with the suggestion's new state, and the draft as it is now.",
         "properties": {
           "draft": {
-            "$ref": "#/components/schemas/VersionOut"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VersionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "review": {
             "$ref": "#/components/schemas/ReviewOut"
@@ -6522,6 +6959,220 @@
         ]
       }
     },
+    "/api/policies/{policy_id}/active/review": {
+      "post": {
+        "description": "POL-20: reviews the active version again; saved in its review log when done.",
+        "operationId": "start_active_review_api_policies__policy_id__active_review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/StartReview"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Active Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/policies/{policy_id}/active/review-prompt": {
+      "get": {
+        "description": "POL-20, REV-19: the prompt of the active version; changes nothing.",
+        "operationId": "get_active_review_prompt_api_policies__policy_id__active_review_prompt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "news_days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "title": "News Days",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPromptOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Active Review Prompt",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/policies/{policy_id}/active/review/manual": {
+      "post": {
+        "description": "POL-20, REV-18: saves the pasted answer in the review log of the active version.",
+        "operationId": "submit_manual_active_review_api_policies__policy_id__active_review_manual_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit Manual Active Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
     "/api/policies/{policy_id}/archive": {
       "post": {
         "operationId": "archive_policy_api_policies__policy_id__archive_post",
@@ -7417,6 +8068,138 @@
           }
         },
         "summary": "Preview Target Structure",
+        "tags": [
+          "policies"
+        ]
+      }
+    },
+    "/api/policies/{policy_id}/reviews": {
+      "get": {
+        "description": "REV-23: all saved reviews of the policy's versions, newest first.",
+        "operationId": "get_review_log_api_policies__policy_id__reviews_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewLogEntry"
+                  },
+                  "title": "Response Get Review Log Api Policies  Policy Id  Reviews Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Review Log",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/policies/{policy_id}/sharing": {
+      "put": {
+        "description": "POL-18: the sharing level; only a reviewed active version can be shared.",
+        "operationId": "set_sharing_api_policies__policy_id__sharing_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SharingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Sharing",
         "tags": [
           "policies"
         ]

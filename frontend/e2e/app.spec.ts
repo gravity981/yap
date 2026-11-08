@@ -271,7 +271,7 @@ test("[NFR-06] works on a phone-sized screen", async ({ page }) => {
   });
 });
 
-test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [REV-24] [TL-01] reviews a policy draft and confirms it", async ({
+test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [REV-24] [TL-01] [POL-20] [REV-23] reviews a policy draft and confirms it", async ({
   page,
 }) => {
   await login(page, "admin", ADMIN_PASSWORD);
@@ -306,7 +306,7 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
   await test.step("open a new draft of the policy core in the editor", async () => {
     await page.goto("/policies");
     await page.getByRole("link", { name: "core", exact: true }).click();
-    await page.getByRole("button", { name: "New draft" }).click();
+    await page.getByRole("button", { name: "New version" }).click();
     await expect(page.getByRole("heading", { name: "core-v2 (draft)" })).toBeVisible();
   });
   const review = page.getByRole("region", { name: "Review", exact: true });
@@ -358,6 +358,28 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
       .getByRole("link", { name: "Timeline" })
       .click();
     await expect(page.getByText("Review of core-v2: good, 7 / 10")).toBeVisible();
+  });
+  await test.step("review the active version again, without a new version", async () => {
+    await page.goto("/policies");
+    await page.getByRole("link", { name: "core", exact: true }).click();
+    // POL-20: the section around the pane has the same name as the pane
+    const again = page.getByRole("region", { name: "Review again" }).first();
+    await again.getByRole("button", { name: "Run review again" }).click();
+    await expect(page.getByText("active: core-v2")).toBeVisible();
+    // REV-23: the review log holds the review at activation and the new one
+    await page.getByRole("tab", { name: "Reviews" }).click();
+    const log = page.getByRole("region", { name: "Review log" });
+    await expect(log.getByText("core-v2 · reviewed again")).toBeVisible({ timeout: 15_000 });
+    await expect(log.getByText("core-v2 · at activation")).toBeVisible();
+    // The two are compared side by side
+    await expect(
+      page.getByRole("region", { name: /→/ }).getByRole("row", { name: /^Score/ }),
+    ).toBeVisible();
+    await page
+      .getByRole("navigation", { name: "Main" })
+      .getByRole("link", { name: "Timeline" })
+      .click();
+    await expect(page.getByText("Review of core-v2 (again): good, 7 / 10")).toBeVisible();
   });
 });
 

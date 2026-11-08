@@ -35,6 +35,8 @@ const brief = (id: number, total: number, extra: Record<string, unknown> = {}) =
   model: "claude-x",
   ai_reviewer_name: "Standard",
   outdated: false,
+  completed_at: "2026-02-01T10:00:00+00:00",
+  saved_at: "2026-02-01T10:00:00+00:00",
   ...extra,
 });
 
@@ -208,6 +210,14 @@ function policy(draftReview: unknown = null) {
     portfolios: [],
     thesis_warning: true,
     semaphore: "warning",
+    semaphore_reason: "Two warning signals are observed.",
+    mark: null,
+    sharing: "private",
+    active_version_no: 2,
+    active_from: "2026-02-01T10:00:00+00:00",
+    latest_review: brief(20, 7.5, { semaphore: "warning" }),
+    pending_review: null,
+    draft: { version_no: 3, label: "core-v3", updated_at: null, positions: 0, review: null },
     versions: [
       version(1, reviewed(v1Review)),
       version(2, reviewed(brief(20, 7.5, { semaphore: "warning" }))),
@@ -231,6 +241,7 @@ function setup(handlers: Record<string, Handler> = {}, draftReview: unknown = nu
     "GET /api/policies/7/versions/2": () =>
       json({ ...version(2), thesis_md: "# Active", positions: [] }),
     "GET /api/policies/7/versions/3": () => json(draftVersion),
+    "GET /api/policies/7/reviews": () => json([]),
     "GET /api/assets": () => json([]),
     "GET /api/reviews/usage": usageOf,
     "GET /api/ai-reviewers": () => json(reviewers),
@@ -627,19 +638,11 @@ describe("reviews", () => {
     expect(within(section).queryByRole("button")).toBeNull();
   });
 
-  it("[REV-12] [THS-08] shows confirmed reviews read-only in the history, with the score course", async () => {
+  it("[REV-12] [REV-17] [REV-21] lists the versions with their latest review; confirmed reviews are read-only", async () => {
     setup({ "GET /api/reviews/20": () => json(review({ id: 20, confirmed: true })) });
     renderApp("/policies/7");
     await userEvent.click(await screen.findByRole("tab", { name: "Versions" }));
-    const course = screen.getByRole("figure", { name: "Review score over the versions" });
-    expect(within(course).getByRole("img", { name: "core-v1: 6.0 of 10" })).toBeInTheDocument();
-    expect(within(course).getByRole("img", { name: "core-v2: 7.5 of 10" })).toBeInTheDocument();
-    // REV-06: v1 was scored with scoring version 1, v2 with scoring version 3
-    expect(within(course).getByTestId("version-change")).toHaveTextContent("v3");
-    expect(
-      within(course).getByText(/scores before and after are not directly comparable/),
-    ).toBeInTheDocument();
-    const second = screen.getByText("core-v2").closest("li")!;
+    const second = (await screen.findByText("core-v2")).closest("li")!;
     expect(within(second).getByRole("img", { name: "Review: 7.5 of 10" })).toBeInTheDocument();
     expect(within(second).getByText("warning")).toBeInTheDocument();
     // REV-17: who made each review
@@ -648,12 +651,189 @@ describe("reviews", () => {
     expect(within(first).getByText("manual review with GPT 5")).toBeInTheDocument();
     expect(within(first).getByText("Thesis review:")).toBeInTheDocument();
     expect(within(first).getByText("good")).toBeInTheDocument();
-    // An activated version's review cannot be changed or run again
+    // An activated version's review cannot be changed or run again in its section
     await userEvent.click(screen.getByRole("tab", { name: "Thesis" }));
     await userEvent.selectOptions(await screen.findByLabelText("Version"), "2");
     const section = await screen.findByRole("region", { name: "Review" });
     expect(await within(section).findByText("confirmed")).toBeInTheDocument();
     expect(within(section).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("[REV-23] [THS-08] [REV-06] keeps every saved review in a log with the score course, and compares two", async () => {
+    const entry = (id: number, no: number, date: string, extra: Record<string, unknown> = {}) => ({
+      id,
+      version_no: no,
+      version_label: `core-v${no}`,
+      saved_at: `${date}T10:00:00+00:00`,
+      at_activation: true,
+      kind: "full",
+      method: "ai",
+      model: "claude-x",
+      ai_reviewer_name: "Standard",
+      scoring_version: "3",
+      total: 7.5,
+      thesis_score: 7.5,
+      structure_score: 7.5,
+      semaphore: "good",
+      ...extra,
+    });
+    const log = [
+      entry(21, 2, "2026-05-02", { at_activation: false, total: 6.5, semaphore: "warning" }),
+      entry(20, 2, "2026-02-01"),
+      entry(10, 1, "2026-01-01", {
+        kind: "thesis",
+        method: "manual",
+        model: "GPT 5",
+        ai_reviewer_name: null,
+        scoring_version: "1",
+        total: 6,
+        structure_score: null,
+      }),
+    ];
+    const t6 = (score: number) => [7, 6, 8, 5, 7, score].map((x, i) => aspect(i + 1, x));
+    setup({
+      "GET /api/policies/7/reviews": () => json(log),
+      "GET /api/reviews/21": () =>
+        json(review({ id: 21, total: 6.5, semaphore: "warning", aspects: t6(4), confirmed: true })),
+      "GET /api/reviews/20": () =>
+        json(review({ id: 20, total: 7.5, semaphore: "good", aspects: t6(8), confirmed: true })),
+      "GET /api/reviews/10": () =>
+        json(
+          review({
+            id: 10,
+            kind: "thesis",
+            scoring_version: "1",
+            total: 6,
+            semaphore: "good",
+            aspects: [6, 6, 6, 6, 6, 6].map((x, i) => aspect(i + 1, x, { name: NAMES_V1[i] })),
+            confirmed: true,
+          }),
+        ),
+    });
+    renderApp("/policies/7");
+    await userEvent.click(await screen.findByRole("tab", { name: "Reviews" }));
+    // THS-08: the course of the score, marking where the scoring version changes (REV-06)
+    const course = await screen.findByRole("figure", { name: "Review score over the versions" });
+    expect(within(course).getByRole("img", { name: "core-v1: 6.0 of 10" })).toBeInTheDocument();
+    expect(within(course).getByTestId("version-change")).toHaveTextContent("v3");
+    // REV-23: newest first, at activation or reviewed again, with reviewer, score, semaphore
+    const table = screen.getByRole("region", { name: "Review log" });
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent(
+      /core-v2 · reviewed again.*Standard \(claude-x\).*6\.5.*warning/,
+    );
+    expect(rows[1]).toHaveTextContent(/core-v2 · at activation/);
+    expect(rows[2]).toHaveTextContent(/core-v1 · at activation.*manual review with GPT 5.*6\.0/);
+    // The two newest are compared by default, with every aspect and its change
+    const checks = within(table).getAllByRole("checkbox");
+    expect(checks.map((c) => (c as HTMLInputElement).checked)).toEqual([true, true, false]);
+    const comparison = await screen.findByRole("region", { name: /→/ });
+    const score = within(comparison).getByRole("row", { name: /^Score/ });
+    expect(score).toHaveTextContent(/7\.5.*6\.5.*\u22121\.0/);
+    expect(within(comparison).getByRole("row", { name: /T6 Current evidence/ })).toHaveTextContent(
+      /8\.0.*4\.0.*\u22124\.0/,
+    );
+    expect(within(comparison).getByRole("row", { name: /T1 Belief/ })).toHaveTextContent(/0$/);
+    // The reasoning of both is a click away (REV-24)
+    expect(
+      within(comparison).getAllByRole("button", { name: "Read the full review →" }),
+    ).toHaveLength(2);
+    // Any two: the newest and the one of v1, scored with another version
+    await userEvent.click(checks[2]!);
+    await waitFor(() =>
+      expect(
+        within(table)
+          .getAllByRole("checkbox")
+          .map((c) => (c as HTMLInputElement).checked),
+      ).toEqual([false, true, true]),
+    );
+    expect(
+      await screen.findByText(
+        /different scoring versions; their scores are not directly comparable/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("[POL-20] [REV-07] reviews the active version again and takes a suggestion over into a new draft", async () => {
+    const saved = review({
+      id: 20,
+      confirmed: true,
+      saved_at: "2026-02-01T10:00:00+00:00",
+      suggestions: [suggestion(2, "thesis_section", { section: 7, text: "- GDP below 2 %" })],
+    });
+    const calls = setup({
+      "GET /api/reviews/20": () => json(saved),
+      "POST /api/reviews/20/suggestions/2/take-over": () =>
+        json({
+          review: {
+            ...saved,
+            suggestions: [{ ...saved.suggestions[0], state: "taken_over", previous: {} }],
+          },
+          draft: { ...draftVersion, label: "core-v3" },
+        }),
+      "POST /api/policies/7/active/review": () =>
+        json(review({ id: 40, state: "running", completed_at: null }), 202),
+      "GET /api/reviews/40": () => json(review({ id: 40, state: "running", completed_at: null })),
+    });
+    renderApp("/policies/7");
+    // The section around the pane, which is labelled the same
+    const [again] = await screen.findAllByRole("region", { name: "Review again" });
+    if (!again) throw new Error("no section");
+    expect(
+      within(again).getByText(/Reviews the active core-v2 as it is, with today's news/),
+    ).toBeInTheDocument();
+    // The latest saved review with its suggestions, which go into a draft (REV-07)
+    const card = await within(again).findByRole("listitem", { name: "Thesis · section 7" });
+    await userEvent.click(within(card).getByRole("button", { name: "Take over" }));
+    expect(
+      await within(again).findByText("Taken over into the draft core-v3."),
+    ).toBeInTheDocument();
+    expect(within(again).getByRole("link", { name: "Open the draft" })).toHaveAttribute(
+      "href",
+      "/policies/7/draft",
+    );
+    // No draft is saved first: there is no editor on the policy page
+    expect(calls.some((c) => c.method === "PUT")).toBe(false);
+    await userEvent.click(within(again).getByRole("button", { name: "Run review again" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === "/api/policies/7/active/review")?.body).toEqual({
+        ai_reviewer_id: 1,
+        news_days: 90,
+      }),
+    );
+  });
+
+  it("[POL-20] [REV-18] [REV-19] reviews the active version again manually", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    const calls = setup({
+      "GET /api/reviews/20": () => json(review({ id: 20, confirmed: true })),
+      "GET /api/policies/7/active/review-prompt": () =>
+        json({ prompt_id: "R202-20260301T100000Z-90-abcdef", text: "ACTIVE PROMPT" }),
+      "POST /api/policies/7/active/review/manual": () =>
+        json(review({ id: 41, method: "manual", provider: "manual", model: null }), 201),
+      "GET /api/reviews/41": () => json(review({ id: 41, method: "manual", model: null })),
+    });
+    renderApp("/policies/7");
+    // The section around the pane, which is labelled the same
+    const [again] = await screen.findAllByRole("region", { name: "Review again" });
+    if (!again) throw new Error("no section");
+    await userEvent.selectOptions(within(again).getByLabelText("Review method"), "manual");
+    await userEvent.click(within(again).getByRole("button", { name: "Copy review prompt" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("ACTIVE PROMPT"));
+    expect(calls.some((c) => c.path === "/api/policies/7/active/review-prompt?news_days=90")).toBe(
+      true,
+    );
+    fireEvent.change(within(again).getByLabelText("Paste its whole answer"), {
+      target: { value: "{}" },
+    });
+    await userEvent.click(within(again).getByRole("button", { name: "Save review" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === "/api/policies/7/active/review/manual")?.body).toEqual({
+        answer: "{}",
+      }),
+    );
   });
 
   it("[REV-07] takes over, dismisses and undoes suggestions in the editor, saving first", async () => {

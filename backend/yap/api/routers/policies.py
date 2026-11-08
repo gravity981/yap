@@ -9,12 +9,14 @@ from pydantic import BaseModel
 from yap.api.deps import AppClock, CurrentUser, DbSession, RawBody
 from yap.api.schemas import (
     Activation,
+    DraftBrief,
     DraftIn,
     NewPolicy,
     PolicyOut,
     PolicySummary,
     PortfolioRef,
     PositionChangeOut,
+    ReviewBrief,
     ThesisImportPreview,
     VersionDiffOut,
     VersionOut,
@@ -44,22 +46,40 @@ def _policy(session: DbSession, user: Investor, clock: Clock, policy: Policy) ->
             version_summary(p.version, p.active_from, p.active_until)
             for p in version_periods(policy)
         ],
-        portfolios=[
-            PortfolioRef(id=p.id, name=p.name) for p in policies.portfolios_using(session, policy)
-        ],
-        **_thesis_warning(active),
+        **_state(session, policy, active),
     )
 
 
-def _thesis_warning(active: PolicyVersion | None) -> dict[str, Any]:
-    """POL-11, THS-04: the semaphore of the active version, and whether it warns."""
-    semaphore = (
-        reviews.review_semaphore(reviews.current_review(active)) if active is not None else None
-    )
+def _state(session: DbSession, policy: Policy, active: PolicyVersion | None) -> dict[str, Any]:
+    """POL-11, POL-19, REV-21, THS-04: the semaphore, score and marks of the active version,
+    the sharing level, the draft and the portfolios that follow the policy."""
+    latest = reviews.current_review(active) if active is not None else None
+    pending = reviews.pending_review(active) if active is not None else None
+    semaphore = reviews.review_semaphore(latest)
+    draft = policies.get_draft(policy)
+    draft_review = reviews.current_review(draft) if draft is not None else None
     return {
         "thesis_warning": semaphore in (Verdict.WARNING, Verdict.BROKEN),
         "semaphore": semaphore.value if semaphore else None,
-        "mark": active.mark if active is not None else None,
+        "semaphore_reason": latest.verdict_reason if latest and semaphore else None,
+        "mark": reviews.effective_mark(active) if active is not None else None,
+        "sharing": policy.sharing,
+        "active_version_no": active.version_no if active else None,
+        "active_from": active.activated_at if active else None,
+        "latest_review": ReviewBrief.of(active, latest) if active and latest else None,
+        "pending_review": ReviewBrief.of(active, pending) if active and pending else None,
+        "draft": DraftBrief(
+            version_no=draft.version_no,
+            label=draft.label,
+            updated_at=draft.updated_at,
+            positions=len(draft.positions),
+            review=ReviewBrief.of(draft, draft_review) if draft_review else None,
+        )
+        if draft is not None
+        else None,
+        "portfolios": [
+            PortfolioRef(id=p.id, name=p.name) for p in policies.portfolios_using(session, policy)
+        ],
     }
 
 
@@ -87,7 +107,7 @@ def list_policies(session: DbSession, clock: AppClock, user: CurrentUser) -> lis
                 archived_at=policy.archived_at,
                 active_version_label=active.label if active else None,
                 has_draft=policies.get_draft(policy) is not None,
-                **_thesis_warning(active),
+                **_state(session, policy, active),
             )
         )
     return result
@@ -203,6 +223,19 @@ def activate_draft(
 ) -> VersionOut:
     version = policies.activate_draft(session, user, clock, policy_id, body.change_note)
     return _version(version.policy, version)
+
+
+class SharingIn(BaseModel):
+    sharing: str  # private | text | all
+
+
+@router.put("/{policy_id}/sharing")
+def set_sharing(
+    policy_id: int, body: SharingIn, session: DbSession, clock: AppClock, user: CurrentUser
+) -> PolicyOut:
+    """POL-18: the sharing level; only a reviewed active version can be shared."""
+    policy = policies.set_sharing(session, user, clock, policy_id, body.sharing)
+    return _policy(session, user, clock, policy)
 
 
 @router.post("/{policy_id}/archive")

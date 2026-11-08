@@ -28,7 +28,7 @@ const V1_CODES = ["T1", "T2", "T3", "T4", "T5", "T6"];
 
 /** The API names the aspects in English, by the review's scoring version (REV-06); other
  * languages translate them by version and code. */
-function aspectName(aspect: { code: string; name: string }, version: string) {
+export function aspectName(aspect: { code: string; name: string }, version: string) {
   if (currentLanguage() === "en" || !ASPECT_CODES.includes(aspect.code)) return aspect.name;
   if (version === "1" && V1_CODES.includes(aspect.code)) {
     return i18n.t(`reviews.aspectsV1.${aspect.code as "T1"}`);

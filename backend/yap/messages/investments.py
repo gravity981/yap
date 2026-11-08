@@ -2,6 +2,10 @@
 catalog, rebalancing inputs and the JSON import (IMP-06)."""
 
 MESSAGES: dict[str, str] = {
+    "sharing_level_unknown": "Unknown sharing level {level}; use private, text or all",
+    "sharing_needs_review": (
+        "Only a policy whose active version has a review can be shared; review {name} first"
+    ),
     # Theses
     "title_required": "Title must not be empty",
     # Policies

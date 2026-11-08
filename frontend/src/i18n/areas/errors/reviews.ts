@@ -51,6 +51,8 @@ export const de = {
   suggestion_is_open: "Dieser Vorschlag ist weder übernommen noch verworfen",
   suggestion_position_missing: "Der Entwurf hat keine Position {{ticker}} mehr",
   suggestion_position_exists: "Der Entwurf hat bereits eine Position {{ticker}}",
+  suggestion_no_draft: "Der Entwurf, in den dieser Vorschlag übernommen wurde, gibt es nicht mehr",
+  review_policy_not_active: "Die Anlagestrategie {{name}} hat keine aktive Version zum Prüfen",
   rebalance_values_missing: "Erfasse zuerst die aktuellen Werte des Portfolios",
   rebalance_snapshot_not_found: "Stand {{id}} nicht gefunden",
   rebalance_policy_changed:

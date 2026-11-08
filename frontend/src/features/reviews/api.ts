@@ -63,23 +63,30 @@ export function useReviewerOptions() {
   });
 }
 
+/** REV-01: the draft, or POL-20: the active version, reviewed again. */
+export type ReviewTarget = "draft" | "active";
+
 export interface StartReview {
   reviewerId: number;
   newsDays?: number; // REV-04
 }
 
 /** REV-01: one review of the whole draft: thesis and target structure. */
-export function useStartReview(policyId: number) {
+export function useStartReview(policyId: number, target: ReviewTarget = "draft") {
   const client = useQueryClient();
   const invalidate = useInvalidateOwners();
   return useMutation({
-    mutationFn: ({ reviewerId, newsDays }: StartReview) =>
-      unwrap(
-        api.POST("/api/policies/{policy_id}/draft/review", {
-          params: { path: { policy_id: policyId } },
-          body: { ai_reviewer_id: reviewerId, ...(newsDays && { news_days: newsDays }) },
-        }),
-      ),
+    mutationFn: ({ reviewerId, newsDays }: StartReview) => {
+      const request = {
+        params: { path: { policy_id: policyId } },
+        body: { ai_reviewer_id: reviewerId, ...(newsDays && { news_days: newsDays }) },
+      };
+      return unwrap(
+        target === "draft"
+          ? api.POST("/api/policies/{policy_id}/draft/review", request)
+          : api.POST("/api/policies/{policy_id}/active/review", request),
+      );
+    },
     onSuccess: (review) => {
       client.setQueryData(reviewKey(review.id), review);
       void client.invalidateQueries({ queryKey: usageKey });
@@ -89,32 +96,37 @@ export function useStartReview(policyId: number) {
 }
 
 /** REV-19: the review prompt of the draft as it is saved now; nothing is stored. */
-export function useReviewPrompt(policyId: number) {
+export function useReviewPrompt(policyId: number, target: ReviewTarget = "draft") {
   return useMutation({
-    mutationFn: ({ newsDays }: { newsDays?: number }) =>
-      unwrap(
-        api.GET("/api/policies/{policy_id}/draft/review-prompt", {
-          params: {
-            path: { policy_id: policyId },
-            query: newsDays ? { news_days: newsDays } : {},
-          },
-        }),
-      ),
+    mutationFn: ({ newsDays }: { newsDays?: number }) => {
+      const request = {
+        params: {
+          path: { policy_id: policyId },
+          query: newsDays ? { news_days: newsDays } : {},
+        },
+      };
+      return unwrap(
+        target === "draft"
+          ? api.GET("/api/policies/{policy_id}/draft/review-prompt", request)
+          : api.GET("/api/policies/{policy_id}/active/review-prompt", request),
+      );
+    },
   });
 }
 
 /** REV-18: stores the answer of an AI outside the app as the review of the draft. */
-export function useSubmitManualReview(policyId: number) {
+export function useSubmitManualReview(policyId: number, target: ReviewTarget = "draft") {
   const client = useQueryClient();
   const invalidate = useInvalidateOwners();
   return useMutation({
-    mutationFn: (answer: string) =>
-      unwrap(
-        api.POST("/api/policies/{policy_id}/draft/review/manual", {
-          params: { path: { policy_id: policyId } },
-          body: { answer },
-        }),
-      ),
+    mutationFn: (answer: string) => {
+      const request = { params: { path: { policy_id: policyId } }, body: { answer } };
+      return unwrap(
+        target === "draft"
+          ? api.POST("/api/policies/{policy_id}/draft/review/manual", request)
+          : api.POST("/api/policies/{policy_id}/active/review/manual", request),
+      );
+    },
     onSuccess: (review) => {
       client.setQueryData(reviewKey(review.id), review);
       return invalidate();
@@ -151,5 +163,20 @@ export function useSuggestionAction(reviewId: number) {
       client.setQueryData(reviewKey(result.review.id), result.review);
       return invalidate();
     },
+  });
+}
+
+export type ReviewLogEntry = components["schemas"]["ReviewLogEntry"];
+
+/** REV-23: the saved reviews of a policy's versions, newest first. */
+export function useReviewLog(policyId: number) {
+  return useQuery({
+    queryKey: ["policies", policyId, "reviews"],
+    queryFn: () =>
+      unwrap(
+        api.GET("/api/policies/{policy_id}/reviews", {
+          params: { path: { policy_id: policyId } },
+        }),
+      ),
   });
 }

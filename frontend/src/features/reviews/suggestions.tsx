@@ -15,7 +15,10 @@ import { useSuggestionAction, type Review, type Suggestion, type SuggestionActio
  * `save` stores what is in the editor first, `onDraft` takes the changed draft back. */
 export interface SuggestionActions {
   save: () => Promise<unknown>;
-  onDraft: (draft: Version) => void;
+  /** The draft after the change; null for a dismissed suggestion of the active version */
+  onDraft: (draft: Version | null) => void;
+  /** POL-20: suggestions of the active version's saved review go into its draft */
+  activeVersion?: boolean;
 }
 
 type Row = Record<string, unknown>;
@@ -208,7 +211,8 @@ function OpenButtons({
 export function Suggestions({ review, actions }: { review: Review; actions?: SuggestionActions }) {
   const { t } = useTranslation();
   const { act, mutation } = useAct(review, actions);
-  const editable = !!actions && review.state === "done" && !review.confirmed;
+  const editable =
+    !!actions && review.state === "done" && (!review.confirmed || !!actions.activeVersion);
   const suggestions = review.suggestions.filter((s) => s.kind !== "proposal");
   const proposals = review.suggestions.filter((s) => s.kind === "proposal");
   if (review.suggestions.length === 0) return null;

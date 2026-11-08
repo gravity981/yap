@@ -192,6 +192,7 @@ function EventDetails({ event }: { event: TimelineEvent }) {
       );
     case "policy_review_confirmed":
     case "review_confirmed":
+    case "review_saved":
       return (
         <div className="grid gap-3">
           <VersionLink versionId={event.policy_version_id} />

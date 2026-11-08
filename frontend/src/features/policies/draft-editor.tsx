@@ -209,6 +209,7 @@ function DraftForm({
       brief={brief}
       save={autoSave.flush}
       onDraft={(draft) => {
+        if (!draft) return;
         // REV-07: a suggestion changed the draft on the server
         const next = {
           title: draft.thesis_title,

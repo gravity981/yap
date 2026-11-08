@@ -3,6 +3,9 @@ import type { MessageCode } from "./index";
 // German texts of the backend's investment messages
 // (backend/yap/messages/investments.py)
 export const de = {
+  sharing_level_unknown: "Unbekannte Freigabe {{level}}; verwende private, text oder all",
+  sharing_needs_review:
+    "Nur eine Anlagestrategie, deren aktive Version eine Prüfung hat, kann freigegeben werden; prüfe {{name}} zuerst",
   // Theses
   title_required: "Der Titel darf nicht leer sein",
   // Policies

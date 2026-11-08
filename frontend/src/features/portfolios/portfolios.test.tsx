@@ -73,6 +73,8 @@ const portfolio = (extra: Record<string, unknown> = {}) => ({
   currency: "CHF",
   policy_id: 3,
   policy_name: "core",
+  policy_semaphore: "good",
+  policy_semaphore_reason: "Recent news supports the thesis.",
   archived_at: null,
   latest_snapshot: snapshot(),
   default_contribution: "500",
@@ -178,6 +180,47 @@ describe("portfolios", () => {
     const main = (await screen.findByRole("link", { name: "Main" })).closest("div.rounded-lg")!;
     expect(within(main as HTMLElement).getByText("2 positions outside band")).toBeInTheDocument();
     expect(screen.getByText("no values entered yet")).toBeInTheDocument();
+  });
+
+  it("[PTF-07] shows the semaphore of the policy on the overview and the portfolio page", async () => {
+    setup({
+      "GET /api/portfolios": () =>
+        json([
+          portfolio({
+            policy_semaphore: "warning",
+            policy_semaphore_reason: "Two warning signals are observed.",
+          }),
+          portfolio({ id: 6, name: "Extra", latest_snapshot: null }),
+        ]),
+      "GET /api/portfolios/5": () =>
+        json(
+          portfolio({
+            policy_semaphore: "broken",
+            policy_semaphore_reason: "A break condition is met.",
+          }),
+        ),
+    });
+    renderApp("/portfolios");
+    const main = (await screen.findByRole("link", { name: "Main" })).closest("div.rounded-lg")!;
+    // warning in amber with the reason and a link to the policy
+    expect(within(main as HTMLElement).getByText("warning")).toBeInTheDocument();
+    expect(
+      within(main as HTMLElement).getByText("Two warning signals are observed."),
+    ).toBeInTheDocument();
+    const extra = screen.getByRole("link", { name: "Extra" }).closest("div.rounded-lg")!;
+    // good: the semaphore only, no reason and no link
+    expect(within(extra as HTMLElement).getByText("good")).toBeInTheDocument();
+    expect(within(extra as HTMLElement).queryByText("Recent news supports the thesis.")).toBeNull();
+    expect(
+      within(extra as HTMLElement).queryByRole("link", { name: "Open the policy" }),
+    ).toBeNull();
+    await userEvent.click(screen.getByRole("link", { name: "Main" }));
+    expect(await screen.findByText("A break condition is met.")).toBeInTheDocument();
+    expect(screen.getByText("broken")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the policy" })).toHaveAttribute(
+      "href",
+      "/policies/3",
+    );
   });
 
   it("[PTF-01] [PTF-02] creates a portfolio for a policy with an active version", async () => {

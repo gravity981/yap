@@ -20,6 +20,7 @@ import {
   useSubmitManualReview,
   useUsage,
   type ReviewBrief,
+  type ReviewTarget,
 } from "./api";
 import { ReviewShort } from "./review";
 
@@ -34,28 +35,36 @@ export function ReviewPane({
   brief,
   save,
   onDraft,
+  target = "draft",
 }: {
   policyId: number;
   brief: ReviewBrief | null | undefined;
   save: () => Promise<unknown>;
   /** REV-07: the draft after a suggestion was taken over, dismissed or undone */
-  onDraft: (draft: Version) => void;
+  onDraft: (draft: Version | null) => void;
+  /** POL-20: on the policy page, the active version is reviewed again */
+  target?: ReviewTarget;
 }) {
   const { t } = useTranslation();
   const review = useReview(brief?.id);
   const running = isRunning(review.data?.state ?? brief?.state);
+  // On the policy page the pane is part of the "Review again" section (POL-20)
+  const label = target === "draft" ? t("reviews.section.title") : undefined;
   return (
-    <section className="grid content-start gap-4" aria-label={t("reviews.section.title")}>
+    <section className="grid content-start gap-4" aria-label={label}>
       {!brief ? (
-        <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
+        target === "draft" && <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
       ) : review.data ? (
-        <ReviewShort review={review.data} actions={{ save, onDraft }} />
+        <ReviewShort
+          review={review.data}
+          actions={{ save, onDraft, activeVersion: target === "active" }}
+        />
       ) : (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}
       {!running && (
         <div className={brief ? "border-t pt-4" : undefined}>
-          <ReviewForm policyId={policyId} again={!!brief} save={save} />
+          <ReviewForm policyId={policyId} again={!!brief} save={save} target={target} />
         </div>
       )}
     </section>
@@ -66,9 +75,11 @@ function ReviewForm({
   policyId,
   again,
   save,
+  target,
 }: {
   policyId: number;
   again: boolean;
+  target: ReviewTarget;
   save: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
@@ -128,9 +139,10 @@ function ReviewForm({
         </Field>
       </div>
       {method === "manual" ? (
-        <ManualReview policyId={policyId} newsDays={newsDays} save={save} />
+        <ManualReview policyId={policyId} newsDays={newsDays} save={save} target={target} />
       ) : method !== null ? (
         <AiReview
+          target={target}
           policyId={policyId}
           reviewerId={method}
           newsDays={newsDays}
@@ -151,12 +163,14 @@ function ReviewForm({
 
 /** REV-08: the AI reviewer runs in the background; the result fills in when it is ready. */
 function AiReview({
+  target,
   policyId,
   reviewerId,
   newsDays,
   again,
   save,
 }: {
+  target: ReviewTarget;
   policyId: number;
   reviewerId: number;
   newsDays: number;
@@ -166,7 +180,7 @@ function AiReview({
   const { t } = useTranslation();
   const options = useReviewerOptions();
   const usage = useUsage(reviewerId);
-  const start = useStartReview(policyId);
+  const start = useStartReview(policyId, target);
   const [saving, setSaving] = useState(false);
   const unavailable =
     usage.data?.unavailable_reason &&
@@ -222,17 +236,19 @@ function AiReview({
 
 /** REV-18, REV-19: copy the prompt into an AI outside the app and paste its answer back. */
 function ManualReview({
+  target,
   policyId,
   newsDays,
   save,
 }: {
+  target: ReviewTarget;
   policyId: number;
   newsDays: number;
   save: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
-  const prompt = useReviewPrompt(policyId);
-  const submit = useSubmitManualReview(policyId);
+  const prompt = useReviewPrompt(policyId, target);
+  const submit = useSubmitManualReview(policyId, target);
   const [copied, setCopied] = useState<"yes" | "failed" | null>(null);
   const [answer, setAnswer] = useState("");
 

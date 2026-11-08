@@ -29,6 +29,7 @@ class EventType(StrEnum):
     THESIS_REVIEW_CONFIRMED = "thesis_review_confirmed"
     POLICY_REVIEW_CONFIRMED = "policy_review_confirmed"
     REVIEW_CONFIRMED = "review_confirmed"  # since stage 2: one review of everything
+    REVIEW_SAVED = "review_saved"  # a review of an active version (POL-20)
     THESIS_REVISED = "thesis_revised"  # only events from before policies held their thesis
 
 

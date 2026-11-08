@@ -75,6 +75,11 @@ export function eventSummary(event: TimelineEvent): string {
             revision: text(p.revision),
             result: reviewResult(p),
           });
+    case "review_saved":
+      return i18n.t("timeline.summary.reviewAgain", {
+        version: text(p.version),
+        result: reviewResult(p),
+      });
     case "review_confirmed":
       return i18n.t("timeline.summary.review", {
         version: text(p.version),

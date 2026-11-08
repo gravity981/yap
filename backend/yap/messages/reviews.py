@@ -35,6 +35,7 @@ MESSAGES: dict[str, str] = {
     "review_reviewer_no_reviews": "The AI reviewer {name} includes no reviews",
     "review_limit_reached": "All {limit} reviews with {name} of this month are used",
     "review_policy_no_draft": "Policy {name} has no draft",
+    "review_policy_not_active": "Policy {name} has no active version to review",
     "review_running": "A review of this draft is still running",
     "review_running_wait": "A review of this draft is still running; wait for it to finish",
     "review_no_reviewer": "The review has no AI reviewer",
@@ -52,6 +53,7 @@ MESSAGES: dict[str, str] = {
     "suggestion_is_open": "This suggestion is neither taken over nor dismissed",
     "suggestion_position_missing": "The draft has no position {ticker} any more",
     "suggestion_position_exists": "The draft already has a position {ticker}",
+    "suggestion_no_draft": "The draft this suggestion was taken over into no longer exists",
     # Rebalances (services/rebalances.py)
     "rebalance_values_missing": "Enter the portfolio's current values first",
     "rebalance_snapshot_not_found": "Snapshot {id} not found",

@@ -203,7 +203,7 @@ def test_a_dismissed_suggestion_changes_nothing_and_can_be_reopened(
     owner, draft, review = _setup(session, factory)
     thesis = draft.thesis_md
     s = factory.suggestion(review)
-    draft = suggestions.dismiss(session, owner, review.id, s.id)
+    draft = suggestions.dismiss(session, owner, factory.clock, review.id, s.id)
     assert (s.state, draft.thesis_md) == ("dismissed", thesis)
     assert not reviews.outdated(review, draft)
     with pytest.raises(ConflictError) as error:
@@ -227,7 +227,7 @@ def test_a_suggestion_is_taken_over_once_and_undone_only_after(
         _take_over(session, factory, owner, s)
     assert error.value.message == msg("suggestion_not_open")
     with pytest.raises(ConflictError):
-        suggestions.dismiss(session, owner, review.id, s.id)
+        suggestions.dismiss(session, owner, factory.clock, review.id, s.id)
 
 
 @pytest.mark.req("REV-07")
@@ -297,6 +297,10 @@ def test_suggestions_of_a_confirmed_or_older_review_cannot_change(
     assert error.value.message == msg("suggestion_without_change")
     s = factory.suggestion(review)
     policies.activate_draft(session, owner, factory.clock, draft.policy_id, "v2")
+    # A later version is active: the review of v2 belongs to an older version
+    factory.clock.advance(minutes=1)
+    policies.create_draft(session, owner, factory.clock, draft.policy_id)
+    policies.activate_draft(session, owner, factory.clock, draft.policy_id, "v3")
     with pytest.raises(ConflictError) as error:
         _take_over(session, factory, owner, s)
     assert error.value.message == msg("suggestion_review_confirmed")
@@ -313,5 +317,5 @@ def test_suggestions_are_found_only_by_the_owner_of_their_review(
     assert error.value.message == msg("suggestion_not_found", id=s.id + 100)
     bob = factory.investor("bob")
     with pytest.raises(NotFoundError):
-        suggestions.dismiss(session, bob, review.id, s.id)
+        suggestions.dismiss(session, bob, factory.clock, review.id, s.id)
     assert s.state == "open"

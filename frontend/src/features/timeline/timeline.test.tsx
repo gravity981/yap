@@ -62,6 +62,8 @@ function setup(handlers: Record<string, Handler> = {}) {
           name: "Main",
           policy_id: 3,
           policy_name: "core",
+          policy_semaphore: "broken",
+          policy_semaphore_reason: "A break condition is met.",
           archived_at: null,
           latest_snapshot: null,
         },
@@ -255,10 +257,17 @@ describe("timeline", () => {
     expect(within(dialog).getByText("Warning signals")).toBeInTheDocument();
   });
 
-  it("[CMP-09] [POL-11] [THS-04] shows portfolios, warnings and recent events on the dashboard", async () => {
+  it("[CMP-09] [POL-11] [THS-04] [PTF-07] shows portfolios, warnings and recent events on the dashboard", async () => {
     setup();
     renderApp("/");
     expect(await screen.findByRole("link", { name: "Main" })).toBeInTheDocument();
+    // PTF-07: the semaphore of the portfolio's policy, with the reason and a link
+    expect(screen.getByText("broken")).toBeInTheDocument();
+    expect(screen.getByText("A break condition is met.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the policy" })).toHaveAttribute(
+      "href",
+      "/policies/3",
+    );
     const alerts = await screen.findAllByRole("alert");
     expect(alerts.map((a) => a.textContent)).toEqual([
       "growth: the semaphore of its thesis is warning.",

@@ -141,3 +141,10 @@ export const thesisImport = {
       api.POST("/api/policies/{policy_id}/import-thesis", { ...path(policyId), ...rawBody(text) }),
     ),
 };
+
+/** POL-18: private, text or all. */
+export function usePolicySharing(id: number) {
+  return usePolicyMutation((sharing: string) =>
+    unwrap(api.PUT("/api/policies/{policy_id}/sharing", { ...path(id), body: { sharing } })),
+  );
+}

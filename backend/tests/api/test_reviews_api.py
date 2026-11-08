@@ -87,7 +87,7 @@ def test_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
         "warning",
         "Warning signals are observed [1].",
     )
-    assert (review["confirmed"], review["outdated"]) == (False, False)
+    assert (review["confirmed"], review["outdated"], review["saved_at"]) == (False, False, None)
     assert review["legacy_modification"] is None
     found = ok(alice.get(f"/api/policies/{pid}/versions/2/review"))
     assert found["id"] == review["id"]
@@ -108,6 +108,8 @@ def test_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
         "model": "claude-x",
         "ai_reviewer_name": "Standard",
         "outdated": False,
+        "completed_at": review["completed_at"],
+        "saved_at": None,  # open while the draft is (REV-11)
     }
     assert versions[1]["review"] == brief and versions[1]["reviews"] == [brief]
     # v1 was activated without a review: not reviewed (THS-04)
