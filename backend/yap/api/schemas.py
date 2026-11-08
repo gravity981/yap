@@ -197,13 +197,15 @@ class VersionOut(VersionSummary):
 def version_summary(
     version: PolicyVersion, active_from: datetime | None, active_until: datetime | None
 ) -> VersionSummary:
+    from yap.services import reviews
+
     return VersionSummary(
         id=version.id,
         version_no=version.version_no,
         label=version.label,
         thesis_title=version.thesis_title,
         change_note=version.change_note,
-        mark=version.mark,
+        mark=reviews.effective_mark(version),  # REV-20: cleared by a later review
         active_from=active_from,
         active_until=active_until,
         is_draft=version.activated_at is None,
@@ -251,6 +253,9 @@ class DraftBrief(BaseModel):
     label: str
     updated_at: datetime | None  # last saved (POL-14)
     positions: int
+    # POL-22: the thesis or target structure differs from the active version; an unchanged
+    # draft is still "the same version" and reviewing it is reviewing the active version
+    changed: bool
     review: ReviewBrief | None  # matches, no longer matches, or none (REV-09)
 
 

@@ -164,6 +164,14 @@ export function ReviewShort({ review, actions }: { review: Review; actions?: Sug
           {review.completed_at && ` · ${formatDateTime(review.completed_at)}`}
           {days !== null && ` · ${t("reviews.result.newsDays", { count: days })}`}
         </p>
+        {/* A draft's review is replaced by the next one and kept at activation (REV-09) */}
+        {!review.confirmed && (
+          <p className="text-xs text-muted-foreground">
+            {review.outdated
+              ? t("reviews.result.noLongerMatchesHint")
+              : t("reviews.result.draftNote")}
+          </p>
+        )}
       </div>
       <Total review={review} />
       {review.kind === "full" && (

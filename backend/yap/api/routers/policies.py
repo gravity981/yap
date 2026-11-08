@@ -73,6 +73,8 @@ def _state(session: DbSession, policy: Policy, active: PolicyVersion | None) -> 
             label=draft.label,
             updated_at=draft.updated_at,
             positions=len(draft.positions),
+            changed=active is None
+            or reviews.draft_fingerprint(draft) != reviews.draft_fingerprint(active),
             review=ReviewBrief.of(draft, draft_review) if draft_review else None,
         )
         if draft is not None
@@ -223,6 +225,19 @@ def activate_draft(
 ) -> VersionOut:
     version = policies.activate_draft(session, user, clock, policy_id, body.change_note)
     return _version(version.policy, version)
+
+
+class RenameIn(BaseModel):
+    name: str
+
+
+@router.put("/{policy_id}/name")
+def rename_policy(
+    policy_id: int, body: RenameIn, session: DbSession, clock: AppClock, user: CurrentUser
+) -> PolicyOut:
+    """POL-21: renames the policy; its versions are labelled with the new name."""
+    policy = policies.rename_policy(session, user, policy_id, body.name)
+    return _policy(session, user, clock, policy)
 
 
 class SharingIn(BaseModel):

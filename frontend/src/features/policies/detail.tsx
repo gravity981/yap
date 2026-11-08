@@ -29,7 +29,14 @@ import {
   type Policy,
 } from "./api";
 import { DiscardDraft } from "./discard";
-import { PolicyFacts, ReviewAgain, Sharing, SharingBadge } from "./policy-parts";
+import {
+  DraftReview,
+  PolicyFacts,
+  PolicyName,
+  ReviewAgain,
+  Sharing,
+  SharingBadge,
+} from "./policy-parts";
 import { MarkBadge } from "./mark";
 import { PositionsTable, VersionDiffView } from "./positions";
 
@@ -64,7 +71,7 @@ export function PolicyPage({ policyId }: { policyId: number }) {
             {t("policies.detail.back")}
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold">{p.name}</h1>
+            <PolicyName policy={p} />
             {/* THS-04, POL-11, REV-20, POL-18 */}
             {active && <SemaphoreBadge semaphore={p.semaphore} />}
             <MarkBadge mark={p.mark} />
@@ -180,7 +187,13 @@ export function PolicyPage({ policyId }: { policyId: number }) {
         </Tabs>
         {active && !archived && (
           <aside className="grid min-w-0 gap-4">
-            <ReviewAgain policy={p} versionLabel={active.label} />
+            {/* POL-22: a draft with changes has its own review; the active version is
+                reviewed again when there is none, or the draft is the same version */}
+            {p.draft?.changed ? (
+              <DraftReview policy={p} />
+            ) : (
+              <ReviewAgain policy={p} versionLabel={active.label} />
+            )}
             <Sharing policy={p} />
           </aside>
         )}

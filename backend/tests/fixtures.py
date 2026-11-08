@@ -63,7 +63,7 @@ def db_url(migrated_template: Path, tmp_path: Path) -> str:
 
 @pytest.fixture
 def session(db_url: str) -> Iterator[Session]:
-    engine = make_engine(db_url)
+    engine = make_engine(db_url, writer_transactions=False)
     with make_session_factory(engine)() as s:
         yield s
     engine.dispose()

@@ -11,5 +11,12 @@ export function MarkBadge({ mark }: { mark: string | null | undefined }) {
   const label = (MARKS as readonly string[]).includes(mark)
     ? t(`policies.marks.${mark as (typeof MARKS)[number]}`)
     : mark;
-  return <Badge variant="warning">{label}</Badge>;
+  const hint = (MARKS as readonly string[]).includes(mark)
+    ? t(`policies.marks.hint.${mark as (typeof MARKS)[number]}`)
+    : undefined;
+  return (
+    <Badge variant="warning" title={hint}>
+      {label}
+    </Badge>
+  );
 }

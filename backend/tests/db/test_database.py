@@ -906,3 +906,43 @@ def test_history_cannot_be_changed(session: Session, factory: Factory, statement
     session.commit()
     with pytest.raises(IntegrityError):
         session.execute(text(statement))
+
+
+@pytest.mark.req("NFR-09")
+def test_a_request_that_reads_first_and_writes_later_waits_instead_of_failing(
+    engine: Engine,
+) -> None:
+    """Every request renews its session, so it writes after reading; with a deferred
+    transaction it failed with "database is locked" when another request committed in
+    between. Transactions start as writers, so the others wait their turn."""
+    import threading
+
+    from yap.db.engine import make_session_factory
+
+    factory = make_session_factory(engine)
+    with factory() as first:
+        first.execute(text("CREATE TABLE IF NOT EXISTS counter (n INTEGER)"))
+        first.execute(text("INSERT INTO counter VALUES (0)"))
+        first.commit()
+    errors: list[Exception] = []
+
+    def other() -> None:
+        try:
+            with factory() as second:
+                second.execute(text("UPDATE counter SET n = n + 1"))
+                second.commit()
+        except Exception as error:  # pragma: no cover - only when the lock fails
+            errors.append(error)
+
+    with factory() as reader:
+        reader.execute(text("SELECT n FROM counter")).all()
+        thread = threading.Thread(target=other)
+        thread.start()
+        thread.join(timeout=0.3)  # the other transaction waits for this one
+        assert thread.is_alive()
+        reader.execute(text("UPDATE counter SET n = n + 1"))
+        reader.commit()
+    thread.join(timeout=5)
+    assert errors == []
+    with factory() as check:
+        assert check.execute(text("SELECT n FROM counter")).scalar_one() == 2

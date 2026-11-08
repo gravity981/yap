@@ -843,6 +843,10 @@
       "DraftBrief": {
         "description": "POL-19: a policy's draft in short.",
         "properties": {
+          "changed": {
+            "title": "Changed",
+            "type": "boolean"
+          },
           "label": {
             "title": "Label",
             "type": "string"
@@ -883,6 +887,7 @@
           "label",
           "updated_at",
           "positions",
+          "changed",
           "review"
         ],
         "title": "DraftBrief",
@@ -3464,6 +3469,19 @@
           "actions"
         ],
         "title": "RebalanceOut",
+        "type": "object"
+      },
+      "RenameIn": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "RenameIn",
         "type": "object"
       },
       "ResultOut": {
@@ -8117,6 +8135,75 @@
           }
         },
         "summary": "Preview Target Structure",
+        "tags": [
+          "policies"
+        ]
+      }
+    },
+    "/api/policies/{policy_id}/name": {
+      "put": {
+        "description": "POL-21: renames the policy; its versions are labelled with the new name.",
+        "operationId": "rename_policy_api_policies__policy_id__name_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policy_id",
+            "required": true,
+            "schema": {
+              "title": "Policy Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rename Policy",
         "tags": [
           "policies"
         ]

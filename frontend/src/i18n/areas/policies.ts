@@ -61,6 +61,8 @@ export const en = {
   detail: {
     back: "← Policies",
     tabReviews: "Reviews",
+    rename: "Rename",
+    newName: "New name",
     active: "active: {{label}}",
     noActive: "no active version yet",
     draftVersion: "draft v{{no}}",
@@ -198,6 +200,11 @@ export const en = {
   marks: {
     not_reviewed: "not reviewed",
     review_did_not_match: "review did not match",
+    hint: {
+      not_reviewed: "This version was activated without a review.",
+      review_did_not_match:
+        "This version was activated although the thesis or target structure had been changed after its review. Review it again to clear the mark.",
+    },
   },
 };
 
@@ -262,6 +269,8 @@ export const de: Messages<typeof en> = {
   detail: {
     back: "← Anlagestrategien",
     tabReviews: "Prüfungen",
+    rename: "Umbenennen",
+    newName: "Neuer Name",
     active: "aktiv: {{label}}",
     noActive: "noch keine aktive Version",
     draftVersion: "Entwurf v{{no}}",
@@ -401,5 +410,10 @@ export const de: Messages<typeof en> = {
   marks: {
     not_reviewed: "nicht geprüft",
     review_did_not_match: "Prüfung passte nicht",
+    hint: {
+      not_reviewed: "Diese Version wurde ohne Prüfung aktiviert.",
+      review_did_not_match:
+        "Diese Version wurde aktiviert, obwohl die Anlagethese oder die Zielstruktur nach der Prüfung geändert worden war. Prüfe sie erneut, um die Markierung zu entfernen.",
+    },
   },
 };

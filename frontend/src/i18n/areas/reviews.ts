@@ -29,6 +29,10 @@ export const en = {
     manualWith: "manual review with {{model}}",
     matches: "matches the draft",
     noLongerMatches: "no longer matches the draft",
+    noLongerMatchesHint:
+      "The thesis or target structure was edited after this review. Run the review again to review what is written now.",
+    draftNote:
+      "Running the review again replaces this one; it is kept with the version when you activate the draft.",
     newsDays_one: "news of {{count}} day",
     newsDays_other: "news of {{count}} days",
     noStructure: "Target structure not scored: no positions",
@@ -104,6 +108,13 @@ export const en = {
   semaphore: {
     thesis: "Thesis:",
     toPolicy: "Open the policy",
+  },
+  draftBox: {
+    title: "Review",
+    note: "You are working on the draft {{version}}; its thesis or target structure differs from the active version. The review is made in the editor and belongs to the draft until you activate it.",
+    openEditor: "Review the draft in the editor",
+    none: "The draft has no review yet.",
+    reviewOf: "Review of the draft",
   },
   again: {
     title: "Review again",
@@ -216,6 +227,10 @@ export const de: Messages<typeof en> = {
     manualWith: "manuelle Prüfung mit {{model}}",
     matches: "passt zum Entwurf",
     noLongerMatches: "passt nicht mehr zum Entwurf",
+    noLongerMatchesHint:
+      "Die Anlagethese oder die Zielstruktur wurde nach dieser Prüfung geändert. Starte die Prüfung erneut, um zu prüfen, was jetzt geschrieben steht.",
+    draftNote:
+      "Eine erneute Prüfung ersetzt diese; sie bleibt bei der Version, sobald du den Entwurf aktivierst.",
     newsDays_one: "Nachrichten von {{count}} Tag",
     newsDays_other: "Nachrichten von {{count}} Tagen",
     noStructure: "Zielstruktur nicht bewertet: keine Positionen",
@@ -289,6 +304,13 @@ export const de: Messages<typeof en> = {
   semaphore: {
     thesis: "Anlagethese:",
     toPolicy: "Anlagestrategie öffnen",
+  },
+  draftBox: {
+    title: "Prüfung",
+    note: "Du arbeitest am Entwurf {{version}}; seine Anlagethese oder Zielstruktur weicht von der aktiven Version ab. Die Prüfung machst du im Editor, und sie gehört zum Entwurf, bis du ihn aktivierst.",
+    openEditor: "Entwurf im Editor prüfen",
+    none: "Der Entwurf hat noch keine Prüfung.",
+    reviewOf: "Prüfung des Entwurfs",
   },
   again: {
     title: "Erneut prüfen",

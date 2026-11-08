@@ -121,3 +121,30 @@ def test_the_change_note_is_saved_and_used_at_activation(alice: TestClient) -> N
     version = ok(alice.post(f"/api/policies/{pid}/draft/activate", json={}))
     assert version["change_note"] == "Wider"
     ok(alice.put(f"/api/policies/{pid}/draft/change-note", json={"change_note": "x"}), 404)
+
+
+@pytest.mark.req("POL-22", "REV-09", "REV-21")
+def test_a_draft_is_reviewed_on_its_own_and_its_changes_are_flagged(alice: TestClient) -> None:
+    pid = _policy(alice, "core")
+    ok(alice.post(f"/api/policies/{pid}/draft/activate", json={}))
+    ok(alice.post(f"/api/policies/{pid}/draft"), 201)
+    draft = ok(alice.get(f"/api/policies/{pid}"))["draft"]
+    assert draft["changed"] is False  # still the same content as the active version
+
+    _manual_review(alice, pid)
+    policy = ok(alice.get(f"/api/policies/{pid}"))
+    # The review belongs to the draft; the active version has none
+    assert policy["draft"]["review"] is not None
+    assert policy["latest_review"] is None
+
+    ok(
+        alice.put(
+            f"/api/policies/{pid}/draft",
+            json={"positions": POSITIONS, "thesis": {"title": "T", "content_md": "# Changed"}},
+        )
+    )
+    assert ok(alice.get(f"/api/policies/{pid}"))["draft"]["changed"] is True
+    # Running the review of the draft again replaces it; it does not add up
+    _manual_review(alice, pid)
+    log = ok(alice.get(f"/api/policies/{pid}/reviews"))
+    assert [r["version_no"] for r in log] == []  # a draft's review is no part of the log yet

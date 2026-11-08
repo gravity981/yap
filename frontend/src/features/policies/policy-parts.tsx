@@ -6,10 +6,20 @@ import { FormError } from "@/components/form";
 import { Stars, formatScore } from "@/components/stars";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { SemaphoreBadge } from "@/features/reviews/semaphore";
 import { ReviewPane } from "@/features/reviews/pane";
 import { formatDate } from "@/lib/format";
 
-import { usePolicySharing, type Policy, type PolicySummary, type Version } from "./api";
+import { Input } from "@/components/ui/input";
+
+import {
+  usePolicySharing,
+  useRenamePolicy,
+  type Policy,
+  type PolicySummary,
+  type Version,
+} from "./api";
 
 const LEVELS = ["private", "text", "all"] as const;
 
@@ -80,6 +90,84 @@ export function ReviewAgain({ policy, versionLabel }: { policy: Policy; versionL
         save={() => Promise.resolve()}
         onDraft={(d) => d && setDraft(d)}
       />
+    </section>
+  );
+}
+
+/** POL-21: the name of the policy, with a button to rename it. */
+export function PolicyName({ policy }: { policy: Policy }) {
+  const { t } = useTranslation();
+  const rename = useRenamePolicy(policy.id);
+  const [name, setName] = useState<string | null>(null);
+  if (name === null) {
+    return (
+      <>
+        <h1 className="text-2xl font-semibold">{policy.name}</h1>
+        {policy.archived_at === null && (
+          <Button size="sm" variant="ghost" onClick={() => setName(policy.name)}>
+            {t("policies.detail.rename")}
+          </Button>
+        )}
+      </>
+    );
+  }
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        rename.mutate(name, { onSuccess: () => setName(null) });
+      }}
+    >
+      <Input
+        aria-label={t("policies.detail.newName")}
+        className="w-64"
+        value={name}
+        autoFocus
+        onChange={(e) => setName(e.target.value)}
+      />
+      <Button type="submit" size="sm" disabled={rename.isPending}>
+        {t("common.save")}
+      </Button>
+      <Button type="button" size="sm" variant="ghost" onClick={() => setName(null)}>
+        {t("common.cancel")}
+      </Button>
+      <FormError error={rename.error} />
+    </form>
+  );
+}
+
+/** POL-22: while the draft has changes, the review box of the policy page is the draft's: the
+ * review is made in the editor and belongs to the draft, not to the active version. */
+export function DraftReview({ policy }: { policy: Policy }) {
+  const { t } = useTranslation();
+  const draft = policy.draft;
+  if (!draft) return null;
+  const review = draft.review;
+  return (
+    <section className="grid gap-3 rounded-lg border p-4" aria-label={t("reviews.draftBox.title")}>
+      <h2 className="font-semibold">{t("reviews.draftBox.title")}</h2>
+      <p className="text-sm text-muted-foreground">
+        {t("reviews.draftBox.note", { version: draft.label })}
+      </p>
+      {review && review.total != null ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">{t("reviews.draftBox.reviewOf")}</span>
+          <Stars score={review.total} label={t("reviews.score.totalLabel")} />
+          <span className="font-semibold tabular-nums">{formatScore(review.total)}</span>
+          <SemaphoreBadge semaphore={review.semaphore} />
+          {review.outdated && (
+            <Badge variant="warning">{t("reviews.result.noLongerMatches")}</Badge>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">{t("reviews.draftBox.none")}</p>
+      )}
+      <Button asChild variant="outline" className="w-fit">
+        <Link to="/policies/$policyId/draft" params={{ policyId: String(policy.id) }}>
+          {t("reviews.draftBox.openEditor")}
+        </Link>
+      </Button>
     </section>
   );
 }

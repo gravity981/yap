@@ -33,7 +33,7 @@ def fake() -> FakeLlm:
 @pytest.fixture
 def run(session: Session, db_url: str, factory: Factory, fake: FakeLlm) -> Iterator[Run]:
     """Runs a started review like the background job: in its own sessions."""
-    engine = make_engine(db_url)
+    engine = make_engine(db_url, writer_transactions=False)
     sessions = make_session_factory(engine)
 
     def run(review: Review) -> Review:

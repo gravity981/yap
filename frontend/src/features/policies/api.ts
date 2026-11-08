@@ -79,6 +79,13 @@ export function useCreatePolicy() {
   );
 }
 
+/** POL-21 */
+export function useRenamePolicy(id: number) {
+  return usePolicyMutation((name: string) =>
+    unwrap(api.PUT("/api/policies/{policy_id}/name", { ...path(id), body: { name } })),
+  );
+}
+
 export function usePolicyActions(id: number) {
   return {
     createDraft: usePolicyMutation(() =>

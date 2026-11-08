@@ -75,16 +75,18 @@ class SuggestionAnswer(_Model):
 
     kind: Literal["thesis_section", "position_change", "position_add", "position_remove"]
     reason: str
-    section: int | None
-    text: str | None
-    ticker: str | None
-    name: str | None
-    type: AssetTypeAnswer | None
-    target_pct: Decimal | None
-    buy_threshold_pct: Decimal | None
-    sell_threshold_pct: Decimal | None
-    exit: bool | None
-    rationale: str | None
+    # The providers' schema requires every field (null when unused); an answer pasted from an
+    # AI outside the app often leaves the unused ones out, which is just as good
+    section: int | None = None
+    text: str | None = None
+    ticker: str | None = None
+    name: str | None = None
+    type: AssetTypeAnswer | None = None
+    target_pct: Decimal | None = None
+    buy_threshold_pct: Decimal | None = None
+    sell_threshold_pct: Decimal | None = None
+    exit: bool | None = None
+    rationale: str | None = None
 
 
 class PositionAnswer(_Model):

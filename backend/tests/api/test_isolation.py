@@ -121,6 +121,7 @@ BODIES: dict[tuple[str, str], Any] = {
     ("POST", "/api/policies/{policy_id}/active/review"): {"news_days": 30},
     ("POST", "/api/policies/{policy_id}/active/review/manual"): {"answer": "{}"},
     ("PUT", "/api/policies/{policy_id}/sharing"): {"sharing": "private"},
+    ("PUT", "/api/policies/{policy_id}/name"): {"name": "other"},
     ("PUT", "/api/admin/price-providers/{provider_id}"): {"provider": "yahoo"},
     ("POST", "/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over"): None,
     ("POST", "/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss"): None,

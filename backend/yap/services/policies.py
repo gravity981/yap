@@ -267,6 +267,23 @@ def update_change_note(
 SHARING_LEVELS = ("private", "text", "all")
 
 
+def rename_policy(session: Session, actor: Investor, policy_id: int, name: str) -> Policy:
+    """POL-21: the name of a policy and with it the labels of its versions (`<name>-v1`);
+    timeline entries keep the name they were written with."""
+    policy = get_policy(session, actor, policy_id)
+    name = require_text(name, "name", msg("name_required"))
+    taken = session.scalar(
+        select(Policy).where(
+            Policy.owner_id == actor.id, Policy.name == name, Policy.id != policy.id
+        )
+    )
+    if taken is not None:
+        raise ConflictError(msg("policy_name_taken", name=name))
+    policy.name = name
+    session.flush()
+    return policy
+
+
 def set_sharing(
     session: Session, actor: Investor, clock: Clock, policy_id: int, level: str
 ) -> Policy:

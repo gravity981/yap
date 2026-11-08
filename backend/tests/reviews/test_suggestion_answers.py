@@ -266,3 +266,15 @@ def test_the_answer_format_lists_the_suggestion_kinds_and_proposals() -> None:
     row = proposal_item["properties"]["positions"]["items"]
     assert row["properties"]["target_pct"]["type"] == "number"
     assert json.dumps(schema)  # serializable for the providers
+
+
+@pytest.mark.req("REV-07", "REV-18")
+def test_a_suggestion_may_leave_out_the_fields_it_does_not_use() -> None:
+    """An AI outside the app often writes only the fields of the kind (REV-18)."""
+    text = json.loads(answer(prompt_id=PROMPT_ID, structure=None, suggestions=[]))
+    text["suggestions"] = [
+        {"kind": "thesis_section", "reason": "Measurable.", "section": 1, "text": "- GDP < 2 %"}
+    ]
+    parsed, problems = review_prompts.check_answer(json.dumps(text), PROMPT_ID, False, [])
+    assert problems == []
+    assert parsed is not None and len(parsed.suggestions) == 1

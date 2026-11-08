@@ -140,7 +140,8 @@ def test_a_review_again_clears_the_mark_of_a_version_activated_without_one(
     ok(alice.post(f"/api/policies/{pid}/active/review", json={}), 202)
     policy = ok(alice.get(f"/api/policies/{pid}"))
     assert (policy["mark"], policy["semaphore"]) == (None, "good")
-    assert policy["versions"][0]["mark"] == "not_reviewed"  # as stored at activation
+    # REV-20: the mark of the version is cleared by the review saved after its activation
+    assert policy["versions"][0]["mark"] is None
     listed = {p["name"]: p for p in ok(alice.get("/api/policies"))}
     assert listed["bare"]["mark"] is None
 
@@ -214,3 +215,17 @@ def test_portfolios_show_the_semaphore_of_their_policy_with_its_reason(
         "warning",
         "Growth slows down.",
     )
+
+
+@pytest.mark.req("POL-21")
+def test_a_policy_can_be_renamed(alice: TestClient) -> None:
+    pid = ok(alice.post("/api/policies", json={"name": "old", "thesis_md": "# T"}), 201)["id"]
+    ok(alice.post("/api/policies", json={"name": "taken", "thesis_md": "# T"}), 201)
+    renamed = ok(alice.put(f"/api/policies/{pid}/name", json={"name": "  new  "}))
+    assert renamed["name"] == "new"
+    # The versions are labelled with the new name
+    assert ok(alice.get(f"/api/policies/{pid}"))["versions"][0]["label"] == "new-v1"
+    # The same name stays possible, a name of another policy and an empty one are refused
+    ok(alice.put(f"/api/policies/{pid}/name", json={"name": "new"}))
+    assert alice.put(f"/api/policies/{pid}/name", json={"name": "taken"}).status_code == 409
+    assert alice.put(f"/api/policies/{pid}/name", json={"name": "  "}).status_code == 422

@@ -57,6 +57,7 @@ const state = (extra: Record<string, unknown> = {}) => ({
     label: "core-v3",
     updated_at: "2026-03-05T10:00:00+00:00",
     positions: 2,
+    changed: false,
     review: null,
   },
   portfolios: [{ id: 5, name: "Main" }],
@@ -807,5 +808,75 @@ describe("policies", () => {
     expect(
       within(sharing).getByText("Only a reviewed active version can be shared."),
     ).toBeInTheDocument();
+  });
+
+  it("[POL-21] renames a policy", async () => {
+    let current = policy();
+    const calls = setup({
+      "GET /api/policies/3": () => json(current),
+      "PUT /api/policies/3/name": (_request, body) => {
+        current = { ...current, name: (body as { name: string }).name };
+        return json(current);
+      },
+    });
+    renderApp("/policies/3");
+    await userEvent.click(await screen.findByRole("button", { name: "Rename" }));
+    const field = screen.getByLabelText("New name");
+    expect(field).toHaveValue("core");
+    await userEvent.clear(field);
+    await userEvent.type(field, "growth");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("heading", { name: "growth", level: 1 })).toBeInTheDocument();
+    expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ name: "growth" });
+  });
+
+  it("[POL-21] shows why a name was refused", async () => {
+    setup({
+      "PUT /api/policies/3/name": () =>
+        json(
+          {
+            detail: "A policy named taken already exists",
+            code: "policy_name_taken",
+            params: { name: "taken" },
+          },
+          409,
+        ),
+    });
+    renderApp("/policies/3");
+    await userEvent.click(await screen.findByRole("button", { name: "Rename" }));
+    await userEvent.type(screen.getByLabelText("New name"), "x");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("A policy named taken already exists")).toBeInTheDocument();
+  });
+
+  it("[POL-22] reviews the active version again while the draft has no changes", async () => {
+    setup();
+    renderApp("/policies/3");
+    expect(await screen.findByRole("region", { name: "Review again" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Review the draft in the editor" })).toBeNull();
+  });
+
+  it("[POL-22] [REV-09] offers the draft's own review, not a review again, once it has changes", async () => {
+    setup({
+      "GET /api/policies/3": () =>
+        json(
+          policy({
+            draft: {
+              ...state().draft,
+              changed: true,
+              review: reviewBrief({ saved_at: null, total: 6, outdated: true }),
+            },
+          }),
+        ),
+    });
+    renderApp("/policies/3");
+    const link = await screen.findByRole("link", { name: "Review the draft in the editor" });
+    const box = link.closest("section")!;
+    expect(box).toHaveTextContent("core-v3");
+    expect(within(box).getByText("no longer matches the draft")).toBeInTheDocument();
+    expect(
+      within(box).getByRole("link", { name: "Review the draft in the editor" }),
+    ).toHaveAttribute("href", "/policies/3/draft");
+    expect(screen.queryByRole("region", { name: "Review again" })).toBeNull();
   });
 });

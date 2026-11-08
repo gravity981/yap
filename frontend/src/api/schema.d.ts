@@ -833,6 +833,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/policies/{policy_id}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rename Policy
+         * @description POL-21: renames the policy; its versions are labelled with the new name.
+         */
+        put: operations["rename_policy_api_policies__policy_id__name_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/policies/{policy_id}/reviews": {
         parameters: {
             query?: never;
@@ -1782,6 +1802,8 @@ export interface components {
          * @description POL-19: a policy's draft in short.
          */
         DraftBrief: {
+            /** Changed */
+            changed: boolean;
             /** Label */
             label: string;
             /** Positions */
@@ -2580,6 +2602,11 @@ export interface components {
             result_snapshot_id: number | null;
             /** Withdrawal */
             withdrawal: string;
+        };
+        /** RenameIn */
+        RenameIn: {
+            /** Name */
+            name: string;
         };
         /**
          * ResultOut
@@ -4796,6 +4823,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionDiffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_policy_api_policies__policy_id__name_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
                 };
             };
             /** @description Validation Error */
