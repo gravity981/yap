@@ -109,6 +109,10 @@ const review = (extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+/** The rendered thesis (aria-label "Preview"), not the tab of the same name. */
+const previewOf = (root: HTMLElement) =>
+  root.querySelector<HTMLElement>('div[aria-label="Preview"]');
+
 type Sugg = { id: number; state: string; previous: unknown; [key: string]: unknown };
 type Current = { suggestions: Sugg[]; [key: string]: unknown };
 
@@ -482,9 +486,7 @@ describe("reviews", () => {
       brief(30, 6.5, { outdated: true }),
     );
     const section = await openPane();
-    expect(
-      await within(section).findByText(/outdated: the draft changed since/),
-    ).toBeInTheDocument();
+    expect(await within(section).findByText("no longer matches the draft")).toBeInTheDocument();
     // The result stays visible while the investor works through it
     expect(within(section).getByText("Add a time horizon.")).toBeInTheDocument();
     expect(within(section).getByRole("button", { name: "Run review again" })).toBeInTheDocument();
@@ -535,7 +537,9 @@ describe("reviews", () => {
         answer: '{"prompt_id": "R203-20260301T100000Z-30-abcdef"}',
       }),
     );
-    expect(await screen.findByText(/manual review · scoring v3/)).toBeInTheDocument();
+    // REV-18: the pasted answer shows like a review of an AI reviewer
+    expect(await screen.findByText(/^manual review ·/)).toBeInTheDocument();
+    expect(screen.getByText("matches the draft")).toBeInTheDocument();
   });
 
   it("[REV-18] lists every problem of a pasted answer", async () => {
@@ -702,8 +706,11 @@ describe("reviews", () => {
     // Each kind says what it changes
     const sectionCard = await within(pane).findByRole("listitem", { name: "Thesis · section 7" });
     expect(within(sectionCard).getByText("- GDP below 2 %")).toBeInTheDocument();
-    const changeCard = within(pane).getByRole("listitem", { name: "BTC · sell threshold" });
-    expect(within(changeCard).getByText("→ +50 %")).toBeInTheDocument();
+    expect(
+      within(within(pane).getByRole("listitem", { name: "BTC · sell threshold" })).getByText(
+        "→ +50 %",
+      ),
+    ).toBeInTheDocument();
     expect(within(pane).getByRole("listitem", { name: "Add EMIM (Emerging)" })).toHaveTextContent(
       "ETF, target 10 %, band −20 % / +20 %",
     );
@@ -711,7 +718,10 @@ describe("reviews", () => {
     expect(within(pane).getAllByRole("button", { name: "Take over" })).toHaveLength(4);
 
     // Take over: what was typed is saved first (POL-14), then the change is applied
-    await userEvent.type(screen.getByLabelText("Title"), " 2");
+    await userEvent.click(screen.getByRole("tab", { name: "Edit" }));
+    await userEvent.type(await screen.findByLabelText("Title"), " 2");
+    await userEvent.click(screen.getByRole("tab", { name: "Review" }));
+    const changeCard = await screen.findByRole("listitem", { name: "BTC · sell threshold" });
     await userEvent.click(within(changeCard).getByRole("button", { name: "Take over" }));
     expect(await within(changeCard).findByText("Taken over")).toBeInTheDocument();
     expect(within(changeCard).getByText("+25 % → +50 %")).toBeInTheDocument();
@@ -721,7 +731,8 @@ describe("reviews", () => {
     expect(put).toBeLessThan(order.indexOf("POST /api/reviews/30/suggestions/3/take-over"));
 
     // The editor shows the draft as the server changed it
-    await userEvent.click(within(sectionCard).getByRole("button", { name: "Take over" }));
+    const sectionAgain = screen.getByRole("listitem", { name: "Thesis · section 7" });
+    await userEvent.click(within(sectionAgain).getByRole("button", { name: "Take over" }));
     await userEvent.click(screen.getByRole("tab", { name: "Preview" }));
     expect(
       (await screen.findAllByRole("heading", { name: "7. Early Warnings" })).length,
@@ -827,7 +838,129 @@ describe("reviews", () => {
     await userEvent.click(within(focused).getByRole("button", { name: "Take over" }));
     expect(await within(focused).findByText("Taken over")).toBeInTheDocument();
     // The editor's target structure is filled with the proposal
+    await userEvent.click(screen.getByRole("tab", { name: "Edit" }));
     expect(await screen.findByDisplayValue("VWRL")).toBeInTheDocument();
     expect(screen.getByDisplayValue("CASH")).toBeInTheDocument();
+  });
+
+  it("[REV-02] shows the review in short in the pane: matching, scores and aspects without reasoning", async () => {
+    setup({}, brief(30, 7));
+    const pane = await openPane();
+    expect(await within(pane).findByText("matches the draft")).toBeInTheDocument();
+    expect(within(pane).getByText(/^anthropic|claude-x/)).toBeInTheDocument();
+    expect(within(pane).getByText(/news of 90 days/)).toBeInTheDocument();
+    expect(within(pane).getByRole("img", { name: "Score: 7.0 of 10" })).toBeInTheDocument();
+    expect(within(pane).getByText("warning")).toBeInTheDocument();
+    expect(within(pane).getByText("Thesis · 6.5")).toBeInTheDocument();
+    expect(within(pane).getByText("Target structure · 7.5")).toBeInTheDocument();
+    expect(within(pane).getByText("P3 Bands")).toBeInTheDocument();
+    // The reasoning is in the full review only (REV-24)
+    expect(within(pane).queryByText("Reasoning 1 [1]")).toBeNull();
+  });
+
+  it("[REV-02] says the target structure is not scored without positions", async () => {
+    setup(
+      {
+        "GET /api/reviews/30": () =>
+          json(
+            review({
+              aspects: [7, 6, 8, 5, 7, 6.5].map((s, i) => aspect(i + 1, s)),
+              structure_score: null,
+              total: 6.5,
+            }),
+          ),
+      },
+      brief(30, 6.5),
+    );
+    const pane = await openPane();
+    expect(
+      await within(pane).findByText("Target structure not scored: no positions"),
+    ).toBeInTheDocument();
+  });
+
+  it("[REV-24] opens the full review from the pane", async () => {
+    setup({}, brief(30, 7));
+    const pane = await openPane();
+    await userEvent.click(
+      await within(pane).findByRole("button", { name: "Read the full review →" }),
+    );
+    const dialog = await screen.findByRole("dialog", { name: "The full review" });
+    // Reviewer, news period and scoring version
+    expect(within(dialog).getByText(/anthropic claude-x · scoring v3/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/news/)).toBeInTheDocument();
+    // Score, semaphore and the reason for the verdict
+    expect(within(dialog).getByRole("img", { name: "Score: 7.0 of 10" })).toBeInTheDocument();
+    expect(within(dialog).getByText("warning")).toBeInTheDocument();
+    expect(within(dialog).getByText(/Two warning signals are observed/)).toBeInTheDocument();
+    // Every aspect with its reasoning, grouped by thesis and target structure
+    expect(within(dialog).getByRole("heading", { name: "Thesis" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("heading", { name: "Target structure" })).toBeInTheDocument();
+    expect(within(dialog).getByText("Reasoning 1 [1]")).toBeInTheDocument();
+    expect(within(dialog).getByText("Structure reasoning 6")).toBeInTheDocument();
+    // The numbered sources
+    const sources = within(dialog).getByRole("heading", { name: "Sources" }).nextElementSibling;
+    expect(sources?.tagName).toBe("OL");
+    expect(within(dialog).getByRole("link", { name: "ETF inflows rise" })).toBeInTheDocument();
+    // The suggestions stay in the pane
+    expect(within(dialog).queryByText("Add a time horizon.")).toBeNull();
+    expect(within(dialog).getByText(/The suggestions are in the review pane/)).toBeInTheDocument();
+  });
+
+  it("[REV-18] offers the enabled AI reviewers and manual, with three steps for manual", async () => {
+    setup();
+    const pane = await openPane();
+    const method = await within(pane).findByLabelText("Review method");
+    const options = within(method as HTMLElement)
+      .getAllByRole("option")
+      .map((o) => o.textContent);
+    expect(options).toEqual(["Standard (default)", "Deep", "Manual (an AI of your choice)"]);
+    await userEvent.selectOptions(method, "manual");
+    const form = await within(pane).findByRole("form", { name: "Manual review" });
+    expect(within(form).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(form).getByRole("button", { name: "Copy review prompt" })).toBeInTheDocument();
+    expect(within(form).getByText(/Paste it into the AI of your choice/)).toBeInTheDocument();
+    expect(within(form).getByLabelText("Paste its whole answer")).toBeInTheDocument();
+  });
+
+  it("[POL-15] shows the editor, the preview and the review as tabs on narrow screens", async () => {
+    setup({}, brief(30, 7));
+    renderApp("/policies/7/draft");
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["Edit", "Preview", "Review"]);
+    // Edit: title, thesis and target structure
+    expect(await screen.findByLabelText("Title")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Thesis" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Target structure" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Review" })).toBeNull();
+    // Preview: the rendered thesis
+    await userEvent.click(screen.getByRole("tab", { name: "Preview" }));
+    await waitFor(() => expect(previewOf(document.body)).not.toBeNull());
+    expect(within(previewOf(document.body)!).getByRole("heading")).toHaveTextContent("Draft");
+    // Review: the pane
+    await userEvent.click(screen.getByRole("tab", { name: "Review" }));
+    expect(await screen.findByRole("region", { name: "Review" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Finalize →" })).toBeInTheDocument();
+  });
+
+  it("[POL-15] shows title, thesis, target structure and the review on one page on wide screens", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query.includes("min-width"),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    setup({}, brief(30, 7));
+    renderApp("/policies/7/draft");
+    expect(await screen.findByLabelText("Title")).toBeInTheDocument();
+    const thesis = screen.getByRole("region", { name: "Thesis" });
+    expect(screen.getByRole("region", { name: "Target structure" })).toBeInTheDocument();
+    const pane = await screen.findByRole("region", { name: "Review" });
+    expect(pane.closest("aside")).not.toBeNull();
+    // The thesis has its own Write and Preview tabs
+    const tabs = within(thesis).getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["Write", "Preview"]);
+    await userEvent.click(within(thesis).getByRole("tab", { name: "Preview" }));
+    await waitFor(() => expect(previewOf(thesis)).not.toBeNull());
+    expect(within(previewOf(thesis)!).getByRole("heading")).toHaveTextContent("Draft");
+    expect(screen.queryByRole("tab", { name: "Edit" })).toBeNull();
   });
 });

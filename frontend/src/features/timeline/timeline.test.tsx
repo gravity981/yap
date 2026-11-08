@@ -231,7 +231,15 @@ describe("timeline", () => {
           method: "manual",
           model: null,
           ai_reviewer_name: null,
+          provider: "manual",
+          news_from: "2026-01-01T10:00:00+00:00",
+          news_to: "2026-03-01T10:00:00+00:00",
+          started_at: "2026-03-01T10:00:00+00:00",
+          completed_at: "2026-03-01T10:05:00+00:00",
           legacy_modification: null,
+          outdated: false,
+          sources: [],
+          suggestions: [],
           confirmed: true,
         }),
     });
@@ -241,6 +249,10 @@ describe("timeline", () => {
     expect(screen.getByText("Thesis · 6.5 · Target structure · 7.5")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "Coverage: 7.5 of 10" })).toBeInTheDocument();
     expect(screen.getByText("manual review")).toBeInTheDocument();
+    // REV-24: the full review is a click away
+    await userEvent.click(screen.getByRole("button", { name: "Read the full review →" }));
+    const dialog = await screen.findByRole("dialog", { name: "The full review" });
+    expect(within(dialog).getByText("Warning signals")).toBeInTheDocument();
   });
 
   it("[CMP-09] [POL-11] [THS-04] shows portfolios, warnings and recent events on the dashboard", async () => {

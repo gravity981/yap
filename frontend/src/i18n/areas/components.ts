@@ -6,8 +6,6 @@ export const en = {
     outOf: "{{score}} of 10",
   },
   markdownEditor: {
-    content: "Content",
-    narrow: "{{label}} (narrow)",
     preview: "Preview",
     write: "Write",
     loading: "Loading editor …",
@@ -36,8 +34,6 @@ export const de: Messages<typeof en> = {
     outOf: "{{score}} von 10",
   },
   markdownEditor: {
-    content: "Inhalt",
-    narrow: "{{label}} (schmal)",
     preview: "Vorschau",
     write: "Schreiben",
     loading: "Editor wird geladen …",

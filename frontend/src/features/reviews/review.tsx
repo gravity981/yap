@@ -6,7 +6,15 @@ import { Markdown } from "@/components/markdown";
 import { Stars, formatScore } from "@/components/stars";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { currentLanguage } from "@/i18n";
 import { formatDate, formatDateTime } from "@/lib/format";
 
@@ -55,7 +63,15 @@ export function ReviewSection({ brief }: { brief: ReviewBrief | null }) {
   );
 }
 
-export function ReviewResult({ review, actions }: { review: Review; actions?: SuggestionActions }) {
+export function ReviewResult({
+  review,
+  actions,
+  suggestions = true,
+}: {
+  review: Review;
+  actions?: SuggestionActions;
+  suggestions?: boolean;
+}) {
   const { t } = useTranslation();
 
   if (isRunning(review.state)) {
@@ -109,11 +125,124 @@ export function ReviewResult({ review, actions }: { review: Review; actions?: Su
         <Aspects review={review} />
         <LegacyModification review={review} />
         <Sources review={review} />
-        <Suggestions review={review} actions={actions} />
+        {suggestions && <Suggestions review={review} actions={actions} />}
 
         <NotAdvice short={t("reviews.result.notAdvice")} />
       </CardContent>
     </Card>
+  );
+}
+
+/** REV-02: the review in short, as in the review pane of the draft editor: whether it
+ * matches the draft, who made it, the score, the semaphore, the thesis and
+ * target-structure scores with their aspects, and the suggestions. The reasoning is in
+ * the full review (REV-24). */
+export function ReviewShort({ review, actions }: { review: Review; actions?: SuggestionActions }) {
+  const { t } = useTranslation();
+  if (isRunning(review.state) || review.state === "failed") return <ReviewResult review={review} />;
+  const days =
+    review.news_from && review.news_to
+      ? Math.round((Date.parse(review.news_to) - Date.parse(review.news_from)) / 86_400_000)
+      : null;
+  const thesis = review.aspects.filter((a) => a.code.startsWith("T"));
+  const structure = review.aspects.filter((a) => a.code.startsWith("P"));
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-1">
+        {!review.confirmed &&
+          (review.outdated ? (
+            <Badge variant="warning" className="justify-self-start">
+              {t("reviews.result.noLongerMatches")}
+            </Badge>
+          ) : (
+            <Badge variant="success" className="justify-self-start">
+              {t("reviews.result.matches")}
+            </Badge>
+          ))}
+        <p className="text-sm text-muted-foreground">
+          {reviewerLabel(review)}
+          {review.completed_at && ` · ${formatDateTime(review.completed_at)}`}
+          {days !== null && ` · ${t("reviews.result.newsDays", { count: days })}`}
+        </p>
+      </div>
+      <Total review={review} />
+      {review.kind === "full" && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ShortGroup
+            title={t("reviews.score.thesis", { score: formatScore(review.thesis_score ?? 0) })}
+            review={review}
+            aspects={thesis}
+          />
+          {structure.length > 0 ? (
+            <ShortGroup
+              title={t("reviews.score.structure", {
+                score: formatScore(review.structure_score ?? 0),
+              })}
+              review={review}
+              aspects={structure}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">{t("reviews.result.noStructure")}</p>
+          )}
+        </div>
+      )}
+      <FullReview review={review} />
+      <Suggestions review={review} actions={actions} />
+    </div>
+  );
+}
+
+function ShortGroup({
+  title,
+  review,
+  aspects,
+}: {
+  title: string;
+  review: Review;
+  aspects: Review["aspects"];
+}) {
+  return (
+    <div className="grid content-start gap-1 text-sm">
+      <p className="font-medium">{title}</p>
+      <ul className="grid gap-0.5">
+        {aspects.map((a) => (
+          <li
+            key={a.code}
+            className={
+              a.score < 6.5
+                ? "flex justify-between gap-2 text-amber-800 dark:text-amber-300"
+                : "flex justify-between gap-2"
+            }
+          >
+            <span className="truncate">
+              {a.code} {aspectName(a, review.scoring_version)}
+            </span>
+            <span className="font-medium tabular-nums">{formatScore(a.score)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** REV-24: the whole review in a dialog: reviewer, date, news period and scoring version,
+ * score and semaphore with the reason, every aspect with its reasoning, the sources. */
+export function FullReview({ review }: { review: Review }) {
+  const { t } = useTranslation();
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button type="button" variant="link" className="h-auto justify-self-start p-0">
+          {t("reviews.full.open")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogTitle>{t("reviews.full.title")}</DialogTitle>
+        <DialogDescription className="sr-only">{t("reviews.full.description")}</DialogDescription>
+        <ReviewResult review={review} suggestions={false} />
+        <p className="text-sm text-muted-foreground">{t("reviews.full.suggestionsInPane")}</p>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -317,6 +446,7 @@ export function ReviewDetails({ reviewId }: { reviewId: number }) {
     <div className="grid gap-2 text-sm">
       <p className="text-muted-foreground">{reviewerLabel(r)}</p>
       <Total review={r} />
+      <FullReview review={r} />
       <ul className="grid gap-1">
         {r.aspects.map((a) => (
           <li key={a.code} className="flex flex-wrap items-center gap-2">

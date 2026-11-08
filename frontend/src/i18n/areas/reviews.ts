@@ -27,6 +27,11 @@ export const en = {
     outdated: "outdated: the draft changed since",
     manual: "manual review",
     manualWith: "manual review with {{model}}",
+    matches: "matches the draft",
+    noLongerMatches: "no longer matches the draft",
+    newsDays_one: "news of {{count}} day",
+    newsDays_other: "news of {{count}} days",
+    noStructure: "Target structure not scored: no positions",
     scoring: "scoring v{{version}}",
     news: "news {{from}} – {{to}}",
     notAdvice:
@@ -89,6 +94,12 @@ export const en = {
     T4: "Break conditions and warning signals",
     T5: "Fit and alternatives",
     T6: "Current evidence",
+  },
+  full: {
+    open: "Read the full review →",
+    title: "The full review",
+    description: "Every aspect with its reasoning, the verdict and the sources.",
+    suggestionsInPane: "The suggestions are in the review pane, with Take over.",
   },
   sources: "Sources",
   suggestions: {
@@ -175,6 +186,11 @@ export const de: Messages<typeof en> = {
     outdated: "veraltet: der Entwurf wurde seither geändert",
     manual: "manuelle Prüfung",
     manualWith: "manuelle Prüfung mit {{model}}",
+    matches: "passt zum Entwurf",
+    noLongerMatches: "passt nicht mehr zum Entwurf",
+    newsDays_one: "Nachrichten von {{count}} Tag",
+    newsDays_other: "Nachrichten von {{count}} Tagen",
+    noStructure: "Zielstruktur nicht bewertet: keine Positionen",
     scoring: "Bewertung v{{version}}",
     news: "Nachrichten {{from}} – {{to}}",
     notAdvice:
@@ -235,6 +251,12 @@ export const de: Messages<typeof en> = {
     T4: "Bruchbedingungen und Warnsignale",
     T5: "Eignung und Alternativen",
     T6: "Aktuelle Belege",
+  },
+  full: {
+    open: "Ganze Prüfung lesen →",
+    title: "Die ganze Prüfung",
+    description: "Jeder Aspekt mit seiner Begründung, das Urteil und die Quellen.",
+    suggestionsInPane: "Die Vorschläge sind im Prüfungsbereich, mit Übernehmen.",
   },
   sources: "Quellen",
   suggestions: {

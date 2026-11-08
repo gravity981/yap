@@ -21,7 +21,7 @@ import {
   useUsage,
   type ReviewBrief,
 } from "./api";
-import { ReviewResult } from "./review";
+import { ReviewShort } from "./review";
 
 /** An AI reviewer's ID, or a manual review (REV-18). */
 type Method = number | "manual";
@@ -49,7 +49,7 @@ export function ReviewPane({
       {!brief ? (
         <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
       ) : review.data ? (
-        <ReviewResult review={review.data} actions={{ save, onDraft }} />
+        <ReviewShort review={review.data} actions={{ save, onDraft }} />
       ) : (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}

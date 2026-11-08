@@ -53,7 +53,7 @@ test("[USR-01] [USR-02] [USR-03] an admin creates an investor who chooses an own
   });
 });
 
-test("[POL-01] [POL-02] [POL-05] [POL-06] [POL-14] [POL-17] [THS-01] [THS-07] writes a policy: thesis and target structure", async ({
+test("[POL-01] [POL-02] [POL-05] [POL-06] [POL-14] [POL-15] [POL-17] [THS-01] [THS-07] writes a policy: thesis and target structure", async ({
   page,
 }) => {
   await asAlice(page);
@@ -73,9 +73,14 @@ test("[POL-01] [POL-02] [POL-05] [POL-06] [POL-14] [POL-17] [THS-01] [THS-07] wr
     await page.locator(".cm-content").first().click();
     await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.type("# Global growth\n\nIndex funds follow the economy.");
+    // POL-15: on a wide screen the thesis has Write and Preview tabs, the review is beside it
+    const thesis = page.getByRole("region", { name: "Thesis" });
+    await expect(page.getByRole("region", { name: "Review", exact: true })).toBeVisible();
+    await thesis.getByRole("tab", { name: "Preview" }).click();
     await expect(
-      page.getByLabel("Preview").getByRole("heading", { name: "Global growth" }),
+      thesis.getByLabel("Preview", { exact: true }).getByRole("heading", { name: "Global growth" }),
     ).toBeVisible();
+    await thesis.getByRole("tab", { name: "Write" }).click();
   });
   await test.step("the target structure: XUS 50 %, ETH 50 %", async () => {
     const first = page.getByRole("group", { name: "Position 1" });
@@ -266,7 +271,7 @@ test("[NFR-06] works on a phone-sized screen", async ({ page }) => {
   });
 });
 
-test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [TL-01] reviews a policy draft and confirms it", async ({
+test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [REV-24] [TL-01] reviews a policy draft and confirms it", async ({
   page,
 }) => {
   await login(page, "admin", ADMIN_PASSWORD);
@@ -306,18 +311,28 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [T
   });
   const review = page.getByRole("region", { name: "Review", exact: true });
   await test.step("start the review in the editor and wait for its result", async () => {
-    await page.getByRole("tab", { name: "Review", exact: true }).click();
+    // POL-15: the review is beside the thesis on a wide screen
+    await expect(review).toBeVisible();
     await expect(review.getByText(/0 of 5 reviews with Standard used this month/)).toBeVisible();
     await review.getByRole("button", { name: "Start review" }).click();
     // The fake LLM: thesis 6.5, target structure 7.5, the review 7 (REV-02)
     await expect(review.getByRole("img", { name: "Score: 7.0 of 10" })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(review.getByText("Thesis · 6.5 · Target structure · 7.5")).toBeVisible();
+    // REV-02: the review in short, with both scores and their aspects
+    await expect(review.getByText("Thesis · 6.5", { exact: true })).toBeVisible();
+    await expect(review.getByText("Target structure · 7.5", { exact: true })).toBeVisible();
     await expect(review.getByText("good", { exact: true })).toBeVisible();
-    await expect(review.getByText("not confirmed yet")).toBeVisible();
+    await expect(review.getByText("matches the draft")).toBeVisible();
     // The result cannot be changed (REV-10 dropped)
     await expect(review.getByRole("button", { name: "Change result" })).toHaveCount(0);
+    // REV-24: the full review with every reasoning
+    await review.getByRole("button", { name: "Read the full review →" }).click();
+    const full = page.getByRole("dialog", { name: "The full review" });
+    await expect(full.getByText(/no break condition is met/).first()).toBeVisible();
+    await expect(full.getByRole("link", { name: /global equity funds/ })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(full).toHaveCount(0);
   });
   await test.step("take over a suggestion and undo it", async () => {
     // The fake LLM suggests a wider sell threshold for the first position (REV-07)

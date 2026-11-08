@@ -134,6 +134,7 @@ export const en = {
     saveFailed: "Saving failed; it is retried",
     saveInvalid: "Not saved yet: correct the marked fields",
     finalize: "Finalize →",
+    tabEdit: "Edit",
   },
   discard: {
     button: "Discard draft",
@@ -303,6 +304,7 @@ export const de: Messages<typeof en> = {
     saveFailed: "Speichern fehlgeschlagen; es wird erneut versucht",
     saveInvalid: "Noch nicht gespeichert: korrigiere die markierten Felder",
     finalize: "Abschliessen →",
+    tabEdit: "Bearbeiten",
   },
   discard: {
     button: "Entwurf verwerfen",
