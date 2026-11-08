@@ -56,7 +56,8 @@ def test_an_answer_is_parsed() -> None:
     assert parsed.verdict == Verdict.WARNING
     assert parsed.verdict_reason == "Warning signals are observed [1]."
     assert parsed.sources[0].url == "https://news.example/etf"
-    assert parsed.suggestions[0].kind == "thesis_text"
+    assert parsed.suggestions[0].kind == "thesis_section"
+    assert parsed.suggestions[0].change == {"section": 1, "text": "Within 15 years."}
     # Without positions only the thesis is scored
     parsed = review_prompts.parse_answer(thesis_answer(prompt_id=PROMPT_ID), PROMPT_ID, False)
     assert len(parsed.aspects) == 6

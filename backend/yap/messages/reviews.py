@@ -44,6 +44,14 @@ MESSAGES: dict[str, str] = {
     "review_failed_unexpectedly": "The review failed unexpectedly ({detail})",
     "review_version_not_found": "Version {version_no} of policy {policy} not found",
     "review_version_no_review": "{version} has no review",
+    # Suggestions and proposals (services/suggestions.py, REV-07, REV-22)
+    "suggestion_not_found": "Suggestion {id} not found",
+    "suggestion_review_confirmed": "The review is confirmed; its suggestions cannot change",
+    "suggestion_without_change": "This suggestion is from an older review and cannot be taken over",
+    "suggestion_not_open": "This suggestion was already taken over or dismissed",
+    "suggestion_is_open": "This suggestion is neither taken over nor dismissed",
+    "suggestion_position_missing": "The draft has no position {ticker} any more",
+    "suggestion_position_exists": "The draft already has a position {ticker}",
     # Rebalances (services/rebalances.py)
     "rebalance_values_missing": "Enter the portfolio's current values first",
     "rebalance_snapshot_not_found": "Snapshot {id} not found",

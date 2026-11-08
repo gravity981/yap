@@ -262,7 +262,8 @@ def submit_manual_review(
         raise ValidationError([("answer", p) for p in problems])
     if ref.version_id != draft.id:
         raise ValidationError.single(msg("answer_prompt_id_other_draft"), "answer")
-    parsed, problems = review_prompts.check_answer(answer, ref.prompt_id, with_positions)
+    tickers = [p.asset.ticker for p in draft.positions]
+    parsed, problems = review_prompts.check_answer(answer, ref.prompt_id, with_positions, tickers)
     if parsed is None:
         raise ValidationError([("answer", p) for p in problems])
     _replace_previous(session, draft)
@@ -322,7 +323,9 @@ def run_review(
 
     try:
         answer = adapters(config).generate(prompt.llm_request())
-        parsed = review_prompts.parse_answer(answer, prompt.prompt_id, prompt.with_positions)
+        parsed = review_prompts.parse_answer(
+            answer, prompt.prompt_id, prompt.with_positions, prompt.tickers
+        )
         error = None
     except LlmError as e:
         error = str(e)
@@ -372,7 +375,8 @@ def _store(review: Review, parsed: review_prompts.ParsedReview) -> None:
         for s in parsed.sources
     ]
     review.suggestions = [
-        ReviewSuggestion(kind=s.kind, content_md=s.content) for s in parsed.suggestions
+        ReviewSuggestion(kind=s.kind.value, content_md=s.content_md, change=s.change, state="open")
+        for s in parsed.suggestions
     ]
 
 

@@ -10,20 +10,28 @@ the investor is (NFR-01).
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from collections.abc import Collection
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from yap.db.models import PolicyVersion
 from yap.domain.reviews import POLICY_ASPECTS, THESIS_ASPECTS, Aspect, Verdict, to_half_points
+from yap.domain.suggestions import (
+    POSITION_FIELDS,
+    SECTION_COUNT,
+    SuggestionKind,
+    position_problems,
+    structure_problems,
+)
 from yap.llm import LlmError
 from yap.llm.base import LlmRequest
 from yap.messages import Message, msg
 
-# Replaced by structured suggestions in step 2.3 (REV-07)
-SUGGESTION_KINDS = ("thesis_text", "policy_position")
+MAX_PROPOSALS = 3  # REV-22
 
 SCORING_RULES = (
     "Score each aspect from 0 to 10 in steps of 0.5 (e.g. 6.5); 10 is the best. "
@@ -56,9 +64,46 @@ class SourceAnswer(_Model):
     url: str
 
 
+AssetTypeAnswer = Literal["ETF", "stock", "crypto", "cash_buffer"]
+
+
 class SuggestionAnswer(_Model):
-    kind: Literal["thesis_text", "policy_position"]
-    content: str
+    """REV-07: one concrete change. Only the fields of its kind are set, the others null:
+    thesis_section: section, text; position_change: ticker and exactly one of the
+    position fields; position_add: ticker and all position fields; position_remove:
+    ticker."""
+
+    kind: Literal["thesis_section", "position_change", "position_add", "position_remove"]
+    reason: str
+    section: int | None
+    text: str | None
+    ticker: str | None
+    name: str | None
+    type: AssetTypeAnswer | None
+    target_pct: Decimal | None
+    buy_threshold_pct: Decimal | None
+    sell_threshold_pct: Decimal | None
+    exit: bool | None
+    rationale: str | None
+
+
+class PositionAnswer(_Model):
+    ticker: str
+    name: str
+    type: AssetTypeAnswer
+    target_pct: Decimal
+    buy_threshold_pct: Decimal
+    sell_threshold_pct: Decimal
+    exit: bool
+    rationale: str
+
+
+class ProposalAnswer(_Model):
+    """REV-22: a target structure that follows from a thesis without positions."""
+
+    name: str
+    description: str
+    positions: list[PositionAnswer]
 
 
 class Answer(_Model):
@@ -68,6 +113,7 @@ class Answer(_Model):
     verdict_reason: str
     sources: list[SourceAnswer]
     suggestions: list[SuggestionAnswer]
+    proposals: list[ProposalAnswer]
 
 
 def _schema(with_positions: bool, prompt_id: str) -> dict[str, Any]:
@@ -83,6 +129,15 @@ def _schema(with_positions: bool, prompt_id: str) -> dict[str, Any]:
         }
 
     codes = [a.code for a in aspects(with_positions)]
+    position: dict[str, Any] = {
+        "name": {"type": "string"},
+        "type": {"type": "string", "enum": ["ETF", "stock", "crypto", "cash_buffer"]},
+        "target_pct": {"type": "number", "description": "Target allocation in %"},
+        "buy_threshold_pct": {"type": "number", "description": "Relative, -100 to 0"},
+        "sell_threshold_pct": {"type": "number", "description": "Relative, 0 or more"},
+        "exit": {"type": "boolean"},
+        "rationale": {"type": "string", "description": "Why the position, in markdown"},
+    }
     return obj(
         {
             "prompt_id": {"type": "string", "enum": [prompt_id]},
@@ -118,10 +173,37 @@ def _schema(with_positions: bool, prompt_id: str) -> dict[str, Any]:
                 "type": "array",
                 "items": obj(
                     {
-                        "kind": {"type": "string", "enum": list(SUGGESTION_KINDS)},
-                        "content": {
+                        "kind": {
                             "type": "string",
-                            "description": "The suggested change, in markdown",
+                            "enum": [k.value for k in SuggestionKind if k.is_suggestion],
+                        },
+                        "reason": {
+                            "type": "string",
+                            "description": "Why, in one or two sentences",
+                        },
+                        "section": {
+                            "type": ["integer", "null"],
+                            "description": f"thesis_section: 1 to {SECTION_COUNT}",
+                        },
+                        "text": {
+                            "type": ["string", "null"],
+                            "description": "thesis_section: the new text of the section in "
+                            "markdown, without its heading",
+                        },
+                        "ticker": {"type": ["string", "null"]},
+                        **{k: {**v, "type": [v["type"], "null"]} for k, v in position.items()},
+                    }
+                ),
+            },
+            "proposals": {
+                "type": "array",
+                "items": obj(
+                    {
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "positions": {
+                            "type": "array",
+                            "items": obj({"ticker": {"type": "string"}, **position}),
                         },
                     }
                 ),
@@ -138,12 +220,128 @@ class ParsedAspect:
 
 
 @dataclass(frozen=True)
+class ParsedSuggestion:
+    """A suggestion or proposal as stored (REV-07, REV-22): what Take over applies."""
+
+    kind: SuggestionKind
+    content_md: str
+    change: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class ParsedReview:
     aspects: list[ParsedAspect]
     verdict: Verdict
     verdict_reason: str
     sources: list[SourceAnswer]
-    suggestions: list[SuggestionAnswer]
+    suggestions: list[ParsedSuggestion]
+
+
+def _position(p: PositionAnswer | SuggestionAnswer) -> dict[str, Any]:
+    """A target-structure row as stored in a change; decimals as strings, so they stay
+    exact."""
+    assert p.ticker is not None
+    return {
+        "ticker": p.ticker.strip().upper(),
+        "name": (p.name or "").strip(),
+        "type": p.type,
+        "target_pct": str(p.target_pct),
+        "buy_threshold_pct": str(p.buy_threshold_pct),
+        "sell_threshold_pct": str(p.sell_threshold_pct),
+        "exit": bool(p.exit),
+        "rationale_md": (p.rationale or "").strip(),
+    }
+
+
+def _invalid(where: str, error: str) -> Message:
+    return msg("answer_field_invalid", field=where, error=error)
+
+
+def _suggestion(
+    i: int, s: SuggestionAnswer, tickers: Collection[str] | None
+) -> tuple[ParsedSuggestion | None, list[Message]]:
+    """Checks one suggestion against its kind and the reviewed positions (REV-07)."""
+    where = f"suggestions.{i}"
+    kind = SuggestionKind(s.kind)
+    if kind == SuggestionKind.THESIS_SECTION:
+        if s.section is None or not 1 <= s.section <= SECTION_COUNT:
+            return None, [_invalid(f"{where}.section", f"must be 1 to {SECTION_COUNT}")]
+        if not (s.text or "").strip():
+            return None, [_invalid(f"{where}.text", "the new text of the section is missing")]
+        change = {"section": s.section, "text": (s.text or "").strip()}
+        return ParsedSuggestion(kind, s.reason.strip(), change), []
+    ticker = (s.ticker or "").strip().upper()
+    if not ticker:
+        return None, [_invalid(f"{where}.ticker", "is missing")]
+    known = tickers is None or ticker in tickers
+    if kind == SuggestionKind.POSITION_ADD:
+        if tickers is not None and ticker in tickers:
+            return None, [_invalid(f"{where}.ticker", f"{ticker} is already a position")]
+        missing = [
+            f
+            for f in ("name", "type", "target_pct", "buy_threshold_pct", "sell_threshold_pct")
+            if getattr(s, f) is None
+        ]
+        if missing:
+            return None, [_invalid(f"{where}.{f}", "is missing") for f in missing]
+        row = _position(s)
+        problems = [_invalid(f"{where}.{f}", e) for f, e in position_problems(row)]
+        return (
+            (None, problems)
+            if problems
+            else (
+                ParsedSuggestion(kind, s.reason.strip(), {"position": row}),
+                [],
+            )
+        )
+    if not known:
+        return None, [_invalid(f"{where}.ticker", f"{ticker} is not a position")]
+    if kind == SuggestionKind.POSITION_REMOVE:
+        return ParsedSuggestion(kind, s.reason.strip(), {"ticker": ticker}), []
+    values = {f: getattr(s, "rationale" if f == "rationale_md" else f) for f in POSITION_FIELDS}
+    given = {f: v for f, v in values.items() if v is not None}
+    if len(given) != 1:
+        return None, [_invalid(where, "change exactly one field of the position")]
+    [(name, value)] = given.items()
+    value = str(value) if isinstance(value, Decimal) else value
+    problems = [_invalid(f"{where}.{f}", e) for f, e in position_problems({name: value})]
+    if problems:
+        return None, problems
+    change = {"ticker": ticker, "field": name, "value": value}
+    return ParsedSuggestion(kind, s.reason.strip(), change), []
+
+
+def _proposal(i: int, p: ProposalAnswer) -> tuple[ParsedSuggestion | None, list[Message]]:
+    """REV-22: a whole target structure that could be activated as it is (POL-05)."""
+    where = f"proposals.{i}"
+    rows = [_position(row) for row in p.positions]
+    problems = [
+        _invalid(f"{where}.positions.{k}.{f}", e)
+        for k, row in enumerate(rows)
+        for f, e in position_problems(row)
+    ]
+    problems += [_invalid(f"{where}.positions", e) for e in structure_problems(rows)]
+    if problems:
+        return None, problems
+    change = {"name": p.name.strip(), "positions": rows}
+    return ParsedSuggestion(SuggestionKind.PROPOSAL, p.description.strip(), change), []
+
+
+def _suggestions(
+    answer: Answer, tickers: Collection[str] | None, with_positions: bool
+) -> tuple[list[ParsedSuggestion], list[Message]]:
+    parsed: list[ParsedSuggestion] = []
+    problems: list[Message] = []
+    results = [_suggestion(i, s, tickers) for i, s in enumerate(answer.suggestions)]
+    if not with_positions:  # proposals only for a thesis without positions (REV-22)
+        if len(answer.proposals) > MAX_PROPOSALS:
+            problems.append(_invalid("proposals", f"at most {MAX_PROPOSALS}"))
+        results += [_proposal(i, p) for i, p in enumerate(answer.proposals)]
+    for suggestion, found in results:
+        problems += found
+        if suggestion is not None:
+            parsed.append(suggestion)
+    return parsed, problems
 
 
 def _valid_score(score: float) -> bool:
@@ -173,11 +371,16 @@ def answer_prompt_id(text: str) -> str | None:
 
 
 def check_answer(
-    text: str, prompt_id: str, with_positions: bool
+    text: str,
+    prompt_id: str,
+    with_positions: bool,
+    tickers: Collection[str] | None = None,
 ) -> tuple[ParsedReview | None, list[Message]]:
     """The parsed answer, or every problem found in it, each saying where it is (REV-18).
     The answer must repeat the ID of its prompt (REV-19) and score P1-P6 exactly when the
-    reviewed content has positions (REV-02)."""
+    reviewed content has positions (REV-02). Suggestions must fit the reviewed positions
+    (`tickers`, unchecked if None, REV-07); proposals count only without positions
+    (REV-22)."""
     data, problem = _json_object(text)
     if problem:
         return None, [problem]
@@ -201,6 +404,8 @@ def check_answer(
     problems.extend(
         msg("score_invalid", score=a.score) for a in answer.aspects if not _valid_score(a.score)
     )
+    suggestions, suggestion_problems = _suggestions(answer, tickers, with_positions)
+    problems.extend(suggestion_problems)
     if problems:
         return None, problems
     order = {code: i for i, code in enumerate(expected)}
@@ -214,15 +419,17 @@ def check_answer(
             answer.verdict,
             answer.verdict_reason.strip(),
             answer.sources,
-            answer.suggestions,
+            suggestions,
         ),
         [],
     )
 
 
-def parse_answer(text: str, prompt_id: str, with_positions: bool) -> ParsedReview:
+def parse_answer(
+    text: str, prompt_id: str, with_positions: bool, tickers: Collection[str] | None = None
+) -> ParsedReview:
     """The answer of an AI reviewer; an invalid one fails the review (REV-08)."""
-    parsed, problems = check_answer(text, prompt_id, with_positions)
+    parsed, problems = check_answer(text, prompt_id, with_positions, tickers)
     if parsed is None:
         raise LlmError(problems[0])
     return parsed
@@ -295,6 +502,7 @@ class ReviewPrompt:
     content: str  # what is reviewed: title, thesis and target structure (REV-05)
     json_schema: dict[str, Any]
     with_positions: bool  # P1-P6 are scored (REV-02)
+    tickers: tuple[str, ...] = ()  # the reviewed positions, which suggestions refer to
 
     def llm_request(self) -> LlmRequest:
         return LlmRequest(
@@ -376,6 +584,16 @@ Target-structure aspects:
 {_aspect_list(POLICY_ASPECTS)}"""
 
 
+def _proposal_part(with_positions: bool) -> str:
+    if with_positions:
+        return "Leave proposals empty."
+    return f"""As the policy has no positions yet, propose 1 to {MAX_PROPOSALS} target structures
+that follow from the thesis, each with a short name, a description of how it differs from
+the others and its positions. The targets of a proposal sum to 100 and it has at most one
+position of type cash_buffer. Use real, liquid tickers. Only the assets the thesis argues
+for belong in a proposal."""
+
+
 def review_prompt(version: PolicyVersion, ref: PromptRef) -> ReviewPrompt:
     """REV-02 to REV-05, REV-19: one review of the whole policy: aspects T1-T6 and the
     verdict with current news, and P1-P6 if it has positions."""
@@ -413,9 +631,18 @@ List every news article you rely on under sources (title, publication date, link
 Every statement based on news refers to its source as [n], the position in that list
 starting at 1. Do not invent sources.
 
-Suggestions are optional: concrete changes to the thesis text (thesis_text) or to the
-target allocations, thresholds, exit flags or rationales of positions (policy_position).
-Make none if nothing needs to change.
+Suggestions are optional, each one concrete change the investor can take over with one
+click. Make none if nothing needs to change. Each suggestion has a kind and a reason; set
+only the fields of its kind and leave the others null:
+- thesis_section: replace the text of one section of the thesis template (section 1 to
+  {SECTION_COUNT}); text is the whole new text of the section in markdown, without its
+  heading.
+- position_change: ticker of an existing position and exactly one new value of
+  target_pct, buy_threshold_pct, sell_threshold_pct, exit or rationale.
+- position_add: a new position with ticker, name, type, target_pct, buy_threshold_pct,
+  sell_threshold_pct, exit and rationale.
+- position_remove: ticker of the position to remove.
+{_proposal_part(with_positions)}
 
 {_answer_format(ref.prompt_id)}"""
     return ReviewPrompt(
@@ -424,4 +651,5 @@ Make none if nothing needs to change.
         content=_content(version),
         json_schema=_schema(with_positions, ref.prompt_id),
         with_positions=with_positions,
+        tickers=tuple(p.asset.ticker for p in version.positions),
     )

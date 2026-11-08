@@ -488,9 +488,18 @@ class ReviewSuggestion(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     review_id: Mapped[int] = mapped_column(ForeignKey("review.id", ondelete="CASCADE"))
-    # thesis_text | policy_position; thesis_status only in reviews before stage 2
+    """A suggestion or proposal of a review (REV-07, REV-22). Its state may change only
+    while its review belongs to an open draft (REV-11)."""
+
+    # thesis_section | position_change | position_add | position_remove | proposal;
+    # before scoring version 3 also thesis_text, thesis_status, policy_position (no change)
     kind: Mapped[str] = mapped_column(String(20))
-    content_md: Mapped[str] = mapped_column(Text)
+    content_md: Mapped[str] = mapped_column(Text)  # the reason, or a proposal's description
+    # What Take over applies (domain/suggestions.py); null for older suggestions
+    change: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # What Take over replaced, so it can be undone
+    previous: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    state: Mapped[str] = mapped_column(String(20), default="open")  # | taken_over | dismissed
 
 
 class ReviewRun(Base):

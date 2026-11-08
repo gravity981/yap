@@ -263,7 +263,7 @@ test("[NFR-06] works on a phone-sized screen", async ({ page }) => {
   });
 });
 
-test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-11] [TL-01] reviews a policy draft and confirms it", async ({
+test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-11] [TL-01] reviews a policy draft and confirms it", async ({
   page,
 }) => {
   await login(page, "admin", ADMIN_PASSWORD);
@@ -315,16 +315,25 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-11] [TL-01] reviews a po
     await expect(review.getByText("not confirmed yet")).toBeVisible();
     // The result cannot be changed (REV-10 dropped)
     await expect(review.getByRole("button", { name: "Change result" })).toHaveCount(0);
+  });
+  await test.step("take over a suggestion and undo it", async () => {
+    // The fake LLM suggests a wider sell threshold for the first position (REV-07)
+    const card = review.getByRole("listitem", { name: /· sell threshold$/ });
+    await card.getByRole("button", { name: "Take over" }).click();
+    await expect(card.getByText("Taken over")).toBeVisible();
+    await expect(card.getByText(/→ \+30 %/)).toBeVisible();
+    await card.getByRole("button", { name: "Undo" }).click();
+    await expect(card.getByRole("button", { name: "Take over" })).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByText("draft v2")).toBeVisible();
   });
   await test.step("activating the draft confirms the review", async () => {
     await page.getByRole("button", { name: "Activate draft" }).click();
     const dialog = page.getByRole("dialog");
-    // The review of the whole draft is current, so nothing is pointed out (REV-11)
-    await expect(dialog.getByRole("alert")).toHaveCount(0);
+    // The draft changed after its review (the suggestion), which is pointed out (REV-11)
+    await expect(dialog.getByRole("alert")).toBeVisible();
     await dialog.getByLabel("Change note").fill("Reviewed");
-    await dialog.getByRole("button", { name: "Activate", exact: true }).click();
+    await dialog.getByRole("button", { name: "Activate anyway" }).click();
     await expect(page.getByText("active: core-v2")).toBeVisible();
     await expect(review.getByText("confirmed", { exact: true })).toBeVisible();
   });

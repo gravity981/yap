@@ -873,7 +873,8 @@ erDiagram
         int review_id FK
         string kind "thesis_section, position_change, position_add, position_remove, proposal; older reviews: thesis_text, thesis_status, policy_position"
         text content_md "the suggestion in words"
-        json change "what Take over applies, REV-07, REV-22"
+        json change "what Take over applies, REV-07, REV-22; null for older reviews"
+        json previous "what Take over replaced, for undo"
         string state "open, taken_over, dismissed"
     }
     TIMELINE_EVENT {

@@ -121,3 +121,35 @@ export function useSubmitManualReview(policyId: number) {
     },
   });
 }
+
+export type Suggestion = Review["suggestions"][number];
+export type SuggestionAction = "take-over" | "dismiss" | "undo";
+
+/** REV-07, REV-22: takes over, dismisses or undoes a suggestion; returns the review and
+ * the draft as they are now. */
+export function useSuggestionAction(reviewId: number) {
+  const client = useQueryClient();
+  const invalidate = useInvalidateOwners();
+  return useMutation({
+    mutationFn: ({ action, suggestionId }: { action: SuggestionAction; suggestionId: number }) => {
+      const params = { path: { review_id: reviewId, suggestion_id: suggestionId } };
+      if (action === "take-over") {
+        return unwrap(
+          api.POST("/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over", { params }),
+        );
+      }
+      if (action === "dismiss") {
+        return unwrap(
+          api.POST("/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss", { params }),
+        );
+      }
+      return unwrap(
+        api.POST("/api/reviews/{review_id}/suggestions/{suggestion_id}/undo", { params }),
+      );
+    },
+    onSuccess: (result) => {
+      client.setQueryData(reviewKey(result.review.id), result.review);
+      return invalidate();
+    },
+  });
+}

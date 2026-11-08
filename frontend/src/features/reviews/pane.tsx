@@ -9,6 +9,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/select";
+import type { Version } from "@/features/policies/api";
 
 import {
   isRunning,
@@ -32,10 +33,13 @@ export function ReviewPane({
   policyId,
   brief,
   save,
+  onDraft,
 }: {
   policyId: number;
   brief: ReviewBrief | null | undefined;
   save: () => Promise<unknown>;
+  /** REV-07: the draft after a suggestion was taken over, dismissed or undone */
+  onDraft: (draft: Version) => void;
 }) {
   const { t } = useTranslation();
   const review = useReview(brief?.id);
@@ -45,7 +49,7 @@ export function ReviewPane({
       {!brief ? (
         <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
       ) : review.data ? (
-        <ReviewResult review={review.data} />
+        <ReviewResult review={review.data} actions={{ save, onDraft }} />
       ) : (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}

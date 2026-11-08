@@ -12,16 +12,9 @@ import { formatDate, formatDateTime } from "@/lib/format";
 
 import { isRunning, useReview, type Review, type ReviewBrief } from "./api";
 import { SemaphoreBadge, semaphoreLabel, toSemaphore } from "./semaphore";
+import { Suggestions, type SuggestionActions } from "./suggestions";
 
-// thesis_status only in reviews from before stage 2
-const SUGGESTION_KINDS = ["thesis_text", "thesis_status", "policy_position"] as const;
 const ASPECT_CODES = ["T1", "T2", "T3", "T4", "T5", "T6", "P1", "P2", "P3", "P4", "P5", "P6"];
-
-function suggestionLabel(kind: string) {
-  return (SUGGESTION_KINDS as readonly string[]).includes(kind)
-    ? i18n.t(`reviews.suggestions.${kind as (typeof SUGGESTION_KINDS)[number]}`)
-    : kind;
-}
 
 const V1_CODES = ["T1", "T2", "T3", "T4", "T5", "T6"];
 
@@ -62,7 +55,7 @@ export function ReviewSection({ brief }: { brief: ReviewBrief | null }) {
   );
 }
 
-export function ReviewResult({ review }: { review: Review }) {
+export function ReviewResult({ review, actions }: { review: Review; actions?: SuggestionActions }) {
   const { t } = useTranslation();
 
   if (isRunning(review.state)) {
@@ -116,7 +109,7 @@ export function ReviewResult({ review }: { review: Review }) {
         <Aspects review={review} />
         <LegacyModification review={review} />
         <Sources review={review} />
-        <Suggestions review={review} />
+        <Suggestions review={review} actions={actions} />
 
         <NotAdvice short={t("reviews.result.notAdvice")} />
       </CardContent>
@@ -253,28 +246,6 @@ function Sources({ review }: { review: Review }) {
           </li>
         ))}
       </ol>
-    </div>
-  );
-}
-
-/** REV-07: suggestions are never applied automatically. */
-function Suggestions({ review }: { review: Review }) {
-  const { t } = useTranslation();
-  if (review.suggestions.length === 0) return null;
-  return (
-    <div className="grid gap-2">
-      <h3 className="font-medium">{t("reviews.suggestions.title")}</h3>
-      <p className="text-sm text-muted-foreground">{t("reviews.suggestions.note")}</p>
-      <ul className="grid gap-2">
-        {review.suggestions.map((s, i) => (
-          <li key={i} className="rounded-md border p-3 text-sm">
-            <Badge variant="outline">{suggestionLabel(s.kind)}</Badge>
-            <div className="mt-2">
-              <Markdown source={s.content_md} />
-            </div>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

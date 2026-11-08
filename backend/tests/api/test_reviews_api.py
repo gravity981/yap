@@ -3,8 +3,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.fixtures import Accounts, FakeLlm
-from tests.reviews.answers import answer, thesis_answer
+from tests.fixtures import Accounts, FakeClock, FakeLlm
+from tests.reviews.answers import answer, proposal, suggestion, thesis_answer
 
 
 def ok(response, status: int = 200):  # type: ignore[no-untyped-def]
@@ -297,3 +297,73 @@ def test_a_review_runs_on_the_reviewer_chosen_for_it(
     assert fake_llm.configs[-1].model == "gpt-x"
     refused = alice.post(f"/api/policies/{pid}/draft/review", json={"ai_reviewer_id": deep})
     assert refused.status_code == 409 and "All 1 reviews with Deep" in refused.text
+
+
+@pytest.mark.req("REV-07", "REV-09")
+def test_suggestions_are_taken_over_dismissed_and_undone(
+    alice: TestClient, accounts_api: Accounts, fake_llm: FakeLlm, clock: FakeClock
+) -> None:
+    fake_llm.answers = [
+        answer(
+            suggestions=[
+                suggestion("thesis_section", "Measurable.", section=7, text="- GDP below 2 %"),
+                suggestion("position_change", "Wider.", ticker="AAA", sell_threshold_pct=30),
+            ],
+            proposals=[proposal()],  # ignored: the draft has positions
+        )
+    ]
+    pid = _draft(alice)
+    rid = ok(alice.post(f"/api/policies/{pid}/draft/review", json={}), 202)["id"]
+    review = ok(alice.get(f"/api/reviews/{rid}"))
+    section, change = review["suggestions"]
+    assert [s["kind"] for s in review["suggestions"]] == ["thesis_section", "position_change"]
+    assert (section["state"], section["previous"]) == ("open", None)
+    assert change["change"] == {"ticker": "AAA", "field": "sell_threshold_pct", "value": "30"}
+
+    base = f"/api/reviews/{rid}/suggestions"
+    clock.advance(minutes=1)
+    result = ok(alice.post(f"{base}/{change['id']}/take-over"))
+    assert result["draft"]["positions"][0]["sell_threshold_pct"] == "30"
+    taken = result["review"]["suggestions"][1]
+    assert (taken["state"], taken["previous"]["value"]) == ("taken_over", "20")
+    assert result["review"]["outdated"] is True
+    # The draft's summary says so too
+    draft = ok(alice.get(f"/api/policies/{pid}"))["versions"][-1]
+    assert draft["review"]["outdated"] is True
+
+    result = ok(alice.post(f"{base}/{change['id']}/undo"))
+    assert result["draft"]["positions"][0]["sell_threshold_pct"] == "20"
+    assert result["review"]["suggestions"][1]["state"] == "open"
+
+    result = ok(alice.post(f"{base}/{section['id']}/dismiss"))
+    assert result["review"]["suggestions"][0]["state"] == "dismissed"
+    assert "## 7." not in result["draft"]["thesis_md"]
+    conflict = alice.post(f"{base}/{section['id']}/take-over")
+    assert conflict.status_code == 409
+    assert conflict.json()["code"] == "suggestion_not_open"
+
+    accounts_api.create("bob")
+    bob = accounts_api.client("bob")
+    assert bob.post(f"{base}/{section['id']}/undo").status_code == 404
+
+
+@pytest.mark.req("REV-22")
+def test_a_new_policy_gets_proposals_that_fill_its_target_structure(
+    alice: TestClient, fake_llm: FakeLlm
+) -> None:
+    fake_llm.answers = [thesis_answer(proposals=[proposal(), proposal("Broader")])]
+    pid = ok(alice.post("/api/policies", json={"name": "New", "thesis_md": "# T"}), 201)["id"]
+    rid = ok(alice.post(f"/api/policies/{pid}/draft/review", json={}), 202)["id"]
+    review = ok(alice.get(f"/api/reviews/{rid}"))
+    proposals = [s for s in review["suggestions"] if s["kind"] == "proposal"]
+    assert [(p["change"]["name"], p["content_md"]) for p in proposals] == [
+        ("Focused", "Focused structure."),
+        ("Broader", "Broader structure."),
+    ]
+    result = ok(alice.post(f"/api/reviews/{rid}/suggestions/{proposals[0]['id']}/take-over"))
+    assert [(p["ticker"], p["target_pct"]) for p in result["draft"]["positions"]] == [
+        ("VWRL", "85"),
+        ("CASH", "15"),
+    ]
+    # The proposal can be activated as it is (POL-05)
+    ok(alice.post(f"/api/policies/{pid}/draft/activate", json={}))

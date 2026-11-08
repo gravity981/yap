@@ -183,6 +183,12 @@ function DraftForm({
                 policyId={policyId}
                 brief={brief}
                 save={() => saveDraft.mutateAsync(body())}
+                onDraft={(draft) => {
+                  // REV-07: a suggestion changed the draft on the server
+                  setTitle(draft.thesis_title);
+                  setContent(draft.thesis_md);
+                  setRows(draft.positions.length ? rowsOf(draft) : [emptyRow()]);
+                }}
               />
             ),
           }}

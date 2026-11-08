@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 import pytest
 from sqlalchemy.orm import Session
@@ -21,6 +22,7 @@ from yap.db.models import (
     Portfolio,
     Review,
     ReviewAspect,
+    ReviewSuggestion,
 )
 from yap.domain.reviews import SCORING_VERSION
 from yap.llm import LlmConfig, LlmError
@@ -186,6 +188,26 @@ class Factory:
         self.session.add(review)
         self.session.flush()
         return review
+
+    def suggestion(
+        self,
+        review: Review,
+        kind: str = "thesis_section",
+        change: dict[str, Any] | None = None,
+        content_md: str = "Make it measurable.",
+    ) -> ReviewSuggestion:
+        """An open suggestion of a review (REV-07); by default a new text of section 7."""
+        suggestion = ReviewSuggestion(
+            review_id=review.id,
+            kind=kind,
+            content_md=content_md,
+            change=change if change is not None else {"section": 7, "text": "- GDP below 2 %"},
+            state="open",
+        )
+        self.session.add(suggestion)
+        self.session.flush()
+        self.session.refresh(review)
+        return suggestion
 
     def active_policy(
         self,

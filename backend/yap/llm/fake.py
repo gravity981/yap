@@ -3,6 +3,7 @@ review with fixed scores and never calls the internet. Enabled with LLM_FAKE=1 a
 refused in production (see api/app.py)."""
 
 import json
+import re
 from typing import Any
 
 from yap.llm.base import LlmConfig, LlmRequest
@@ -52,21 +53,79 @@ class FakeAdapter:
                     "url": "https://example.com/news",
                 }
             ],
-            "suggestions": [
-                {
-                    "kind": "thesis_text",
-                    "content": "Make the warning signals measurable, e.g. with a threshold.",
-                },
-                *(
-                    [
-                        {
-                            "kind": "policy_position",
-                            "content": "Explain in the rationale why the bond share is not higher.",
-                        }
-                    ]
-                    if "P1" in codes
-                    else []
-                ),
-            ],
+            "suggestions": _suggestions(request.prompt if "P1" in codes else None),
+            "proposals": [] if "P1" in codes else PROPOSALS,
         }
         return json.dumps(answer)
+
+
+_EMPTY = {
+    "section": None,
+    "text": None,
+    "ticker": None,
+    "name": None,
+    "type": None,
+    "target_pct": None,
+    "buy_threshold_pct": None,
+    "sell_threshold_pct": None,
+    "exit": None,
+    "rationale": None,
+}
+
+
+def _suggestions(content: str | None) -> list[dict[str, Any]]:
+    """A thesis section, and with positions a wider sell threshold of the first one."""
+    result: list[dict[str, Any]] = [
+        {
+            **_EMPTY,
+            "kind": "thesis_section",
+            "reason": "Make the warning signals measurable, so a weakening is noticed in time.",
+            "section": 7,
+            "text": "- World GDP growth below 2 % for two years\n- Fund costs (TER) above 0.3 %",
+        }
+    ]
+    match = re.search(r"^\| (?!Ticker\b)([^|\s]+) \|", content or "", re.MULTILINE)
+    if match and not match.group(1).startswith("-"):
+        result.append(
+            {
+                **_EMPTY,
+                "kind": "position_change",
+                "reason": "A wider band suits the volatility the thesis describes.",
+                "ticker": match.group(1),
+                "sell_threshold_pct": 30,
+            }
+        )
+    return result
+
+
+def _position(ticker: str, name: str, kind: str, target: int, band: int) -> dict[str, Any]:
+    return {
+        "ticker": ticker,
+        "name": name,
+        "type": kind,
+        "target_pct": target,
+        "buy_threshold_pct": -band,
+        "sell_threshold_pct": band,
+        "exit": False,
+        "rationale": f"Expresses the thesis with {name}.",
+    }
+
+
+PROPOSALS = [
+    {
+        "name": "Focused",
+        "description": "Close to the thesis, with higher risk.",
+        "positions": [
+            _position("VWRL", "Vanguard FTSE All-World", "ETF", 85, 20),
+            _position("CASH", "Cash buffer", "cash_buffer", 15, 0),
+        ],
+    },
+    {
+        "name": "Broader",
+        "description": "A world core with a smaller cash buffer.",
+        "positions": [
+            _position("VWRL", "Vanguard FTSE All-World", "ETF", 90, 20),
+            _position("CASH", "Cash buffer", "cash_buffer", 10, 0),
+        ],
+    },
+]

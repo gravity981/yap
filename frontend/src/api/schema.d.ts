@@ -1203,6 +1203,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss Suggestion
+         * @description REV-07: marks the suggestion as dismissed; the draft stays as it is.
+         */
+        post: operations["dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take Over Suggestion
+         * @description REV-07, REV-22: applies the suggestion or proposal to the draft.
+         */
+        post: operations["take_over_suggestion_api_reviews__review_id__suggestions__suggestion_id__take_over_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo Suggestion
+         * @description REV-07: reverts a taken over suggestion in the draft, or reopens a dismissed one.
+         */
+        post: operations["undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/schemas/{import_type}": {
         parameters: {
             query?: never;
@@ -2526,12 +2586,36 @@ export interface components {
              */
             news_days?: number;
         };
-        /** SuggestionOut */
+        /**
+         * SuggestionOut
+         * @description REV-07, REV-22. `change` says what Take over applies (null for suggestions of older
+         *     reviews, which can only be read); `previous` what it replaced.
+         */
         SuggestionOut: {
+            /** Change */
+            change: {
+                [key: string]: unknown;
+            } | null;
             /** Content Md */
             content_md: string;
+            /** Id */
+            id: number;
             /** Kind */
             kind: string;
+            /** Previous */
+            previous: {
+                [key: string]: unknown;
+            } | null;
+            /** State */
+            state: string;
+        };
+        /**
+         * SuggestionResult
+         * @description The review with the suggestion's new state, and the draft as it is now.
+         */
+        SuggestionResult: {
+            draft: components["schemas"]["VersionOut"];
+            review: components["schemas"]["ReviewOut"];
         };
         /**
          * ThesisImportPreview
@@ -5265,6 +5349,108 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: number;
+                suggestion_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    take_over_suggestion_api_reviews__review_id__suggestions__suggestion_id__take_over_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: number;
+                suggestion_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: number;
+                suggestion_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionResult"];
                 };
             };
             /** @description Validation Error */

@@ -3812,21 +3812,75 @@
         "type": "object"
       },
       "SuggestionOut": {
+        "description": "REV-07, REV-22. `change` says what Take over applies (null for suggestions of older\nreviews, which can only be read); `previous` what it replaced.",
         "properties": {
+          "change": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
           "content_md": {
             "title": "Content Md",
             "type": "string"
           },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
           "kind": {
             "title": "Kind",
+            "type": "string"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          },
+          "state": {
+            "title": "State",
             "type": "string"
           }
         },
         "required": [
+          "id",
           "kind",
-          "content_md"
+          "content_md",
+          "change",
+          "previous",
+          "state"
         ],
         "title": "SuggestionOut",
+        "type": "object"
+      },
+      "SuggestionResult": {
+        "description": "The review with the suggestion's new state, and the draft as it is now.",
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/VersionOut"
+          },
+          "review": {
+            "$ref": "#/components/schemas/ReviewOut"
+          }
+        },
+        "required": [
+          "review",
+          "draft"
+        ],
+        "title": "SuggestionResult",
         "type": "object"
       },
       "ThesisImportPreview": {
@@ -8993,6 +9047,210 @@
           }
         },
         "summary": "Get Review",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss": {
+      "post": {
+        "description": "REV-07: marks the suggestion as dismissed; the draft stays as it is.",
+        "operationId": "dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "title": "Review Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Dismiss Suggestion",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over": {
+      "post": {
+        "description": "REV-07, REV-22: applies the suggestion or proposal to the draft.",
+        "operationId": "take_over_suggestion_api_reviews__review_id__suggestions__suggestion_id__take_over_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "title": "Review Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Take Over Suggestion",
+        "tags": [
+          "reviews"
+        ]
+      }
+    },
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/undo": {
+      "post": {
+        "description": "REV-07: reverts a taken over suggestion in the draft, or reopens a dismissed one.",
+        "operationId": "undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "review_id",
+            "required": true,
+            "schema": {
+              "title": "Review Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "itk_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Itk Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Undo Suggestion",
         "tags": [
           "reviews"
         ]

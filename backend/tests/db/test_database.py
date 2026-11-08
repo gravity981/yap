@@ -543,6 +543,57 @@ def test_the_thesis_status_gives_way_to_the_semaphore_and_back(db_url: str, engi
     assert _triggers(engine) == at_head
 
 
+@pytest.mark.req("NFR-09", "NFR-05", "REV-07", "REV-22")
+def test_suggestions_get_a_change_and_a_state_and_lose_them_again(
+    db_url: str, engine: Engine
+) -> None:
+    """0020: suggestions get what Take over applies, what it replaced and their state;
+    older ones have no change and are open. The history triggers stay in place."""
+    from alembic import command
+
+    from yap.db.migrate import upgrade
+
+    at_head = _triggers(engine)
+    command.downgrade(_alembic(db_url), "0019")
+    t0 = "'2026-01-01T00:00:00+00:00'"
+    with engine.begin() as connection:
+        for sql in (
+            "INSERT INTO investor (id, username, password_hash, is_admin, is_investor,"
+            " base_currency, active, must_change_password, created_at, manual_review_default)"
+            f" VALUES (1, 'alice', 'x', 0, 1, 'CHF', 1, 0, {t0}, 0)",
+            f"INSERT INTO policy (id, owner_id, name, created_at) VALUES (1, 1, 'core', {t0})",
+            "INSERT INTO policy_version (id, policy_id, version_no, thesis_title, thesis_md,"
+            f" activated_at, created_at) VALUES (1, 1, 1, 'Growth', 'text', NULL, {t0})",
+            "INSERT INTO review (id, kind, policy_version_id, started_by, state, verdict,"
+            " scoring_version, provider, model, started_at, method) VALUES"
+            f" (1, 'full', 1, 1, 'done', 'good', '3', 'openai', 'm', {t0}, 'ai')",
+            "INSERT INTO review_suggestion (id, review_id, kind, content_md)"
+            " VALUES (1, 1, 'thesis_text', 'Add a horizon.')",
+            f"UPDATE policy_version SET activated_at = {t0} WHERE id = 1",
+        ):
+            connection.execute(text(sql))
+    upgrade(db_url)
+    assert _triggers(engine) == at_head
+    with engine.connect() as connection:
+        row = connection.execute(
+            text("SELECT kind, change, previous, state FROM review_suggestion WHERE id = 1")
+        ).one()
+        assert tuple(row) == ("thesis_text", None, None, "open")
+    # A suggestion of a confirmed review stays as it is (REV-11)
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(text("UPDATE review_suggestion SET state = 'dismissed'"))
+
+    command.downgrade(_alembic(db_url), "0019")
+    with engine.connect() as connection:
+        columns = {r[1] for r in connection.execute(text("PRAGMA table_info(review_suggestion)"))}
+        assert not columns & {"change", "previous", "state"}
+        assert connection.execute(text("SELECT content_md FROM review_suggestion")).scalar() == (
+            "Add a horizon."
+        )
+    upgrade(db_url)
+    assert _triggers(engine) == at_head
+
+
 @pytest.mark.req("NFR-09", "NFR-05", "PTF-03", "CMP-10")
 def test_portfolios_get_a_currency_and_snapshots_keep_their_values(
     db_url: str, engine: Engine, session: Session, factory: Factory

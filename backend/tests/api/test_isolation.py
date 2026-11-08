@@ -118,6 +118,9 @@ BODIES: dict[tuple[str, str], Any] = {
     ("POST", "/api/policies/{policy_id}/draft/review"): {"news_days": 30},
     ("POST", "/api/policies/{policy_id}/draft/review/manual"): {"answer": "{}"},
     ("PUT", "/api/admin/price-providers/{provider_id}"): {"provider": "yahoo"},
+    ("POST", "/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over"): None,
+    ("POST", "/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss"): None,
+    ("POST", "/api/reviews/{review_id}/suggestions/{suggestion_id}/undo"): None,
     ("PUT", "/api/admin/ai-reviewers/{reviewer_id}"): {
         "name": "x",
         "provider": "openai",
@@ -152,6 +155,7 @@ def world(session: Session, factory: Factory, accounts_api: Accounts) -> dict[st
     policy = factory.active_policy(a)
     draft = policies.create_draft(session, a, factory.clock, policy.id)
     review = factory.review(a, draft)
+    suggestion = factory.suggestion(review)
     portfolio = factory.portfolio(a, policy)
     snapshot = snapshots.create_snapshot(
         session, a, factory.clock, portfolio.id, [ValueSpec("AAA", Decimal(1))]
@@ -183,6 +187,7 @@ def world(session: Session, factory: Factory, accounts_api: Accounts) -> dict[st
         "reviewer_id": reviewer.id,
         "provider_id": 1,  # the built-in exchange rate source
         "review_id": review.id,
+        "suggestion_id": suggestion.id,
     }
 
 

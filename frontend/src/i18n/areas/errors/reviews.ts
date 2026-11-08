@@ -42,6 +42,15 @@ export const de = {
   review_failed_unexpectedly: "Die Prüfung ist unerwartet fehlgeschlagen ({{detail}})",
   review_version_not_found: "Version {{version_no}} der Anlagestrategie {{policy}} nicht gefunden",
   review_version_no_review: "{{version}} hat keine Prüfung",
+  suggestion_not_found: "Vorschlag {{id}} nicht gefunden",
+  suggestion_review_confirmed:
+    "Die Prüfung ist bestätigt; ihre Vorschläge können sich nicht mehr ändern",
+  suggestion_without_change:
+    "Dieser Vorschlag stammt aus einer älteren Prüfung und kann nicht übernommen werden",
+  suggestion_not_open: "Dieser Vorschlag wurde bereits übernommen oder verworfen",
+  suggestion_is_open: "Dieser Vorschlag ist weder übernommen noch verworfen",
+  suggestion_position_missing: "Der Entwurf hat keine Position {{ticker}} mehr",
+  suggestion_position_exists: "Der Entwurf hat bereits eine Position {{ticker}}",
   rebalance_values_missing: "Erfasse zuerst die aktuellen Werte des Portfolios",
   rebalance_snapshot_not_found: "Stand {{id}} nicht gefunden",
   rebalance_policy_changed:

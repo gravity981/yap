@@ -42,7 +42,12 @@ def answer(
                 },
                 {"title": "Undated", "published_on": "soon", "url": "https://news.example/x"},
             ],
-            "suggestions": [{"kind": "thesis_text", "content": "Add a time horizon."}],
+            "suggestions": [
+                suggestion(
+                    "thesis_section", "Add a time horizon.", section=1, text="Within 15 years."
+                )
+            ],
+            "proposals": [],
             **extra,
         }
     )
@@ -51,3 +56,45 @@ def answer(
 def thesis_answer(**kwargs: Any) -> str:
     """An answer for a draft without positions: T1-T6 only."""
     return answer(structure=None, **kwargs)
+
+
+EMPTY_SUGGESTION: dict[str, Any] = {
+    "section": None,
+    "text": None,
+    "ticker": None,
+    "name": None,
+    "type": None,
+    "target_pct": None,
+    "buy_threshold_pct": None,
+    "sell_threshold_pct": None,
+    "exit": None,
+    "rationale": None,
+}
+
+
+def suggestion(kind: str, reason: str = "Because.", **fields: Any) -> dict[str, Any]:
+    """A suggestion of the answer format (REV-07); fields not given are null."""
+    return {**EMPTY_SUGGESTION, "kind": kind, "reason": reason, **fields}
+
+
+def position(ticker: str, target: float, kind: str = "ETF", **fields: Any) -> dict[str, Any]:
+    """A position of a proposal (REV-22)."""
+    return {
+        "ticker": ticker,
+        "name": f"{ticker} fund",
+        "type": kind,
+        "target_pct": target,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20,
+        "exit": False,
+        "rationale": f"Why {ticker}.",
+        **fields,
+    }
+
+
+def proposal(name: str = "Focused", *positions: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "name": name,
+        "description": f"{name} structure.",
+        "positions": list(positions) or [position("VWRL", 85), position("CASH", 15, "cash_buffer")],
+    }

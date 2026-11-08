@@ -1,15 +1,16 @@
 """Reviews of policy drafts (REV-01 to REV-19)."""
 
 from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 
 from yap.api.deps import AppClock, AppKeys, CurrentUser, DbSession, LlmAdapters
-from yap.api.schemas import half
-from yap.db.models import Review
+from yap.api.schemas import VersionOut, half
+from yap.db.models import Investor, PolicyVersion, Review
 from yap.messages import Message, msg
-from yap.services import policies, reviews
+from yap.services import policies, reviews, suggestions
 from yap.services.common import NotFoundError
 
 router = APIRouter(tags=["reviews"])
@@ -29,8 +30,15 @@ class SourceOut(BaseModel):
 
 
 class SuggestionOut(BaseModel):
+    """REV-07, REV-22. `change` says what Take over applies (null for suggestions of older
+    reviews, which can only be read); `previous` what it replaced."""
+
+    id: int
     kind: str
     content_md: str
+    change: dict[str, Any] | None
+    previous: dict[str, Any] | None
+    state: str  # open | taken_over | dismissed
 
 
 class LegacyModificationOut(BaseModel):
@@ -118,7 +126,15 @@ def _out(session: DbSession, review: Review) -> ReviewOut:
             SourceOut(title=s.title, published_on=s.published_on, url=s.url) for s in review.sources
         ],
         suggestions=[
-            SuggestionOut(kind=s.kind, content_md=s.content_md) for s in review.suggestions
+            SuggestionOut(
+                id=s.id,
+                kind=s.kind,
+                content_md=s.content_md,
+                change=s.change,
+                previous=s.previous,
+                state=s.state,
+            )
+            for s in review.suggestions
         ],
     )
 
@@ -235,6 +251,48 @@ def submit_manual_review(
     """REV-18: stores the pasted answer as the review of the policy draft."""
     review = reviews.submit_manual_review(session, user, clock, policy_id, body.answer)
     return _out(session, review)
+
+
+class SuggestionResult(BaseModel):
+    """The review with the suggestion's new state, and the draft as it is now."""
+
+    review: ReviewOut
+    draft: VersionOut
+
+
+def _result(
+    session: DbSession, review_id: int, draft: PolicyVersion, user: Investor
+) -> SuggestionResult:
+    review = reviews.get_review(session, user, review_id)
+    session.refresh(review)
+    return SuggestionResult(review=_out(session, review), draft=VersionOut.of(draft, None, None))
+
+
+@router.post("/reviews/{review_id}/suggestions/{suggestion_id}/take-over")
+def take_over_suggestion(
+    review_id: int, suggestion_id: int, session: DbSession, clock: AppClock, user: CurrentUser
+) -> SuggestionResult:
+    """REV-07, REV-22: applies the suggestion or proposal to the draft."""
+    draft = suggestions.take_over(session, user, clock, review_id, suggestion_id)
+    return _result(session, review_id, draft, user)
+
+
+@router.post("/reviews/{review_id}/suggestions/{suggestion_id}/dismiss")
+def dismiss_suggestion(
+    review_id: int, suggestion_id: int, session: DbSession, user: CurrentUser
+) -> SuggestionResult:
+    """REV-07: marks the suggestion as dismissed; the draft stays as it is."""
+    draft = suggestions.dismiss(session, user, review_id, suggestion_id)
+    return _result(session, review_id, draft, user)
+
+
+@router.post("/reviews/{review_id}/suggestions/{suggestion_id}/undo")
+def undo_suggestion(
+    review_id: int, suggestion_id: int, session: DbSession, clock: AppClock, user: CurrentUser
+) -> SuggestionResult:
+    """REV-07: reverts a taken over suggestion in the draft, or reopens a dismissed one."""
+    draft = suggestions.undo(session, user, clock, review_id, suggestion_id)
+    return _result(session, review_id, draft, user)
 
 
 @router.get("/reviews/{review_id}")

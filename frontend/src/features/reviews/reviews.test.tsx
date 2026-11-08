@@ -96,9 +96,54 @@ const review = (extra: Record<string, unknown> = {}) => ({
   sources: [
     { title: "ETF inflows rise", published_on: "2026-02-10", url: "https://news.example/etf" },
   ],
-  suggestions: [{ kind: "thesis_text", content_md: "Add a time horizon." }],
+  suggestions: [
+    {
+      id: 1,
+      kind: "thesis_text",
+      content_md: "Add a time horizon.",
+      change: null,
+      previous: null,
+      state: "open",
+    },
+  ],
   ...extra,
 });
+
+type Sugg = { id: number; state: string; previous: unknown; [key: string]: unknown };
+type Current = { suggestions: Sugg[]; [key: string]: unknown };
+
+const suggestion = (id: number, kind: string, change: unknown, extra: object = {}) => ({
+  id,
+  kind,
+  content_md: `Reason ${id}.`,
+  change,
+  previous: null,
+  state: "open",
+  ...extra,
+});
+
+const proposalRows = [
+  {
+    ticker: "VWRL",
+    name: "All-World",
+    type: "ETF",
+    target_pct: "85",
+    buy_threshold_pct: "-20",
+    sell_threshold_pct: "20",
+    exit: false,
+    rationale_md: "Core.",
+  },
+  {
+    ticker: "CASH",
+    name: "Cash buffer",
+    type: "cash_buffer",
+    target_pct: "15",
+    buy_threshold_pct: "0",
+    sell_threshold_pct: "0",
+    exit: false,
+    rationale_md: "",
+  },
+];
 
 const usage = (extra: Record<string, unknown> = {}) => ({
   ai_reviewer_id: 1,
@@ -605,5 +650,183 @@ describe("reviews", () => {
     const section = await screen.findByRole("region", { name: "Review" });
     expect(await within(section).findByText("confirmed")).toBeInTheDocument();
     expect(within(section).queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("[REV-07] takes over, dismisses and undoes suggestions in the editor, saving first", async () => {
+    const section = suggestion(2, "thesis_section", { section: 7, text: "- GDP below 2 %" });
+    const change = suggestion(3, "position_change", {
+      ticker: "BTC",
+      field: "sell_threshold_pct",
+      value: "50",
+    });
+    const add = suggestion(4, "position_add", {
+      position: { ...proposalRows[0], ticker: "EMIM", name: "Emerging", target_pct: "10" },
+    });
+    const remove = suggestion(5, "position_remove", { ticker: "XUS" });
+    let current: Current = review({ suggestions: [section, change, add, remove] });
+    const changed = {
+      ...draftVersion,
+      thesis_md: "# Draft\n\n## 7. Early Warnings\n- GDP below 2 %\n",
+    };
+    const act =
+      (state: string, previous: unknown = null): Handler =>
+      (request) => {
+        const id = Number(request.url.split("/suggestions/")[1]!.split("/")[0]);
+        current = {
+          ...current,
+          outdated: true,
+          suggestions: current.suggestions.map((s) =>
+            s.id === id ? { ...s, state, previous: state === "open" ? null : previous } : s,
+          ),
+        };
+        return json({ review: current, draft: changed });
+      };
+    const calls = setup(
+      {
+        "GET /api/reviews/30": () => json(current),
+        "POST /api/reviews/30/suggestions/3/take-over": act("taken_over", {
+          ticker: "BTC",
+          field: "sell_threshold_pct",
+          value: "25",
+        }),
+        "POST /api/reviews/30/suggestions/2/take-over": act("taken_over", {
+          section: 7,
+          text: null,
+        }),
+        "POST /api/reviews/30/suggestions/2/undo": act("open"),
+        "POST /api/reviews/30/suggestions/5/dismiss": act("dismissed"),
+      },
+      brief(30, 7),
+    );
+    const pane = await openPane();
+    // Each kind says what it changes
+    const sectionCard = await within(pane).findByRole("listitem", { name: "Thesis · section 7" });
+    expect(within(sectionCard).getByText("- GDP below 2 %")).toBeInTheDocument();
+    const changeCard = within(pane).getByRole("listitem", { name: "BTC · sell threshold" });
+    expect(within(changeCard).getByText("→ +50 %")).toBeInTheDocument();
+    expect(within(pane).getByRole("listitem", { name: "Add EMIM (Emerging)" })).toHaveTextContent(
+      "ETF, target 10 %, band −20 % / +20 %",
+    );
+    expect(within(pane).getByRole("listitem", { name: "Remove XUS" })).toBeInTheDocument();
+    expect(within(pane).getAllByRole("button", { name: "Take over" })).toHaveLength(4);
+
+    // Take over: the editor is saved first, then the change is applied on the server
+    await userEvent.click(within(changeCard).getByRole("button", { name: "Take over" }));
+    expect(await within(changeCard).findByText("Taken over")).toBeInTheDocument();
+    expect(within(changeCard).getByText("+25 % → +50 %")).toBeInTheDocument();
+    const order = calls.map((c) => `${c.method} ${c.path}`);
+    const put = order.lastIndexOf("PUT /api/policies/7/draft");
+    expect(put).toBeGreaterThan(-1);
+    expect(put).toBeLessThan(order.indexOf("POST /api/reviews/30/suggestions/3/take-over"));
+
+    // The editor shows the draft as the server changed it
+    await userEvent.click(within(sectionCard).getByRole("button", { name: "Take over" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Preview" }));
+    expect(
+      (await screen.findAllByRole("heading", { name: "7. Early Warnings" })).length,
+    ).toBeGreaterThan(0);
+
+    // Undo reopens it
+    await userEvent.click(screen.getByRole("tab", { name: "Review" }));
+    const again = await screen.findByRole("listitem", { name: "Thesis · section 7" });
+    await userEvent.click(within(again).getByRole("button", { name: "Undo" }));
+    await waitFor(() =>
+      expect(calls.map((c) => c.path)).toContain("/api/reviews/30/suggestions/2/undo"),
+    );
+
+    // Dismiss
+    const removeCard = screen.getByRole("listitem", { name: "Remove XUS" });
+    await userEvent.click(within(removeCard).getByRole("button", { name: "Dismiss" }));
+    expect(await within(removeCard).findByText("Dismissed")).toBeInTheDocument();
+  });
+
+  it("[REV-07] shows suggestions of a confirmed review read-only", async () => {
+    setup(
+      {
+        "GET /api/reviews/30": () =>
+          json(
+            review({
+              confirmed: true,
+              suggestions: [
+                suggestion(2, "thesis_section", { section: 1, text: "New." }),
+                suggestion(3, "position_remove", { ticker: "XUS" }, { state: "taken_over" }),
+              ],
+            }),
+          ),
+      },
+      brief(30, 7),
+    );
+    await draftOnPage();
+    const section = await screen.findByRole("region", { name: "Review" });
+    expect(await within(section).findByText("Thesis · section 1")).toBeInTheDocument();
+    expect(within(section).getByText("Taken over")).toBeInTheDocument();
+    expect(within(section).queryByRole("button", { name: "Take over" })).toBeNull();
+    expect(within(section).queryByRole("button", { name: "Undo" })).toBeNull();
+  });
+
+  it("[REV-22] proposes target structures for a thesis without positions and takes one over", async () => {
+    let current: Current = review({
+      aspects: [7, 6, 8, 5, 7, 6.5].map((s, i) => aspect(i + 1, s)),
+      structure_score: null,
+      total: 6.5,
+      suggestions: [
+        suggestion(
+          6,
+          "proposal",
+          { name: "Focused", positions: proposalRows },
+          { content_md: "Close to the thesis." },
+        ),
+        suggestion(
+          7,
+          "proposal",
+          { name: "Broader", positions: proposalRows },
+          { content_md: "A world core." },
+        ),
+      ],
+    });
+    const filled = {
+      ...draftVersion,
+      positions: proposalRows.map((r) => ({
+        ...r,
+        buy_abs_pct: "68",
+        sell_abs_pct: "102",
+        midband_pct: "93.5",
+      })),
+    };
+    setup(
+      {
+        "GET /api/reviews/30": () => json(current),
+        "POST /api/reviews/30/suggestions/6/take-over": () => {
+          current = {
+            ...current,
+            suggestions: current.suggestions.map((s) =>
+              s.id === 6 ? { ...s, state: "taken_over", previous: { positions: [] } } : s,
+            ),
+          };
+          return json({ review: current, draft: filled });
+        },
+      },
+      brief(30, 6.5),
+    );
+    const pane = await openPane();
+    expect(
+      await within(pane).findByRole("heading", { name: "Proposed target structures" }),
+    ).toBeInTheDocument();
+    expect(
+      within(pane).getByText(/Taking one over fills the target structure/),
+    ).toBeInTheDocument();
+    const focused = within(pane).getByRole("listitem", { name: "A · Focused" });
+    expect(within(pane).getByRole("listitem", { name: "B · Broader" })).toBeInTheDocument();
+    expect(within(focused).getByText("Close to the thesis.", { exact: false })).toBeInTheDocument();
+    expect(within(focused).getByText("85 %")).toBeInTheDocument();
+    expect(within(focused).getByText("−20 % / +20 %")).toBeInTheDocument();
+    expect(within(focused).getByText("Cash buffer")).toBeInTheDocument();
+    // A proposal can only be taken over, not dismissed
+    expect(within(focused).queryByRole("button", { name: "Dismiss" })).toBeNull();
+    await userEvent.click(within(focused).getByRole("button", { name: "Take over" }));
+    expect(await within(focused).findByText("Taken over")).toBeInTheDocument();
+    // The editor's target structure is filled with the proposal
+    expect(await screen.findByDisplayValue("VWRL")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("CASH")).toBeInTheDocument();
   });
 });
