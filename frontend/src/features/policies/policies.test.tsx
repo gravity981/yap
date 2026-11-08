@@ -4,19 +4,21 @@ import { describe, expect, it, vi } from "vitest";
 
 import { investor, json, mockApi, renderApp, type Handler } from "@/test/utils";
 
+import { THESIS_TEMPLATES } from "@/features/theses/template";
+
 import { band } from "./draft-editor";
 
 const version = (n: number, extra: Record<string, unknown> = {}) => ({
   id: 200 + n,
   version_no: n,
   label: `core-v${n}`,
-  thesis_revision_id: 101,
-  thesis_revision_no: 1,
+  thesis_title: "Core thesis",
   thesis_status: "intact",
   change_note: n === 1 ? null : `note ${n}`,
   active_from: `2026-0${n}-01T10:00:00+00:00`,
   active_until: null,
   is_draft: false,
+  thesis_review: null,
   review: null,
   ...extra,
 });
@@ -39,7 +41,6 @@ const position = (ticker: string, target: string, extra: Record<string, unknown>
 const policy = (extra: Record<string, unknown> = {}) => ({
   id: 3,
   name: "core",
-  thesis_id: 7,
   archived_at: null,
   created_at: "2026-01-01T10:00:00+00:00",
   versions: [
@@ -48,7 +49,6 @@ const policy = (extra: Record<string, unknown> = {}) => ({
     version(3, { is_draft: true, active_from: null, change_note: null }),
   ],
   portfolios: [{ id: 5, name: "Main" }],
-  newer_thesis_revision_id: null,
   thesis_warning: false,
   thesis_status: "intact",
   ...extra,
@@ -72,11 +72,13 @@ function setup(handlers: Record<string, Handler> = {}) {
     "GET /api/policies/3/versions/2": () =>
       json({
         ...version(2),
+        thesis_md: "# Global growth\n\nIndex funds follow the economy.",
         positions: [position("XUS", "40"), position("ETH", "60", { exit: true })],
       }),
     "GET /api/policies/3/versions/3": () =>
       json({
         ...version(3, { is_draft: true }),
+        thesis_md: "# Draft thesis",
         positions: [position("XUS", "40"), position("ETH", "60")],
       }),
     "GET /api/policies/3/compare": () =>
@@ -85,67 +87,14 @@ function setup(handlers: Record<string, Handler> = {}) {
           { ticker: "XUS", change: "changed", fields: { target_pct: ["50", "40"] } },
           { ticker: "BTC", change: "removed", fields: {} },
         ],
-        thesis_revision: [1, 2],
+        thesis_changed: true,
+        thesis_diff: "--- v1\n+++ v2\n@@ -1 +1 @@\n-# Old\n+# New\n",
       }),
     "GET /api/assets": () =>
       json([
         { ticker: "XUS", name: "XUS name", type: "ETF" },
         { ticker: "ETH", name: "Ethereum", type: "crypto" },
       ]),
-    "GET /api/theses": () =>
-      json([
-        {
-          id: 7,
-          is_own: true,
-          visibility: "private",
-          latest: {
-            id: 101,
-            revision_no: 1,
-            title: "Core thesis",
-            status: "intact",
-            change_note: null,
-            is_draft: false,
-            activated_at: "2026-01-01T10:00:00+00:00",
-            created_at: "2026-01-01T10:00:00+00:00",
-          },
-          has_draft: false,
-          active_revision_no: 1,
-        },
-        {
-          id: 9,
-          is_own: true,
-          visibility: "private",
-          latest: {
-            id: 120,
-            revision_no: 1,
-            title: "Unfinished idea",
-            status: "intact",
-            change_note: null,
-            is_draft: true,
-            activated_at: null,
-            created_at: "2026-01-01T10:00:00+00:00",
-          },
-          has_draft: true,
-          active_revision_no: null,
-        },
-      ]),
-    "GET /api/theses/7": () =>
-      json({
-        id: 7,
-        is_own: true,
-        visibility: "private",
-        created_at: "2026-01-01T10:00:00+00:00",
-        revisions: [
-          {
-            id: 101,
-            revision_no: 1,
-            title: "Core thesis",
-            status: "intact",
-            change_note: null,
-            created_at: "2026-01-01T10:00:00+00:00",
-          },
-        ],
-      }),
     ...handlers,
   });
 }
@@ -159,26 +108,53 @@ describe("policies", () => {
     });
   });
 
-  it("[POL-01] creates a policy for a thesis", async () => {
+  it("[POL-01] [THS-07] creates a policy whose draft starts with the thesis template", async () => {
     const calls = setup({ "POST /api/policies": () => json(policy(), 201) });
     renderApp("/policies");
     await userEvent.click(await screen.findByRole("button", { name: "New policy" }));
     await userEvent.type(screen.getByLabelText("Name"), "core");
-    // Only theses with an activated revision can be used
-    expect(screen.queryByRole("option", { name: "Unfinished idea" })).not.toBeInTheDocument();
-    expect(screen.getByText(/still drafts are not listed/)).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText("Thesis"), "7");
     await userEvent.click(screen.getByRole("button", { name: "Create" }));
-    expect(await screen.findByRole("heading", { name: "core" })).toBeInTheDocument();
+    // The editor of the new draft opens right away
+    expect(await screen.findByRole("heading", { name: "core-v3 (draft)" })).toBeInTheDocument();
     expect(calls.find((c) => c.path === "/api/policies" && c.method === "POST")?.body).toEqual({
       name: "core",
-      thesis_id: 7,
+      thesis_md: THESIS_TEMPLATES.en,
     });
+  });
+
+  it("[THS-07] uses the template in the account's language", async () => {
+    const calls = setup({
+      "GET /api/auth/me": () => json({ ...investor, language: "de" }),
+      "POST /api/policies": () => json(policy(), 201),
+    });
+    renderApp("/policies");
+    await userEvent.click(await screen.findByRole("button", { name: "Neue Anlagestrategie" }));
+    await userEvent.type(screen.getByLabelText("Name"), "Kern");
+    await userEvent.click(screen.getByRole("button", { name: "Erstellen" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === "/api/policies" && c.method === "POST")?.body).toEqual({
+        name: "Kern",
+        thesis_md: THESIS_TEMPLATES.de,
+      }),
+    );
+  });
+
+  it("[THS-01] [POL-02] shows the thesis of a version", async () => {
+    setup();
+    renderApp("/policies/3");
+    expect(await screen.findByRole("heading", { name: "Global growth" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Core thesis" })).toBeInTheDocument();
+    expect(screen.getByText("Index funds follow the economy.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Export as JSON" })).toHaveAttribute(
+      "href",
+      "/api/policies/3/versions/2/thesis/export",
+    );
   });
 
   it("[POL-02] [POL-04] [POL-11] shows the active target structure with bands and exit flags", async () => {
     setup();
     renderApp("/policies/3");
+    await userEvent.click(await screen.findByRole("tab", { name: "Target structure" }));
     const row = (await screen.findByText("ETH")).closest("tr")!;
     expect(within(row).getByText("exit")).toBeInTheDocument();
     const xus = screen.getByText("XUS").closest("tr")!;
@@ -216,29 +192,18 @@ describe("policies", () => {
     await userEvent.click(await screen.findByRole("tab", { name: "Compare" }));
     expect(await screen.findByText(/target: 50 → 40/)).toBeInTheDocument();
     expect(screen.getByText("removed")).toBeInTheDocument();
-    expect(screen.getByText("Thesis revision: 1 → 2")).toBeInTheDocument();
+    expect(screen.getByText("The thesis changed:")).toBeInTheDocument();
+    expect(screen.getByText("+# New")).toBeInTheDocument();
   });
 
-  it("[POL-10] [POL-11] warns about a broken or newer thesis revision", async () => {
-    const calls = setup({
-      "GET /api/policies/3": () =>
-        json(
-          policy({
-            thesis_warning: true,
-            thesis_status: "broken",
-            newer_thesis_revision_id: 102,
-          }),
-        ),
-      "POST /api/policies/3/adopt-thesis-revision": () =>
-        json({ ...version(3, { is_draft: true }), positions: [] }),
+  it("[POL-11] warns about a broken thesis of the active version", async () => {
+    setup({
+      "GET /api/policies/3": () => json(policy({ thesis_warning: true, thesis_status: "broken" })),
     });
     renderApp("/policies/3");
-    expect(await screen.findByText(/marked as/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Take it over into the draft" }));
-    await waitFor(() =>
-      expect(calls.some((c) => c.path === "/api/policies/3/adopt-thesis-revision")).toBe(true),
-    );
-    expect(await screen.findByRole("heading", { name: "core-v3 (draft)" })).toBeInTheDocument();
+    expect(
+      await screen.findByText(/The thesis of the active version is marked as/),
+    ).toHaveTextContent("broken");
   });
 
   it("[POL-06] [POL-08] activates the draft with a change note, naming the portfolios", async () => {
@@ -268,6 +233,9 @@ describe("policies", () => {
       total: 7,
       verdict: null,
       scoring_version: "2",
+      method: "ai",
+      model: "m",
+      ai_reviewer_name: null,
       outdated: false,
     };
     setup({
@@ -277,7 +245,13 @@ describe("policies", () => {
             versions: [
               version(1, { active_until: "2026-02-01T10:00:00+00:00" }),
               version(2),
-              version(3, { is_draft: true, active_from: null, change_note: null, review: brief }),
+              version(3, {
+                is_draft: true,
+                active_from: null,
+                change_note: null,
+                thesis_review: brief,
+                review: brief,
+              }),
             ],
           }),
         ),
@@ -296,6 +270,9 @@ describe("policies", () => {
       total: 7,
       verdict: null,
       scoring_version: "2",
+      method: "ai",
+      model: "m",
+      ai_reviewer_name: null,
       outdated: true,
     };
     setup({
@@ -304,7 +281,13 @@ describe("policies", () => {
           policy({
             versions: [
               version(2),
-              version(3, { is_draft: true, active_from: null, change_note: null, review: brief }),
+              version(3, {
+                is_draft: true,
+                active_from: null,
+                change_note: null,
+                thesis_review: brief,
+                review: brief,
+              }),
             ],
           }),
         ),
@@ -441,7 +424,8 @@ describe("policies", () => {
       "POST /api/policies/3/import/preview": () =>
         json({
           positions: [{ ticker: "BTC", change: "added", fields: {} }],
-          thesis_revision: null,
+          thesis_changed: false,
+          thesis_diff: "",
         }),
       "POST /api/policies/3/import": () =>
         json({ ...version(3, { is_draft: true }), positions: [] }, 201),
@@ -461,5 +445,56 @@ describe("policies", () => {
     expect(screen.getByRole("heading", { name: "core" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "core-v3 (draft)" })).not.toBeInTheDocument();
     expect(calls.find((c) => c.path === "/api/policies/3/import")?.body).toEqual({ a: 1 });
+  });
+
+  it("[THS-01] [THS-04] edits the thesis of the draft next to its review and saves it with the positions", async () => {
+    const calls = setup({
+      "PUT /api/policies/3/draft": () => json({ ...version(3, { is_draft: true }), positions: [] }),
+      "GET /api/ai-reviewers": () => json([]),
+    });
+    renderApp("/policies/3/draft");
+    const title = await screen.findByLabelText("Title");
+    expect(title).toHaveValue("Core thesis");
+    await userEvent.clear(title);
+    await userEvent.type(title, "Growth");
+    await userEvent.selectOptions(screen.getByLabelText("Status"), "broken");
+    expect(screen.getByText(/does not change any rebalancing by itself/)).toBeInTheDocument();
+    // The thesis review is a tab next to the editor (REV-01)
+    await userEvent.click(screen.getByRole("tab", { name: "Review" }));
+    expect(screen.getByRole("region", { name: "Thesis review" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(calls.some((c) => c.method === "PUT")).toBe(true));
+    expect(calls.find((c) => c.method === "PUT")?.body).toMatchObject({
+      thesis: { title: "Growth", content_md: "# Draft thesis", status: "broken" },
+    });
+  });
+
+  it("[IMP-01] [IMP-07] imports a thesis as a new policy, or into the draft of a policy", async () => {
+    const calls = setup({
+      "POST /api/policies/import-thesis/preview": () =>
+        json({ creates_new_policy: true, version_no: 1, title: "Imported", status: "intact" }),
+      "POST /api/policies/import-thesis": () => json(policy(), 201),
+      "POST /api/policies/3/import-thesis/preview": () =>
+        json({ creates_new_policy: false, version_no: 3, title: "Imported", status: "broken" }),
+      "POST /api/policies/3/import-thesis": () =>
+        json({ ...version(3, { is_draft: true }), thesis_md: "x", positions: [] }, 201),
+    });
+    const { unmount } = renderApp("/policies");
+    await userEvent.click(await screen.findByRole("button", { name: "Import thesis" }));
+    await userEvent.upload(screen.getByLabelText("Import file"), new File(['{"a":1}'], "t.json"));
+    expect(await screen.findByText(/Creates the policy/)).toHaveTextContent("Imported");
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    expect(await screen.findByRole("heading", { name: "core" })).toBeInTheDocument();
+    expect(calls.find((c) => c.path === "/api/policies/import-thesis")?.body).toEqual({ a: 1 });
+    unmount();
+
+    renderApp("/policies/3");
+    await userEvent.click(await screen.findByRole("button", { name: "Import thesis" }));
+    await userEvent.upload(screen.getByLabelText("Import file"), new File(['{"b":2}'], "t.json"));
+    expect(await screen.findByText(/Replaces the thesis of the draft v3/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === "/api/policies/3/import-thesis")?.body).toEqual({ b: 2 }),
+    );
   });
 });

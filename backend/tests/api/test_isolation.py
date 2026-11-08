@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from tests.fixtures import Accounts, Factory
-from yap.services import policies, snapshots, theses
+from yap.services import policies, snapshots
 from yap.services.snapshots import ValueSpec
 
 PUBLIC = {("GET", "/api/version"), ("GET", "/api/health"), ("POST", "/api/auth/login")}
@@ -44,10 +44,8 @@ WITHOUT_IDS = {
     ("PUT", "/api/ai-reviewers/choice"),
     ("GET", "/api/reviews/usage"),
     ("GET", "/api/assets"),
-    ("GET", "/api/theses"),
-    ("POST", "/api/theses"),
-    ("POST", "/api/theses/import"),
-    ("POST", "/api/theses/import/preview"),
+    ("POST", "/api/policies/import-thesis"),
+    ("POST", "/api/policies/import-thesis/preview"),
     ("GET", "/api/policies"),
     ("POST", "/api/policies"),
     ("GET", "/api/portfolios"),
@@ -69,23 +67,15 @@ POSITIONS = [
 
 # Valid bodies, so that a 404 is not masked by a 422 from body validation
 BODIES: dict[tuple[str, str], Any] = {
-    ("PUT", "/api/theses/{thesis_id}/draft"): {
-        "title": "t",
-        "content_md": "",
-        "status": "intact",
-        "change_note": "x",
-    },
-    ("POST", "/api/theses/{thesis_id}/draft/activate"): {"change_note": "x"},
-    ("PUT", "/api/theses/{thesis_id}/visibility"): {"visibility": "shared"},
-    ("POST", "/api/theses/{thesis_id}/import"): json.dumps(
+    ("POST", "/api/policies/{policy_id}/import-thesis"): json.dumps(
         {"schema_version": "1.0", "title": "t", "content_md": "", "change_note": "x"}
     ),
-    ("POST", "/api/theses/{thesis_id}/import/preview"): json.dumps(
+    ("POST", "/api/policies/{policy_id}/import-thesis/preview"): json.dumps(
         {"schema_version": "1.0", "title": "t", "content_md": "", "change_note": "x"}
     ),
-    ("PUT", "/api/policies/{policy_id}/draft"): {"positions": POSITIONS},
-    ("PUT", "/api/policies/{policy_id}/draft/thesis-revision"): {
-        "thesis_revision_id": "{revision_id}"
+    ("PUT", "/api/policies/{policy_id}/draft"): {
+        "positions": POSITIONS,
+        "thesis": {"title": "t", "content_md": ""},
     },
     ("POST", "/api/policies/{policy_id}/draft/activate"): {"change_note": "x"},
     ("POST", "/api/policies/{policy_id}/import"): json.dumps(
@@ -125,8 +115,11 @@ BODIES: dict[tuple[str, str], Any] = {
         "is_investor": True,
         "base_currency": "CHF",
     },
-    ("POST", "/api/theses/{thesis_id}/draft/review"): {"news_days": 30},
-    ("POST", "/api/theses/{thesis_id}/draft/review/manual"): {"answer": "{}", "model": "m"},
+    ("POST", "/api/policies/{policy_id}/draft/thesis-review"): {"news_days": 30},
+    ("POST", "/api/policies/{policy_id}/draft/thesis-review/manual"): {
+        "answer": "{}",
+        "model": "m",
+    },
     ("POST", "/api/policies/{policy_id}/draft/review/manual"): {"answer": "{}", "model": "m"},
     ("PUT", "/api/admin/price-providers/{provider_id}"): {"provider": "yahoo"},
     ("PUT", "/api/admin/ai-reviewers/{reviewer_id}"): {
@@ -138,7 +131,6 @@ BODIES: dict[tuple[str, str], Any] = {
 }
 
 QUERIES: dict[tuple[str, str], str] = {
-    ("GET", "/api/theses/{thesis_id}/diff"): "?from_revision=1&to_revision=1",
     ("GET", "/api/policies/{policy_id}/compare"): "?from_version=1&to_version=1",
 }
 
@@ -155,17 +147,15 @@ def all_routes(app: Any) -> list[tuple[str, str]]:
 
 @pytest.fixture
 def world(session: Session, factory: Factory, accounts_api: Accounts) -> dict[str, Any]:
-    """A owns a private thesis and a policy, both with a draft, and a portfolio with a snapshot."""
+    """A owns a policy with a draft and its reviews, and a portfolio with a snapshot."""
     a = accounts_api.create("alice")
     b = accounts_api.create("bob")
     accounts_api.create("root", admin=True, investor=False)
     accounts_api.create("both", admin=True, investor=True)
     reviewer = factory.ai_reviewer()
-    thesis = factory.thesis(a)  # private
-    policy = factory.active_policy(a, thesis=thesis)
-    policies.create_draft(session, a, factory.clock, policy.id)
-    thesis_draft = theses.create_draft(session, a, factory.clock, thesis.id)
-    review = factory.review(a, thesis_draft)
+    policy = factory.active_policy(a)
+    draft = policies.create_draft(session, a, factory.clock, policy.id)
+    review = factory.review(a, draft)
     portfolio = factory.portfolio(a, policy)
     snapshot = snapshots.create_snapshot(
         session, a, factory.clock, portfolio.id, [ValueSpec("AAA", Decimal(1))]
@@ -185,9 +175,6 @@ def world(session: Session, factory: Factory, accounts_api: Accounts) -> dict[st
     )
     session.commit()
     return {
-        "thesis_id": thesis.id,
-        "revision_no": 1,
-        "revision_id": thesis.revisions[0].id,
         "policy_id": policy.id,
         "version_no": 1,
         "portfolio_id": portfolio.id,
@@ -240,11 +227,11 @@ def test_every_route_is_covered(app: Any) -> None:
                 "/copy",
                 "/draft",
                 "/archive",
-                "/adopt-thesis-revision",
                 "/deactivate",
                 "/reactivate",
                 "/test",
                 "/policies/{policy_id}/draft/review",
+                "/policies/{policy_id}/draft/thesis-review",
             )
         ):
             assert (method, path) in BODIES, f"Add an example body for {method} {path}"
@@ -271,7 +258,7 @@ def test_admin_gets_no_investment_data(
             continue
         response = call(root, method, path, world)
         assert response.status_code == 403, f"{method} {path}: {response.text}"
-    for path in ("/api/theses", "/api/policies", "/api/portfolios", "/api/timeline", "/api/assets"):
+    for path in ("/api/policies", "/api/portfolios", "/api/timeline", "/api/assets"):
         assert root.get(path).status_code == 403, path
 
 
@@ -285,7 +272,6 @@ def test_admin_who_is_also_investor_gets_404_for_other_investors_data(
             continue
         response = call(both, method, path, world)
         assert response.status_code == 404, f"{method} {path}: {response.text}"
-    assert world["thesis_id"] not in [t["id"] for t in both.get("/api/theses").json()]
     assert world["policy_id"] not in [p["id"] for p in both.get("/api/policies").json()]
     assert both.get("/api/portfolios").json() == []
 
@@ -301,21 +287,14 @@ def test_unauthenticated_calls_are_rejected(
         assert response.status_code == 401, f"{method} {path}: {response.text}"
 
 
-@pytest.mark.req("NFR-03", "USR-04", "THS-05")
-def test_lists_contain_only_own_or_shared_data(
-    accounts_api: Accounts, world: dict[str, Any]
-) -> None:
+@pytest.mark.req("NFR-03", "USR-04")
+def test_lists_contain_only_own_data(accounts_api: Accounts, world: dict[str, Any]) -> None:
     bob = accounts_api.client("bob")
-    assert [t["id"] for t in bob.get("/api/theses").json()] != [world["thesis_id"]]
-    assert world["thesis_id"] not in [t["id"] for t in bob.get("/api/theses").json()]
     assert world["policy_id"] not in [p["id"] for p in bob.get("/api/policies").json()]
     assert bob.get("/api/portfolios").json() == []
     bob_events = bob.get("/api/timeline").json()
     assert all("Portfolio" not in e["summary"] for e in bob_events)
     assert bob.get(f"/api/timeline?portfolio_id={world['portfolio_id']}").status_code == 404
-    # B cannot base a policy on A's private thesis
-    response = bob.post("/api/policies", json={"name": "x", "thesis_id": world["thesis_id"]})
-    assert response.status_code == 404
     response = bob.post("/api/portfolios", json={"name": "x", "policy_id": world["policy_id"]})
     assert response.status_code == 404
 

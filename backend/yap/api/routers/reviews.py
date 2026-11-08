@@ -7,8 +7,9 @@ from pydantic import BaseModel
 
 from yap.api.deps import AppClock, AppKeys, CurrentUser, DbSession, LlmAdapters
 from yap.db.models import Review
+from yap.domain.reviews import ReviewKind
 from yap.messages import Message, msg
-from yap.services import policies, reviews, theses
+from yap.services import policies, reviews
 from yap.services.common import NotFoundError
 
 router = APIRouter(tags=["reviews"])
@@ -45,7 +46,6 @@ class ReviewOut(BaseModel):
     kind: str
     state: str  # queued | running | done | failed
     error: str | None
-    thesis_revision_id: int | None
     policy_version_id: int | None
     method: str  # ai | manual (REV-18)
     ai_reviewer_name: str | None  # REV-17; null for manual reviews and those before reviewers
@@ -76,7 +76,6 @@ def _out(session: DbSession, review: Review) -> ReviewOut:
         kind=review.kind,
         state=review.state,
         error=review.error,
-        thesis_revision_id=review.thesis_revision_id,
         policy_version_id=review.policy_version_id,
         method=review.method,
         ai_reviewer_name=review.ai_reviewer_name,
@@ -177,9 +176,9 @@ def get_usage(
     )
 
 
-@router.post("/theses/{thesis_id}/draft/review", status_code=202)
+@router.post("/policies/{policy_id}/draft/thesis-review", status_code=202)
 def start_thesis_review(
-    thesis_id: int,
+    policy_id: int,
     body: StartThesisReview,
     request: Request,
     background: BackgroundTasks,
@@ -189,9 +188,10 @@ def start_thesis_review(
     adapters: LlmAdapters,
     user: CurrentUser,
 ) -> ReviewOut:
-    """REV-01, REV-04: starts a review of the thesis draft; it runs in the background."""
+    """REV-01, REV-04: starts a review of the thesis of the policy draft; it runs in the
+    background."""
     review = reviews.start_thesis_review(
-        session, user, clock, keys, thesis_id, body.news_days, body.ai_reviewer_id
+        session, user, clock, keys, policy_id, body.news_days, body.ai_reviewer_id
     )
     _schedule(request, background, session, clock, keys, adapters, review)
     return _out(session, review)
@@ -230,16 +230,16 @@ class ReviewPromptOut(BaseModel):
     text: str
 
 
-@router.get("/theses/{thesis_id}/draft/review-prompt")
+@router.get("/policies/{policy_id}/draft/thesis-review-prompt")
 def get_thesis_review_prompt(
-    thesis_id: int,
+    policy_id: int,
     session: DbSession,
     clock: AppClock,
     user: CurrentUser,
     news_days: int = reviews.NEWS_DAYS_DEFAULT,
 ) -> ReviewPromptOut:
-    """REV-19: the prompt of the thesis draft as it is saved now; changes nothing."""
-    prompt = reviews.thesis_review_prompt(session, user, clock, thesis_id, news_days)
+    """REV-19: the prompt of the draft's thesis as it is saved now; changes nothing."""
+    prompt = reviews.thesis_review_prompt(session, user, clock, policy_id, news_days)
     return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
 
 
@@ -252,13 +252,13 @@ def get_policy_review_prompt(
     return ReviewPromptOut(prompt_id=prompt.prompt_id, text=prompt.text())
 
 
-@router.post("/theses/{thesis_id}/draft/review/manual", status_code=201)
+@router.post("/policies/{policy_id}/draft/thesis-review/manual", status_code=201)
 def submit_manual_thesis_review(
-    thesis_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
+    policy_id: int, body: ManualAnswer, session: DbSession, clock: AppClock, user: CurrentUser
 ) -> ReviewOut:
-    """REV-18: stores the pasted answer as the review of the thesis draft."""
+    """REV-18: stores the pasted answer as the review of the draft's thesis."""
     review = reviews.submit_manual_thesis_review(
-        session, user, clock, thesis_id, body.answer, body.model
+        session, user, clock, policy_id, body.answer, body.model
     )
     return _out(session, review)
 
@@ -285,33 +285,15 @@ def _found(review: Review | None, missing: Message) -> Review:
     return review
 
 
-@router.get("/theses/{thesis_id}/revisions/{revision_no}/review")
-def get_revision_review(
-    thesis_id: int, revision_no: int, session: DbSession, user: CurrentUser
-) -> ReviewOut:
-    """The review of a revision: confirmed (REV-12) or, for the owner, of the draft."""
-    thesis = theses.get_readable_thesis(session, user, thesis_id)
-    revision = next(
-        (
-            r
-            for r in theses.readable_revisions(session, user, thesis)
-            if r.revision_no == revision_no
-        ),
-        None,
-    )
-    if revision is None:
-        raise NotFoundError(
-            msg("review_revision_not_found", revision_no=revision_no, thesis_id=thesis_id)
-        )
-    missing = msg("review_revision_no_review", revision_no=revision_no)
-    review = _found(reviews.draft_review(session, revision), missing)
-    return _out(session, review)
-
-
 @router.get("/policies/{policy_id}/versions/{version_no}/review")
 def get_version_review(
-    policy_id: int, version_no: int, session: DbSession, user: CurrentUser
+    policy_id: int,
+    version_no: int,
+    session: DbSession,
+    user: CurrentUser,
+    kind: ReviewKind = ReviewKind.POLICY,
 ) -> ReviewOut:
+    """The thesis or policy review of a version: confirmed (REV-12) or of the draft."""
     policy = policies.get_policy(session, user, policy_id)
     version = next((v for v in policy.versions if v.version_no == version_no), None)
     if version is None:
@@ -319,4 +301,4 @@ def get_version_review(
             msg("review_version_not_found", version_no=version_no, policy=policy.name)
         )
     missing = msg("review_version_no_review", version=version.label)
-    return _out(session, _found(reviews.draft_review(session, version), missing))
+    return _out(session, _found(reviews.draft_review(session, version, kind), missing))

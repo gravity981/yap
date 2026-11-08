@@ -5,19 +5,9 @@ MESSAGES: dict[str, str] = {
     # Theses
     "title_required": "Title must not be empty",
     "thesis_status_unknown": "Unknown status {status}",
-    "visibility_unknown": "Unknown visibility {visibility}",
-    "thesis_has_no_draft": "Thesis {id} has no draft",
-    "thesis_has_draft": "The thesis already has a draft",
-    "thesis_first_revision_kept": (
-        "The first revision cannot be deleted; it is the thesis' only one"
-    ),
-    "change_note_required": "A change note is required",
-    "thesis_revision_not_found": "Thesis revision {id} not found",
-    "thesis_revision_no_not_found": "Revision {number} of thesis {id} not found",
     # Policies
     "name_required": "Name must not be empty",
     "policy_name_taken": "A policy named {name} already exists",
-    "thesis_not_activated": "The thesis has no activated revision yet; activate its draft first",
     "policy_has_no_draft": "Policy {name} has no draft",
     "policy_has_draft": "Policy {name} already has a draft",
     "ticker_duplicate": "Ticker {ticker} appears more than once",
@@ -34,8 +24,6 @@ MESSAGES: dict[str, str] = {
     ),
     "multiple_cash_buffers": "The policy contains more than one cash buffer position",
     "change_note_required_v2": "A change note is required from v2 on",
-    "policy_thesis_current": "The policy already uses the newest thesis revision",
-    "policy_thesis_revision_not_found": "Thesis revision {id} not found for this policy",
     "policy_has_portfolios": "A policy with assigned portfolios cannot be archived",
     "policy_archived": "Policy {name} is archived",
     "policy_version_not_found": "Policy version {id} not found",

@@ -116,8 +116,8 @@ def _version(engine: Engine) -> str:
 
 @pytest.mark.req("NFR-09", "NFR-05")
 def test_table_rebuilds_work_while_rows_reference_the_table(db_url: str, engine: Engine) -> None:
-    """Rebuilding thesis_revision and investor (0003, 0004) drops and recreates them, which
-    foreign key checks would refuse while policy versions reference them."""
+    """Rebuilding thesis_revision and investor (0003, 0004) and policy_version (0018) drops
+    and recreates them, which foreign key checks would refuse while rows reference them."""
     from yap.db.migrate import upgrade
 
     _version_0002_with_history(db_url, engine)
@@ -127,8 +127,8 @@ def test_table_rebuilds_work_while_rows_reference_the_table(db_url: str, engine:
         assert connection.execute(text("PRAGMA foreign_key_check")).all() == []
         # No plan was configured, so there is no AI reviewer to keep (0007)
         assert connection.execute(text("SELECT ai_reviewer_id FROM investor")).scalar() is None
-        activated = connection.execute(text("SELECT activated_at FROM thesis_revision")).scalar()
-        assert activated == "2026-01-01T00:00:00+00:00"
+        thesis = connection.execute(text("SELECT thesis_title, thesis_md FROM policy_version"))
+        assert tuple(thesis.one()) == ("T", "")  # from the pinned revision (0018)
 
 
 @pytest.mark.req("NFR-09", "USR-09")
@@ -296,19 +296,22 @@ def test_modified_reviews_keep_the_ai_values_and_their_changes_read_only(
     from yap.services import reviews
 
     owner = factory.investor()
-    modified = factory.thesis(owner, title="Modified", activate=False)
-    plain = factory.thesis(owner, title="Plain", activate=False)
-    factory.review(owner, modified.revisions[0], verdict="needs_adaptation")  # T1 = 14
-    factory.review(owner, plain.revisions[0])
+    modified = factory.policy_draft(owner, name="Modified").versions[0]
+    plain = factory.policy_draft(owner, name="Plain").versions[0]
+    factory.review(owner, modified, verdict="needs_adaptation")  # T1 = 14
+    factory.review(owner, plain)
     session.commit()
     session.close()
     at_head = _triggers(engine)
 
     command.downgrade(_alembic(db_url), "0015")
     with engine.begin() as connection:
+        # Below 0018 the thesis review belongs to the revision of the version's thesis
         rid = connection.execute(
-            text("SELECT id FROM review WHERE thesis_revision_id = :r"),
-            {"r": modified.revisions[0].id},
+            text(
+                "SELECT r.id FROM review r JOIN thesis_revision t ON t.id = r.thesis_revision_id"
+                " WHERE t.title = 'Core thesis' ORDER BY r.id LIMIT 1"
+            )
         ).scalar()
         connection.execute(
             text(
@@ -323,21 +326,22 @@ def test_modified_reviews_keep_the_ai_values_and_their_changes_read_only(
             ),
             {"id": rid},
         )
-        # Confirmed: the draft is activated
-        connection.execute(
-            text("UPDATE thesis_revision SET activated_at = '2026-01-02T00:00:00+00:00'")
-        )
+        # Confirmed: the drafts are activated
+        for table in ("thesis_revision", "policy_version"):
+            connection.execute(
+                text(f"UPDATE {table} SET activated_at = '2026-01-02T00:00:00+00:00'")
+            )
     upgrade(db_url)
     assert _triggers(engine) == at_head
     with Session(engine) as fresh:
-        rows = {r.thesis_revision_id: r for r in fresh.scalars(select(Review))}
-        review = rows[modified.revisions[0].id]
+        rows = {r.policy_version_id: r for r in fresh.scalars(select(Review))}
+        review = rows[modified.id]
         assert review.verdict == "needs_adaptation"
         assert [a.half_points for a in review.aspects] == [14, 12, 16, 10, 14, 13]
         assert reviews.legacy_modification(review) == reviews.LegacyModification(
             note="Too strict", verdict="intact", scores={"T1": 9.5}
         )
-        assert reviews.legacy_modification(rows[plain.revisions[0].id]) is None
+        assert reviews.legacy_modification(rows[plain.id]) is None
     with (
         pytest.raises(IntegrityError, match="confirmed review is immutable"),
         engine.begin() as connection,
@@ -365,6 +369,96 @@ def test_modified_reviews_keep_the_ai_values_and_their_changes_read_only(
             text("SELECT count(*) FROM review_aspect WHERE half_points IS NOT NULL")
         ).scalar()
         assert others == 1
+    upgrade(db_url)
+    assert _triggers(engine) == at_head
+
+
+@pytest.mark.req("NFR-09", "NFR-05", "POL-02", "THS-01")
+def test_theses_merge_into_policy_versions_and_back(db_url: str, engine: Engine) -> None:
+    """0018: versions take the thesis of the revision they pinned, its confirmed review
+    becomes their thesis review, an unused thesis becomes a policy with a draft, and
+    drafts of used theses and their reviews are dropped. Downgrading gives every policy a
+    thesis again."""
+    from alembic import command
+
+    from yap.db.migrate import upgrade
+
+    at_head = _triggers(engine)
+    command.downgrade(_alembic(db_url), "0017")
+    t0, t1 = "'2026-01-01T00:00:00+00:00'", "'2026-02-01T00:00:00+00:00'"
+    review = (
+        "INSERT INTO review (id, kind, thesis_revision_id, policy_version_id, started_by,"
+        " state, verdict, scoring_version, provider, model, started_at, method)"
+        " VALUES ({id}, '{kind}', {rev}, {ver}, 1, 'done', {verdict}, '2', 'openai', 'm',"
+        f" {t0}, 'ai')"
+    )
+    with engine.begin() as connection:
+        for sql in (
+            "INSERT INTO investor (id, username, password_hash, is_admin, is_investor,"
+            " base_currency, active, must_change_password, created_at, manual_review_default)"
+            f" VALUES (1, 'alice', 'x', 0, 1, 'CHF', 1, 0, {t0}, 0)",
+            f"INSERT INTO thesis VALUES (1, 1, 'shared', {t0}), (2, 1, 'private', {t0})",
+            "INSERT INTO thesis_revision (id, thesis_id, revision_no, title, content_md,"
+            " status, activated_at, created_at) VALUES"
+            f" (1, 1, 1, 'Growth', 'used text', 'broken', NULL, {t0}),"
+            f" (2, 1, 2, 'Growth', 'draft text', 'intact', NULL, {t1}),"
+            f" (3, 2, 1, 'Spare idea', 'spare text', 'intact', NULL, {t0})",
+            f"INSERT INTO policy (id, owner_id, name, created_at) VALUES (1, 1, 'core', {t0})",
+            "INSERT INTO policy_version (id, policy_id, version_no, thesis_revision_id,"
+            f" activated_at, created_at) VALUES (1, 1, 1, 1, NULL, {t0})",
+            review.format(id=1, kind="thesis", rev=1, ver="NULL", verdict="'broken'"),
+            review.format(id=2, kind="policy", rev="NULL", ver=1, verdict="NULL"),
+            review.format(id=3, kind="thesis", rev=2, ver="NULL", verdict="'intact'"),
+            "INSERT INTO review_aspect (review_id, aspect, half_points, reasoning_md)"
+            " VALUES (1, 'T1', 14, 'r'), (3, 'T1', 10, 'r')",
+            # Activated after the review rows, which the history triggers protect then
+            f"UPDATE thesis_revision SET activated_at = {t0} WHERE id = 1",
+            f"UPDATE policy_version SET activated_at = {t0} WHERE id = 1",
+            "INSERT INTO timeline_event (investor_id, occurred_at, type, review_id,"
+            f" thesis_revision_id, summary) VALUES (1, {t1}, 'thesis_review_confirmed', 1, 1,"
+            " 'Thesis review of Growth revision 1')",
+        ):
+            connection.execute(text(sql))
+    upgrade(db_url)
+    assert _triggers(engine) == at_head
+    with engine.connect() as connection:
+        versions = connection.execute(
+            text(
+                "SELECT p.name, v.version_no, v.thesis_title, v.thesis_md, v.thesis_status,"
+                " v.activated_at IS NULL FROM policy_version v JOIN policy p"
+                " ON p.id = v.policy_id ORDER BY p.id"
+            )
+        ).all()
+        assert [tuple(v) for v in versions] == [
+            ("core", 1, "Growth", "used text", "broken", 0),
+            ("Spare idea", 1, "Spare idea", "spare text", "intact", 1),  # a new draft
+        ]
+        reviews = connection.execute(
+            text("SELECT id, kind, policy_version_id FROM review ORDER BY id")
+        ).all()
+        assert [tuple(r) for r in reviews] == [(1, "thesis", 1), (2, "policy", 1)]
+        assert connection.execute(text("SELECT review_id FROM timeline_event")).scalar() == 1
+        tables = connection.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+        assert "thesis" not in {t[0] for t in tables}
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(text("UPDATE policy_version SET thesis_md = 'x' WHERE id = 1"))
+
+    command.downgrade(_alembic(db_url), "0017")
+    with engine.connect() as connection:
+        revisions = connection.execute(
+            text(
+                "SELECT r.id, r.title, r.content_md, r.activated_at IS NULL FROM thesis_revision r"
+                " JOIN thesis t ON t.id = r.thesis_id ORDER BY r.id"
+            )
+        ).all()
+        assert [tuple(r)[1:] for r in revisions] == [
+            ("Growth", "used text", 0),
+            ("Spare idea", "spare text", 1),
+        ]
+        moved = connection.execute(
+            text("SELECT thesis_revision_id, policy_version_id FROM review WHERE id = 1")
+        ).one()
+        assert tuple(moved) == (revisions[0][0], None)
     upgrade(db_url)
     assert _triggers(engine) == at_head
 
@@ -446,7 +540,7 @@ def test_a_failing_migration_leaves_the_database_unchanged(db_url: str, engine: 
     # A broken reference, which the foreign key check after the migrations reports; a
     # plain connection, because the app's connections enforce foreign keys
     raw = sqlite3.connect(db_url.removeprefix("sqlite:///"))
-    raw.execute("UPDATE policy_version SET thesis_revision_id = 99")
+    raw.execute("UPDATE policy SET owner_id = 99")
     raw.commit()
     raw.close()
     with pytest.raises(RuntimeError, match="rolled back"):
@@ -522,7 +616,7 @@ def test_naive_timestamps_are_rejected(session: Session, factory: Factory) -> No
         "DELETE FROM snapshot_value",
         "UPDATE snapshot SET taken_at = taken_at",
         "DELETE FROM snapshot",
-        "UPDATE thesis_revision SET content_md = 'rewritten'",
+        "UPDATE policy_version SET thesis_md = 'rewritten'",
         "DELETE FROM portfolio_assignment",
         "UPDATE timeline_event SET summary = 'rewritten'",
         "UPDATE policy_version SET change_note = 'rewritten' WHERE activated_at IS NOT NULL",

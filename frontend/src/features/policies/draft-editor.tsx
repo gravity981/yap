@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
-import { FormError } from "@/components/form";
+import { Field, FormError, fieldError } from "@/components/form";
+import { MarkdownEditor } from "@/components/lazy-markdown-editor";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -12,9 +13,7 @@ import { NativeSelect } from "@/components/ui/select";
 import { PriceSourceControl } from "@/features/prices/price-source";
 import type { ReviewBrief } from "@/features/reviews/api";
 import { ReviewPane } from "@/features/reviews/pane";
-import { useThesis } from "@/features/theses/api";
-import { statusLabel } from "@/features/theses/status";
-import { api, unwrap } from "@/api/client";
+import { THESIS_STATUSES, statusLabel } from "@/features/theses/status";
 import { formatPct } from "@/lib/format";
 
 import {
@@ -73,7 +72,7 @@ export function band(row: Pick<Row, "target_pct" | "buy_threshold_pct" | "sell_t
   return { buy, sell, midband: (target + sell) / 2 };
 }
 
-/** POL-02 to POL-05: edits the draft's target structure. */
+/** POL-02 to POL-05, THS-01: edits the draft's thesis and target structure. */
 export function DraftEditorPage({ policyId }: { policyId: number }) {
   const { t } = useTranslation();
   const policy = usePolicy(policyId);
@@ -89,8 +88,8 @@ export function DraftEditorPage({ policyId }: { policyId: number }) {
     <DraftForm
       policyId={policyId}
       policyName={policy.data.name}
-      thesisId={policy.data.thesis_id}
       version={version.data}
+      thesisBrief={draft?.thesis_review}
       brief={draft?.review}
     />
   );
@@ -99,26 +98,26 @@ export function DraftEditorPage({ policyId }: { policyId: number }) {
 function DraftForm({
   policyId,
   policyName,
-  thesisId,
   version,
+  thesisBrief,
   brief,
 }: {
   policyId: number;
   policyName: string;
-  thesisId: number;
   version: Version;
+  thesisBrief: ReviewBrief | null | undefined;
   brief: ReviewBrief | null | undefined;
 }) {
   const { t } = useTranslation();
   const { saveDraft } = usePolicyActions(policyId);
   const assets = useAssets();
-  const thesis = useThesis(thesisId);
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>(() =>
     version.positions.length ? rowsOf(version) : [emptyRow()],
   );
-  const [revisionId, setRevisionId] = useState(version.thesis_revision_id);
-  const [revisionError, setRevisionError] = useState<unknown>(null);
+  const [title, setTitle] = useState(version.thesis_title);
+  const [status, setStatus] = useState(version.thesis_status);
+  const [content, setContent] = useState(version.thesis_md);
   const known = new Map((assets.data ?? []).map((a) => [a.ticker, a]));
 
   const total = rows.reduce((sum, r) => sum + (Number(r.target_pct) || 0), 0);
@@ -136,36 +135,28 @@ function DraftForm({
       ? saveDraft.error.problems.find((p) => p.path === `positions[${i}].${field}`)?.message
       : undefined;
 
-  const changeRevision = async (id: number) => {
-    setRevisionError(null);
-    try {
-      await unwrap(
-        api.PUT("/api/policies/{policy_id}/draft/thesis-revision", {
-          params: { path: { policy_id: policyId } },
-          body: { thesis_revision_id: id },
-        }),
-      );
-      setRevisionId(id);
-    } catch (error) {
-      setRevisionError(error);
-    }
-  };
-
+  // A row left completely empty is no position; a new policy may have none yet
   const positions = (): PositionIn[] =>
-    rows.map((r) => {
-      const asset = known.get(r.ticker.trim().toUpperCase());
-      return {
-        ticker: r.ticker,
-        name: asset ? null : r.name,
-        type: asset ? null : r.type,
-        target_pct: r.target_pct,
-        buy_threshold_pct: r.buy_threshold_pct,
-        sell_threshold_pct: r.sell_threshold_pct,
-        exit: r.exit,
-        rationale_md: r.rationale_md,
-      };
-    });
-  const submit = () => saveDraft.mutate({ positions: positions() }, { onSuccess: back });
+    rows
+      .filter((r) => r.ticker.trim() !== "")
+      .map((r) => {
+        const asset = known.get(r.ticker.trim().toUpperCase());
+        return {
+          ticker: r.ticker,
+          name: asset ? null : r.name,
+          type: asset ? null : r.type,
+          target_pct: r.target_pct,
+          buy_threshold_pct: r.buy_threshold_pct,
+          sell_threshold_pct: r.sell_threshold_pct,
+          exit: r.exit,
+          rationale_md: r.rationale_md,
+        };
+      });
+  const body = () => ({
+    positions: positions(),
+    thesis: { title, content_md: content, status },
+  });
+  const submit = () => saveDraft.mutate(body(), { onSuccess: back });
 
   // Not a <form>: the review pane below has forms of its own (REV-18)
   return (
@@ -177,24 +168,53 @@ function DraftForm({
         <p className="text-sm text-muted-foreground">{t("policies.editor.hint")}</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm">
-          {t("policies.editor.thesisRevision")}
-          <NativeSelect
-            className="w-auto"
-            aria-label={t("policies.editor.thesisRevision")}
-            value={revisionId}
-            onChange={(e) => changeRevision(Number(e.target.value))}
+      {/* THS-01, THS-04: the thesis of the draft, with its review next to it (REV-01) */}
+      <section className="grid gap-3" aria-label={t("policies.detail.tabThesis")}>
+        <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
+          <Field
+            id="thesis-title"
+            label={t("theses.editor.title")}
+            error={fieldError(saveDraft.error, "thesis_title")}
           >
-            {thesis.data?.revisions.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.revision_no} ({statusLabel(r.status)})
-              </option>
-            ))}
-          </NativeSelect>
-        </label>
-      </div>
-      <FormError error={revisionError} />
+            <Input id="thesis-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </Field>
+          <Field
+            id="thesis-status"
+            label={t("theses.editor.status")}
+            error={fieldError(saveDraft.error, "thesis_status")}
+          >
+            <NativeSelect
+              id="thesis-status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              {THESIS_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {statusLabel(s)}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        </div>
+        {status !== "intact" && status !== version.thesis_status && (
+          <p className="text-sm text-muted-foreground">{t("theses.editor.statusHint")}</p>
+        )}
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          aside={{
+            label: t("reviews.pane.tab"),
+            content: (
+              <ReviewPane
+                kind="thesis"
+                ownerId={policyId}
+                brief={thesisBrief}
+                save={() => saveDraft.mutateAsync(body())}
+              />
+            ),
+          }}
+        />
+      </section>
 
       <datalist id="asset-catalog">
         {assets.data?.map((a) => (
@@ -352,7 +372,7 @@ function DraftForm({
           kind="policy"
           ownerId={policyId}
           brief={brief}
-          save={() => saveDraft.mutateAsync({ positions: positions() })}
+          save={() => saveDraft.mutateAsync(body())}
         />
       </div>
     </div>

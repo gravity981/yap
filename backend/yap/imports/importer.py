@@ -1,4 +1,5 @@
-"""JSON import of theses, target structures and current structures (IMP-01 to IMP-08).
+"""JSON import of theses and target structures of policies, and of current structures
+(IMP-01 to IMP-08).
 
 Each file goes through three checks, all reporting JSON paths (IMP-06):
   1. valid JSON,
@@ -24,8 +25,6 @@ from yap.db.models import (
     PolicyVersion,
     Portfolio,
     Snapshot,
-    Thesis,
-    ThesisRevision,
 )
 from yap.domain.types import HUNDRED, TARGET_SUM_TOLERANCE, AssetType
 from yap.imports.models import (
@@ -38,10 +37,10 @@ from yap.imports.models import (
 )
 from yap.imports.schemas import generate
 from yap.messages import Message, msg
-from yap.services import policies, snapshots, theses
+from yap.services import policies, snapshots
 from yap.services.assets import find_asset, normalize_ticker
 from yap.services.common import Clock, ValidationError, get_owned
-from yap.services.policies import PositionSpec, VersionDiff
+from yap.services.policies import PositionSpec, ThesisSpec, VersionDiff
 from yap.services.snapshots import ValueSpec
 
 _IMPORT_TYPE: dict[type[BaseModel], str] = {
@@ -169,37 +168,31 @@ def import_thesis(
     actor: Investor,
     clock: Clock,
     text: str,
-    selected_thesis_id: int | None = None,
-) -> ThesisRevision:
-    """IMP-01: the draft of the selected thesis (created if there is none), otherwise a
-    new thesis. Never activates a revision."""
+    selected_policy_id: int | None = None,
+) -> PolicyVersion:
+    """IMP-01: replaces the thesis of the selected policy's draft (created if there is
+    none), otherwise creates a new policy, named after the title, whose draft v1 holds the
+    thesis. Never activates a version; the visibility and change note of a file are
+    ignored."""
     file = parse(text, ThesisFile)
+    thesis = ThesisSpec(file.title, file.content_md, file.status)
 
-    def run() -> ThesisRevision:
-        if selected_thesis_id is not None:
-            thesis = get_owned(session, Thesis, selected_thesis_id, actor)
-            if theses.get_draft(thesis) is None:
-                theses.create_draft(session, actor, clock, selected_thesis_id)
-            return theses.update_draft(
-                session,
-                actor,
-                clock,
-                selected_thesis_id,
-                title=file.title,
-                content_md=file.content_md,
-                status=file.status,
-                change_note=file.change_note,
-            )
-        thesis = theses.create_thesis(
+    def run() -> PolicyVersion:
+        if selected_policy_id is not None:
+            policy = policies.get_policy(session, actor, selected_policy_id)
+            if policies.get_draft(policy) is None:
+                policies.create_draft(session, actor, clock, policy.id)
+            return policies.update_thesis(session, actor, clock, policy.id, thesis)
+        policy = policies.create_policy(
             session,
             actor,
             clock,
-            title=file.title,
-            content_md=file.content_md,
-            visibility=file.visibility,
-            status=file.status,
+            name=file.title,
+            thesis_title=file.title,
+            thesis_md=file.content_md,
+            thesis_status=file.status,
         )
-        return thesis.revisions[0]
+        return policy.versions[0]
 
     return _atomically(session, run)
 
@@ -272,23 +265,22 @@ def import_current_structure(
 
 @dataclass(frozen=True)
 class ThesisPreview:
-    creates_new_thesis: bool
-    revision_no: int
+    creates_new_policy: bool
+    version_no: int  # the draft that takes the thesis
     title: str
     status: str
-    visibility: str | None  # None: unchanged (revision of an existing thesis)
 
 
 def preview_thesis(
-    session: Session, actor: Investor, text: str, selected_thesis_id: int | None = None
+    session: Session, actor: Investor, text: str, selected_policy_id: int | None = None
 ) -> ThesisPreview:
     file = parse(text, ThesisFile)
-    if selected_thesis_id is None:
-        return ThesisPreview(True, 1, file.title, file.status, file.visibility)
-    thesis = get_owned(session, Thesis, selected_thesis_id, actor)
-    draft = theses.get_draft(thesis)
-    revision_no = draft.revision_no if draft else theses.latest_revision(thesis).revision_no + 1
-    return ThesisPreview(False, revision_no, file.title, file.status, None)
+    if selected_policy_id is None:
+        return ThesisPreview(True, 1, file.title, file.status)
+    policy = policies.get_policy(session, actor, selected_policy_id)
+    draft = policies.get_draft(policy)
+    version_no = draft.version_no if draft else policy.versions[-1].version_no + 1
+    return ThesisPreview(False, version_no, file.title, file.status)
 
 
 def preview_target_structure(
@@ -299,8 +291,11 @@ def preview_target_structure(
     policy = policies.get_policy(session, actor, policy_id)
     check_target_structure(session, file)
     latest = policy.versions[-1]
-    candidate = PolicyVersion(thesis_revision_id=latest.thesis_revision_id)
-    candidate.thesis_revision = latest.thesis_revision
+    candidate = PolicyVersion(
+        thesis_title=latest.thesis_title,
+        thesis_md=latest.thesis_md,
+        thesis_status=latest.thesis_status,
+    )
     for i, p in enumerate(file.positions):
         asset = find_asset(session, p.ticker) or Asset(
             ticker=normalize_ticker(p.ticker), name=p.name, type=p.type

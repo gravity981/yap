@@ -78,7 +78,7 @@ def test_invalid_answers_are_rejected(text: str, message: str) -> None:
 @pytest.mark.req("REV-04", "NFR-01")
 def test_thesis_request_searches_news_of_the_period(session: Session, factory: Factory) -> None:
     owner = factory.investor("alice")
-    revision = factory.thesis(owner, title="Growth").revisions[0]
+    revision = factory.policy_draft(owner, thesis_title="Growth").versions[0]
     ref = review_prompts.PromptRef(ReviewKind.THESIS, revision.id, _at(2026, 1, 15), 90)
     request = review_prompts.thesis_prompt(revision, ref).llm_request()
     assert request.web_search is True
@@ -91,7 +91,7 @@ def test_thesis_request_searches_news_of_the_period(session: Session, factory: F
 def test_thesis_request_judges_the_sections_of_the_template(
     session: Session, factory: Factory
 ) -> None:
-    revision = factory.thesis(factory.investor()).revisions[0]
+    revision = factory.policy_draft(factory.investor()).versions[0]
     ref = review_prompts.PromptRef(ReviewKind.THESIS, revision.id, _at(2026, 1, 15), 14)
     system = review_prompts.thesis_prompt(revision, ref).instructions
     assert "1 Belief, 2 Investor Fit" in system and "8 Monitoring" in system
@@ -145,7 +145,7 @@ def test_the_prompt_text_holds_instructions_content_and_answer_format(
     session: Session, factory: Factory
 ) -> None:
     owner = factory.investor("alice")
-    revision = factory.thesis(owner, title="Growth").revisions[0]
+    revision = factory.policy_draft(owner, thesis_title="Growth").versions[0]
     ref = review_prompts.PromptRef(ReviewKind.THESIS, revision.id, _at(2026, 1, 15), 30)
     prompt = review_prompts.thesis_prompt(revision, ref)
     text = prompt.text()

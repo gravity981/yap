@@ -20,7 +20,6 @@ function event(
     policy_version_id: null,
     rebalance_id: null,
     review_id: null,
-    thesis_revision_id: null,
   };
 }
 
@@ -81,6 +80,11 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
     }),
     "Thesis review of 'Core thesis' revision 2: needs adaptation, 7 / 10, modified",
     "Prüfung der Anlagethese «Core thesis» Revision 2: Anpassung nötig, 7 / 10, geändert",
+  ],
+  [
+    event("thesis_review_confirmed", { version: "core-v3", verdict: "broken", total: 4.5 }),
+    "Thesis review of core-v3: broken, 4.5 / 10",
+    "Prüfung der Anlagethese von core-v3: gebrochen, 4.5 / 10",
   ],
   [
     event("policy_review_confirmed", {

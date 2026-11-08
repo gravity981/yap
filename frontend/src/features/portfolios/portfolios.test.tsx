@@ -148,7 +148,6 @@ function setup(handlers: Record<string, Handler> = {}) {
           archived_at: null,
           active_version_label: "core-v2",
           has_draft: false,
-          newer_thesis_revision_id: null,
           thesis_warning: false,
         },
         {
@@ -157,7 +156,6 @@ function setup(handlers: Record<string, Handler> = {}) {
           archived_at: null,
           active_version_label: "growth-v1",
           has_draft: false,
-          newer_thesis_revision_id: null,
           thesis_warning: false,
         },
         {
@@ -166,7 +164,6 @@ function setup(handlers: Record<string, Handler> = {}) {
           archived_at: null,
           active_version_label: null,
           has_draft: true,
-          newer_thesis_revision_id: null,
           thesis_warning: false,
         },
       ]),

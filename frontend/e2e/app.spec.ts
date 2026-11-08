@@ -53,17 +53,22 @@ test("[USR-01] [USR-02] [USR-03] an admin creates an investor who chooses an own
   });
 });
 
-test("[THS-01] [THS-02] [THS-07] writes a thesis in the markdown editor", async ({ page }) => {
+test("[POL-01] [POL-02] [POL-05] [POL-06] [THS-01] [THS-07] writes a policy: thesis and target structure", async ({
+  page,
+}) => {
   await asAlice(page);
-  await test.step("open a new thesis, which starts from the template", async () => {
+  await test.step("create policy core; its draft opens with the thesis template", async () => {
     await page
       .getByRole("navigation", { name: "Main" })
-      .getByRole("link", { name: "Theses" })
+      .getByRole("link", { name: "Policies" })
       .click();
-    await page.getByRole("link", { name: "New thesis" }).click();
+    await page.getByRole("button", { name: "New policy" }).click();
+    await page.getByLabel("Name").fill("core");
+    await page.getByRole("button", { name: "Create" }).click();
+    await expect(page.getByRole("heading", { name: "core-v1 (draft)" })).toBeVisible();
     await expect(page.locator(".cm-content").first()).toContainText("Investment Thesis");
   });
-  await test.step("type markdown and see the live preview", async () => {
+  await test.step("write the thesis and see the live preview", async () => {
     await page.getByLabel("Title").fill("Growth");
     await page.locator(".cm-content").first().click();
     await page.keyboard.press("ControlOrMeta+a");
@@ -72,35 +77,7 @@ test("[THS-01] [THS-02] [THS-07] writes a thesis in the markdown editor", async 
       page.getByLabel("Preview").getByRole("heading", { name: "Global growth" }),
     ).toBeVisible();
   });
-  await test.step("create the thesis; it starts as a draft", async () => {
-    await page.getByRole("button", { name: "Create thesis" }).click();
-    // Wait for the thesis page: role names match as substrings unless exact, and the
-    // editor's preview already shows the heading "Global growth"
-    await expect(page).toHaveURL(/\/theses\/\d+$/);
-    await expect(page.getByRole("heading", { name: "Growth", exact: true })).toBeVisible();
-    await expect(page.getByText("Index funds follow the economy.")).toBeVisible();
-    await expect(page.getByText("not activated yet")).toBeVisible();
-  });
-  await test.step("activate the draft as revision 1", async () => {
-    await page.getByRole("button", { name: "Activate draft" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Activate" }).click();
-    await expect(page.getByText("revision 1", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "New draft" })).toBeVisible();
-  });
-});
-
-test("[POL-01] [POL-02] [POL-05] [POL-06] creates and activates a policy", async ({ page }) => {
-  await asAlice(page);
-  await test.step("create policy core based on the thesis", async () => {
-    await page.goto("/policies");
-    await page.getByRole("button", { name: "New policy" }).click();
-    await page.getByLabel("Name").fill("core");
-    await page.getByLabel("Thesis").selectOption({ label: "Growth" });
-    await page.getByRole("button", { name: "Create" }).click();
-    await expect(page.getByRole("heading", { name: "core", exact: true })).toBeVisible();
-  });
-  await test.step("edit the draft: XUS 50 %, ETH 50 %", async () => {
-    await page.getByRole("button", { name: "Edit draft" }).click();
+  await test.step("the target structure: XUS 50 %, ETH 50 %", async () => {
     const first = page.getByRole("group", { name: "Position 1" });
     await first.getByLabel("Ticker").fill("XUS");
     await first.getByLabel("Name").fill("US Equity ETF");
@@ -114,9 +91,17 @@ test("[POL-01] [POL-02] [POL-05] [POL-06] creates and activates a policy", async
     await expect(page.getByLabel("Target total")).toHaveText("Total target: 100.00 %");
     await page.getByRole("button", { name: "Save draft" }).click();
   });
+  await test.step("the policy page shows the thesis of the draft", async () => {
+    await expect(page.getByRole("heading", { name: "core", exact: true, level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Growth", exact: true })).toBeVisible();
+    await expect(page.getByText("Index funds follow the economy.")).toBeVisible();
+  });
   await test.step("activate the draft as core-v1", async () => {
     await page.getByRole("button", { name: "Activate draft" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Activate" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: /^Activate/ })
+      .click();
     await expect(page.getByText("active: core-v1")).toBeVisible();
   });
 });
@@ -229,11 +214,13 @@ test("[TL-01] [TL-02] shows the decisions in the timeline", async ({ page }) => 
   });
 });
 
-test("[IMP-01] [IMP-07] [IMP-10] imports a thesis and exports it again", async ({ page }) => {
+test("[IMP-01] [IMP-07] [IMP-10] imports a thesis as a new policy and exports it again", async ({
+  page,
+}) => {
   await asAlice(page);
   await test.step("choose a thesis file and see the preview", async () => {
-    await page.goto("/theses");
-    await page.getByRole("button", { name: "Import" }).click();
+    await page.goto("/policies");
+    await page.getByRole("button", { name: "Import thesis" }).click();
     await page.getByLabel("Import file").setInputFiles({
       name: "thesis.json",
       mimeType: "application/json",
@@ -243,13 +230,13 @@ test("[IMP-01] [IMP-07] [IMP-10] imports a thesis and exports it again", async (
     });
     await expect(page.getByRole("dialog")).toContainText("Imported view");
   });
-  await test.step("import it; the imported thesis opens as a draft", async () => {
+  await test.step("import it; the new policy has the thesis as its draft", async () => {
     await page.getByRole("dialog").getByRole("button", { name: "Import", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Imported view", level: 1 })).toBeVisible();
-    await expect(page.getByText("not activated yet")).toBeVisible();
+    await expect(page.getByText("draft v1")).toBeVisible();
   });
   await test.step("the export gives back the same content", async () => {
-    const exportLink = page.getByRole("link", { name: "Export revision 1 as JSON" });
+    const exportLink = page.getByRole("link", { name: "Export as JSON" });
     const response = await page.request.get((await exportLink.getAttribute("href"))!);
     expect(response.ok()).toBe(true);
     expect(await response.json()).toMatchObject({
@@ -308,11 +295,11 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draf
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
   });
-  await test.step("open a new draft of the thesis Growth in the editor", async () => {
-    await page.goto("/theses");
-    await page.getByRole("link", { name: "Growth" }).click();
+  await test.step("open a new draft of the policy core in the editor", async () => {
+    await page.goto("/policies");
+    await page.getByRole("link", { name: "core", exact: true }).click();
     await page.getByRole("button", { name: "New draft" }).click();
-    await expect(page.getByRole("heading", { name: /Edit draft/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "core-v2 (draft)" })).toBeVisible();
   });
   const review = page.getByRole("region", { name: "Thesis review" });
   await test.step("start the review in the editor and wait for its result", async () => {
@@ -326,15 +313,16 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draf
     // The result cannot be changed (REV-10 dropped)
     await expect(review.getByRole("button", { name: "Change result" })).toHaveCount(0);
     await page.getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByText("draft r2")).toBeVisible();
+    await expect(page.getByText("draft v2")).toBeVisible();
   });
   await test.step("activating the draft confirms the review", async () => {
     await page.getByRole("button", { name: "Activate draft" }).click();
     const dialog = page.getByRole("dialog");
-    await expect(dialog.getByRole("alert")).toHaveCount(0); // the review is current
+    // The thesis review is current; the target structure has none yet (REV-11)
+    await expect(dialog.getByRole("alert")).toContainText("This draft has no review");
     await dialog.getByLabel("Change note").fill("Reviewed");
-    await dialog.getByRole("button", { name: "Activate", exact: true }).click();
-    await expect(page.getByText("revision 2", { exact: true })).toBeVisible();
+    await dialog.getByRole("button", { name: "Activate anyway" }).click();
+    await expect(page.getByText("active: core-v2")).toBeVisible();
     await expect(review.getByText("confirmed", { exact: true })).toBeVisible();
   });
   await test.step("the confirmed review is in the timeline", async () => {
@@ -342,9 +330,7 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-11] [TL-01] reviews a thesis draf
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "Timeline" })
       .click();
-    await expect(
-      page.getByText("Thesis review of 'Growth' revision 2: intact, 6.5 / 10"),
-    ).toBeVisible();
+    await expect(page.getByText("Thesis review of core-v2: intact, 6.5 / 10")).toBeVisible();
   });
 });
 
@@ -362,9 +348,9 @@ test("[USR-09] the admin becomes an investor too", async ({ page }) => {
   await test.step("both navigations; the investment data of alice stays hidden", async () => {
     const nav = page.getByRole("navigation", { name: "Main" });
     await expect(nav.getByText("Administration")).toBeVisible();
-    await nav.getByRole("link", { name: "Theses" }).click();
-    await expect(page.getByRole("heading", { name: "Theses" })).toBeVisible();
-    await expect(page.getByText("Growth")).toHaveCount(0);
+    await nav.getByRole("link", { name: "Policies" }).click();
+    await expect(page.getByRole("heading", { name: "Policies" })).toBeVisible();
+    await expect(page.getByText("core", { exact: true })).toHaveCount(0);
     await nav.getByRole("link", { name: "Accounts" }).click();
     await expect(page.getByRole("cell", { name: "alice" })).toBeVisible();
   });

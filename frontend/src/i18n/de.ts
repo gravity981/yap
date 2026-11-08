@@ -38,7 +38,6 @@ export const de: Messages<typeof en> = {
     dashboard: "Übersicht",
     portfolios: "Portfolios",
     policies: "Anlagestrategien",
-    theses: "Anlagethesen",
     timeline: "Verlauf",
     administration: "Verwaltung",
     accounts: "Konten",

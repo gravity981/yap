@@ -36,7 +36,6 @@ MESSAGES: dict[str, str] = {
     "review_reviewer_unusable": "The AI reviewer {name} cannot be used: {detail} Ask the admin.",
     "review_reviewer_no_reviews": "The AI reviewer {name} includes no reviews",
     "review_limit_reached": "All {limit} reviews with {name} of this month are used",
-    "review_thesis_no_draft": "Thesis {id} has no draft",
     "review_policy_no_draft": "Policy {name} has no draft",
     "review_running": "A review of this draft is still running",
     "review_running_wait": "A review of this draft is still running; wait for it to finish",
@@ -45,9 +44,7 @@ MESSAGES: dict[str, str] = {
     "review_news_days_invalid": "The news period must be between 1 and {max} days",
     "review_interrupted": "Interrupted by a restart of the app; start the review again",
     "review_failed_unexpectedly": "The review failed unexpectedly ({detail})",
-    "review_revision_not_found": "Revision {revision_no} of thesis {thesis_id} not found",
     "review_version_not_found": "Version {version_no} of policy {policy} not found",
-    "review_revision_no_review": "Revision {revision_no} has no review",
     "review_version_no_review": "{version} has no review",
     # Rebalances (services/rebalances.py)
     "rebalance_values_missing": "Enter the portfolio's current values first",

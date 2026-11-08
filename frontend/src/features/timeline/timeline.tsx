@@ -15,12 +15,10 @@ import { usePortfolios } from "@/features/portfolios/api";
 import { useRebalance } from "@/features/rebalance/api";
 import { actionLabel } from "@/features/rebalance/rebalance";
 import { ReviewDetails } from "@/features/reviews/review";
-import { statusLabel } from "@/features/theses/status";
 import { formatAmount, formatDateTime } from "@/lib/format";
 
 import {
   EVENT_TYPES,
-  useRevisionById,
   useTimeline,
   useVersionById,
   type EventType,
@@ -184,11 +182,11 @@ function EventDetails({ event }: { event: TimelineEvent }) {
         <RebalanceDetails rebalanceId={event.rebalance_id} />
       );
     case "thesis_revised":
-      return <RevisionDetails revisionId={event.thesis_revision_id} />;
+      return null; // events from before policies held their thesis: the summary says it all
     case "thesis_review_confirmed":
       return (
         <div className="grid gap-3">
-          <RevisionDetails revisionId={event.thesis_revision_id} />
+          {event.policy_version_id !== null && <VersionLink versionId={event.policy_version_id} />}
           {event.review_id !== null && <ReviewDetails reviewId={event.review_id} />}
         </div>
       );
@@ -312,22 +310,6 @@ function VersionLink({ versionId }: { versionId: number | null }) {
         {v.label}
       </Link>
       {v.change_note && `: ${v.change_note}`}
-    </p>
-  );
-}
-
-function RevisionDetails({ revisionId }: { revisionId: number | null }) {
-  const { t } = useTranslation();
-  const revision = useRevisionById(revisionId);
-  if (!revision.data) return null;
-  const r = revision.data;
-  return (
-    <p className="text-sm">
-      <Link to="/theses/$thesisId" params={{ thesisId: String(r.thesis_id) }} className="underline">
-        {r.title}
-      </Link>{" "}
-      {t("timeline.revision", { no: r.revision_no, status: statusLabel(r.status) })}
-      {r.change_note && `: ${r.change_note}`}
     </p>
   );
 }

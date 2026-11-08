@@ -232,42 +232,6 @@ class Asset(Base):
     type: Mapped[str] = mapped_column(String(20))
 
 
-class Thesis(Base):
-    __tablename__ = "thesis"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("investor.id"))
-    visibility: Mapped[str] = mapped_column(String(10))
-    created_at: Mapped[datetime]
-
-    revisions: Mapped[list[ThesisRevision]] = relationship(
-        back_populates="thesis", order_by="ThesisRevision.revision_no"
-    )
-
-
-class ThesisRevision(Base):
-    __tablename__ = "thesis_revision"
-    __table_args__ = (UniqueConstraint("thesis_id", "revision_no"),)
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    thesis_id: Mapped[int] = mapped_column(ForeignKey("thesis.id"))
-    revision_no: Mapped[int] = mapped_column(Integer)
-    title: Mapped[str] = mapped_column(String(200))
-    content_md: Mapped[str] = mapped_column(Text)
-    status: Mapped[str] = mapped_column(String(20))
-    change_note: Mapped[str | None] = mapped_column(Text)
-    activated_at: Mapped[datetime | None]  # null for the draft (THS-02)
-    updated_at: Mapped[datetime | None]  # last change of the draft (REV-09)
-    created_at: Mapped[datetime]
-
-    thesis: Mapped[Thesis] = relationship(back_populates="revisions")
-    review: Mapped[Review | None] = relationship(viewonly=True)
-
-    @property
-    def is_draft(self) -> bool:
-        return self.activated_at is None
-
-
 class Policy(Base):
     __tablename__ = "policy"
     __table_args__ = (UniqueConstraint("owner_id", "name"),)
@@ -290,15 +254,17 @@ class PolicyVersion(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     policy_id: Mapped[int] = mapped_column(ForeignKey("policy.id"))
     version_no: Mapped[int] = mapped_column(Integer)
-    thesis_revision_id: Mapped[int] = mapped_column(ForeignKey("thesis_revision.id"))
+    # The thesis of the version (THS-01); the status until the semaphore replaces it
+    thesis_title: Mapped[str] = mapped_column(String(200))
+    thesis_md: Mapped[str] = mapped_column(Text)
+    thesis_status: Mapped[str] = mapped_column(String(20))
     change_note: Mapped[str | None] = mapped_column(Text)
     activated_at: Mapped[datetime | None]
     updated_at: Mapped[datetime | None]  # last change of a draft (REV-09)
     created_at: Mapped[datetime]
 
     policy: Mapped[Policy] = relationship(back_populates="versions")
-    thesis_revision: Mapped[ThesisRevision] = relationship()
-    review: Mapped[Review | None] = relationship(viewonly=True)
+    reviews: Mapped[list[Review]] = relationship(viewonly=True, order_by="Review.id")
     positions: Mapped[list[PolicyPosition]] = relationship(
         back_populates="policy_version",
         order_by="PolicyPosition.sort_order",
@@ -448,20 +414,16 @@ class RebalanceAction(Base):
 
 
 class Review(Base):
-    """A thesis or policy review of a draft (REV-01 to REV-12). It is confirmed, and
-    immutable from then on, when its draft is activated (REV-11)."""
+    """A thesis or policy review of a draft version (REV-01 to REV-12). It is confirmed,
+    and immutable from then on, when its draft is activated (REV-11)."""
 
     __tablename__ = "review"
+    __table_args__ = (UniqueConstraint("policy_version_id", "kind"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[str] = mapped_column(String(10))  # thesis | policy
-    # The reviewed draft: exactly one of the two, by kind; at most one review each (REV-09)
-    thesis_revision_id: Mapped[int | None] = mapped_column(
-        ForeignKey("thesis_revision.id"), unique=True
-    )
-    policy_version_id: Mapped[int | None] = mapped_column(
-        ForeignKey("policy_version.id"), unique=True
-    )
+    # The reviewed version; at most one review of each kind (REV-09)
+    policy_version_id: Mapped[int] = mapped_column(ForeignKey("policy_version.id"))
     started_by: Mapped[int] = mapped_column(ForeignKey("investor.id"))
     state: Mapped[str] = mapped_column(String(10))  # queued | running | done | failed
     news_from: Mapped[datetime | None]  # thesis reviews only
@@ -552,7 +514,6 @@ class TimelineEvent(Base):
     policy_version_id: Mapped[int | None] = mapped_column(ForeignKey("policy_version.id"))
     rebalance_id: Mapped[int | None] = mapped_column(ForeignKey("rebalance.id"))
     review_id: Mapped[int | None] = mapped_column(ForeignKey("review.id"))
-    thesis_revision_id: Mapped[int | None] = mapped_column(ForeignKey("thesis_revision.id"))
     summary: Mapped[str] = mapped_column(String(500))  # English, as stored at the time
     # The values of the summary, so the UI can write it in its language (TL-02, NFR-10);
     # null for events from before 0010

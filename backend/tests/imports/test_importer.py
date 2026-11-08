@@ -9,11 +9,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from tests.fixtures import Factory
-from yap.db.models import Asset, Snapshot, Thesis
+from yap.db.models import Asset, Policy, Snapshot
 from yap.imports import importer
 from yap.imports.models import ThesisFile
-from yap.services import policies, theses
-from yap.services.common import NotFoundError, ValidationError
+from yap.services import policies
+from yap.services.common import ConflictError, NotFoundError, ValidationError
 
 
 def thesis_json(**overrides: Any) -> str:
@@ -56,59 +56,48 @@ def problems(err: pytest.ExceptionInfo[ValidationError]) -> list[str]:
 
 
 @pytest.mark.req("IMP-01")
-def test_thesis_import_without_selection_creates_new_thesis(
+def test_thesis_import_without_selection_creates_a_new_policy(
     session: Session, factory: Factory
 ) -> None:
     owner = factory.investor()
-    revision = importer.import_thesis(session, owner, factory.clock, thesis_json())
-    assert revision.revision_no == 1
-    assert revision.title == "Imported thesis"
-    assert revision.thesis.visibility == "shared"
+    draft = importer.import_thesis(session, owner, factory.clock, thesis_json())
+    assert (draft.version_no, draft.activated_at, draft.positions) == (1, None, [])
+    assert (draft.policy.name, draft.thesis_title) == ("Imported thesis", "Imported thesis")
+    # A second import of the same title collides with the policy name
+    with pytest.raises(ConflictError):
+        importer.import_thesis(session, owner, factory.clock, thesis_json())
 
 
 @pytest.mark.req("IMP-01")
-def test_thesis_import_with_selection_creates_a_draft_and_keeps_visibility(
+def test_thesis_import_with_selection_creates_a_draft_and_never_activates(
     session: Session, factory: Factory
 ) -> None:
     owner = factory.investor()
-    thesis = factory.thesis(owner)  # private
-    revision = importer.import_thesis(
+    policy = factory.active_policy(owner)
+    draft = importer.import_thesis(
         session,
         owner,
         factory.clock,
         thesis_json(status="needs_adaptation", change_note="Imported update"),
-        selected_thesis_id=thesis.id,
+        selected_policy_id=policy.id,
     )
-    assert (revision.revision_no, revision.is_draft) == (2, True)
-    assert (revision.status, revision.change_note) == ("needs_adaptation", "Imported update")
-    assert thesis.visibility == "private"
-
-
-@pytest.mark.req("IMP-01", "THS-02")
-def test_thesis_import_replaces_an_existing_draft_and_never_activates(
-    session: Session, factory: Factory
-) -> None:
-    owner = factory.investor()
-    thesis = factory.thesis(owner)
-    importer.import_thesis(session, owner, factory.clock, thesis_json(), thesis.id)
-    revision = importer.import_thesis(
-        session, owner, factory.clock, thesis_json(status="broken"), thesis.id
+    assert (draft.version_no, draft.activated_at) == (2, None)
+    assert (draft.thesis_title, draft.thesis_status) == ("Imported thesis", "needs_adaptation")
+    assert [p.asset.ticker for p in draft.positions] == ["AAA", "BBB"]  # kept
+    # A second import replaces the thesis of the same draft
+    again = importer.import_thesis(
+        session, owner, factory.clock, thesis_json(status="broken"), policy.id
     )
-    assert [(r.revision_no, r.is_draft) for r in thesis.revisions] == [(1, False), (2, True)]
-    assert revision.status == "broken"
-    # The change note is only required when the draft is activated (THS-03)
-    with pytest.raises(ValidationError):
-        theses.activate_draft(session, owner, factory.clock, thesis.id, None)
+    assert (again.id, again.thesis_status) == (draft.id, "broken")
+    assert [v.version_no for v in policy.versions] == [1, 2]
 
 
 @pytest.mark.req("IMP-01")
-def test_selected_thesis_must_be_own(session: Session, factory: Factory) -> None:
+def test_selected_policy_must_be_own(session: Session, factory: Factory) -> None:
     owner, other = factory.investor(), factory.investor()
-    foreign = factory.thesis(other, shared=True)
+    foreign = factory.active_policy(other)
     with pytest.raises(NotFoundError):
-        importer.import_thesis(
-            session, owner, factory.clock, thesis_json(change_note="x"), foreign.id
-        )
+        importer.import_thesis(session, owner, factory.clock, thesis_json(), foreign.id)
 
 
 # --- Schema validation (IMP-04, IMP-06) --------------------------------------
@@ -183,7 +172,7 @@ def test_target_structure_creates_draft_of_selected_policy(
         policy.id,
     )
     assert draft.version_no == 2 and draft.activated_at is None
-    assert draft.thesis_revision_id == policy.versions[0].thesis_revision_id
+    assert draft.thesis_md == policy.versions[0].thesis_md  # the thesis stays (IMP-02)
     assert [(p.asset.ticker, p.exit, p.rationale_md) for p in draft.positions] == [
         ("XUS", False, "US"),
         ("ETH", True, ""),
@@ -406,16 +395,16 @@ def test_preview_target_structure_shows_diff_and_stores_nothing(
 @pytest.mark.req("IMP-07")
 def test_preview_thesis(session: Session, factory: Factory) -> None:
     owner = factory.investor()
-    thesis = factory.thesis(owner)
+    policy = factory.active_policy(owner)
     new = importer.preview_thesis(session, owner, thesis_json())
-    assert (new.creates_new_thesis, new.revision_no, new.visibility) == (True, 1, "shared")
-    update = importer.preview_thesis(session, owner, thesis_json(), thesis.id)
-    assert (update.creates_new_thesis, update.revision_no, update.visibility) == (False, 2, None)
-    theses.create_draft(session, owner, factory.clock, thesis.id)
-    # An existing draft is replaced, so the revision number stays
-    assert importer.preview_thesis(session, owner, thesis_json(), thesis.id).revision_no == 2
-    assert session.scalar(select(func.count()).select_from(Thesis)) == 1
-    assert len(thesis.revisions) == 2
+    assert (new.creates_new_policy, new.version_no, new.title) == (True, 1, "Imported thesis")
+    update = importer.preview_thesis(session, owner, thesis_json(), policy.id)
+    assert (update.creates_new_policy, update.version_no) == (False, 2)
+    policies.create_draft(session, owner, factory.clock, policy.id)
+    # An existing draft is replaced, so the version number stays
+    assert importer.preview_thesis(session, owner, thesis_json(), policy.id).version_no == 2
+    assert session.scalar(select(func.count()).select_from(Policy)) == 1
+    assert len(policy.versions) == 2
 
 
 @pytest.mark.req("IMP-07")

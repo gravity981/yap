@@ -5,8 +5,14 @@ export const en = {
   list: {
     title: "Policies",
     description:
-      "A policy turns a thesis into a target structure: target allocation and buy and sell thresholds per position. Changes are made in a draft and take effect when you activate it.",
+      "A policy is your thesis and the target structure that follows from it: target allocation and buy and sell thresholds per position. Changes are made in a draft and take effect when you activate it.",
     newPolicy: "New policy",
+    importThesis: "Import thesis",
+    importThesisTitle: "Import a thesis",
+    importThesisDescription:
+      "A JSON file with a thesis becomes a new policy: its draft v1 holds the thesis, without positions.",
+    importThesisPreview:
+      "Creates the policy <strong>{{title}}</strong> with a draft of its thesis (status {{status}}).",
     empty: "No policies yet.",
     policy: "Policy",
     activeVersion: "Active version",
@@ -18,12 +24,8 @@ export const en = {
   create: {
     title: "New policy",
     description:
-      "A policy combines one thesis with a target structure. It starts with an empty draft v1.",
+      "A policy holds your thesis and its target structure. It starts as draft v1 with the thesis template.",
     name: "Name",
-    thesis: "Thesis",
-    chooseThesis: "Choose a thesis",
-    shared: " (shared)",
-    draftsHidden: "Theses that are still drafts are not listed; activate them first.",
     create: "Create",
   },
   detail: {
@@ -31,16 +33,17 @@ export const en = {
     noActive: "no active version yet",
     draftVersion: "draft v{{no}}",
     archived: "archived",
-    thesis: "thesis",
+    importThesis: "Import thesis",
+    importThesisPreview:
+      'Replaces the thesis of the draft v{{no}} with "{{title}}" (status {{status}}).',
     importTarget: "Import target structure",
     editDraft: "Edit draft",
     activateDraft: "Activate draft",
     newDraft: "New draft",
-    thesisWarningBefore: "The thesis revision used by the active version is marked as ",
+    thesisWarningBefore: "The thesis of the active version is marked as ",
     thesisWarningAfter:
       ". Rebalancing is not affected; adapt the thesis, or set exit flags in a new version to leave positions.",
-    newerRevision: "The thesis has a newer revision than the active version uses.",
-    takeOver: "Take it over into the draft",
+    tabThesis: "Thesis",
     tabStructure: "Target structure",
     tabVersions: "Versions",
     tabCompare: "Compare",
@@ -55,7 +58,6 @@ export const en = {
     draftSuffix: " (draft)",
     activeSuffix: " (active)",
     export: "Export as JSON",
-    thesisRevision: "Thesis revision {{no}} ({{status}})",
     noPositions: "No positions yet.",
     draft: "draft",
     active: "active",
@@ -105,13 +107,12 @@ export const en = {
       exit: "exit",
       rationale_md: "rationale",
     },
-    thesisRevision: "Thesis revision: {{from}} → {{to}}",
+    thesisChanged: "The thesis changed:",
   },
   editor: {
     noDraft: "This policy has no draft. Create one on the policy page.",
     title: "{{name}}-v{{no}} (draft)",
     hint: "Thresholds are relative to the target: buy −20 means 20 % below the target. Saving keeps the draft; activate it on the policy page.",
-    thesisRevision: "Thesis revision",
     position: "Position {{no}}",
     ticker: "Ticker",
     name: "Name",
@@ -139,8 +140,14 @@ export const de: Messages<typeof en> = {
   list: {
     title: "Anlagestrategien",
     description:
-      "Eine Anlagestrategie macht aus einer Anlagethese eine Zielstruktur: Zielanteil sowie Kauf- und Verkaufsschwelle pro Position. Änderungen machst du in einem Entwurf; sie gelten, sobald du ihn aktivierst.",
+      "Eine Anlagestrategie ist deine Anlagethese und die Zielstruktur, die daraus folgt: Zielanteil sowie Kauf- und Verkaufsschwelle pro Position. Änderungen machst du in einem Entwurf; sie gelten, sobald du ihn aktivierst.",
     newPolicy: "Neue Anlagestrategie",
+    importThesis: "Anlagethese importieren",
+    importThesisTitle: "Eine Anlagethese importieren",
+    importThesisDescription:
+      "Eine JSON-Datei mit einer Anlagethese wird zu einer neuen Anlagestrategie: ihr Entwurf v1 enthält die Anlagethese, ohne Positionen.",
+    importThesisPreview:
+      "Erstellt die Anlagestrategie <strong>{{title}}</strong> mit einem Entwurf ihrer Anlagethese (Status {{status}}).",
     empty: "Noch keine Anlagestrategien.",
     policy: "Anlagestrategie",
     activeVersion: "Aktive Version",
@@ -152,13 +159,8 @@ export const de: Messages<typeof en> = {
   create: {
     title: "Neue Anlagestrategie",
     description:
-      "Eine Anlagestrategie verbindet eine Anlagethese mit einer Zielstruktur. Sie beginnt mit einem leeren Entwurf v1.",
+      "Eine Anlagestrategie enthält deine Anlagethese und ihre Zielstruktur. Sie beginnt als Entwurf v1 mit der Vorlage für die Anlagethese.",
     name: "Name",
-    thesis: "Anlagethese",
-    chooseThesis: "Anlagethese wählen",
-    shared: " (geteilt)",
-    draftsHidden:
-      "Anlagethesen, die erst Entwürfe sind, fehlen in der Liste; aktiviere sie zuerst.",
     create: "Erstellen",
   },
   detail: {
@@ -166,17 +168,17 @@ export const de: Messages<typeof en> = {
     noActive: "noch keine aktive Version",
     draftVersion: "Entwurf v{{no}}",
     archived: "archiviert",
-    thesis: "Anlagethese",
+    importThesis: "Anlagethese importieren",
+    importThesisPreview:
+      "Ersetzt die Anlagethese des Entwurfs v{{no}} durch «{{title}}» (Status {{status}}).",
     importTarget: "Zielstruktur importieren",
     editDraft: "Entwurf bearbeiten",
     activateDraft: "Entwurf aktivieren",
     newDraft: "Neuer Entwurf",
-    thesisWarningBefore: "Die Revision der Anlagethese, die die aktive Version verwendet, ist als ",
+    thesisWarningBefore: "Die Anlagethese der aktiven Version ist als ",
     thesisWarningAfter:
       " markiert. Das Rebalancing ist davon nicht betroffen; passe die Anlagethese an oder setze in einer neuen Version Exit-Markierungen, um Positionen aufzulösen.",
-    newerRevision:
-      "Die Anlagethese hat eine neuere Revision als die, die die aktive Version verwendet.",
-    takeOver: "In den Entwurf übernehmen",
+    tabThesis: "Anlagethese",
     tabStructure: "Zielstruktur",
     tabVersions: "Versionen",
     tabCompare: "Vergleichen",
@@ -191,7 +193,6 @@ export const de: Messages<typeof en> = {
     draftSuffix: " (Entwurf)",
     activeSuffix: " (aktiv)",
     export: "Als JSON exportieren",
-    thesisRevision: "Revision {{no}} der Anlagethese ({{status}})",
     noPositions: "Noch keine Positionen.",
     draft: "Entwurf",
     active: "aktiv",
@@ -241,14 +242,13 @@ export const de: Messages<typeof en> = {
       exit: "Exit",
       rationale_md: "Begründung",
     },
-    thesisRevision: "Revision der Anlagethese: {{from}} → {{to}}",
+    thesisChanged: "Die Anlagethese hat sich geändert:",
   },
   editor: {
     noDraft:
       "Diese Anlagestrategie hat keinen Entwurf. Erstelle einen auf der Seite der Anlagestrategie.",
     title: "{{name}}-v{{no}} (Entwurf)",
     hint: "Die Schwellen sind relativ zum Ziel: Kaufen −20 heisst 20 % unter dem Ziel. Speichern behält den Entwurf; aktiviere ihn auf der Seite der Anlagestrategie.",
-    thesisRevision: "Revision der Anlagethese",
     position: "Position {{no}}",
     ticker: "Ticker",
     name: "Name",

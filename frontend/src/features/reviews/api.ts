@@ -20,7 +20,6 @@ function useInvalidateOwners() {
   const client = useQueryClient();
   return () =>
     Promise.all([
-      client.invalidateQueries({ queryKey: ["theses"] }),
       client.invalidateQueries({ queryKey: ["policies"] }),
       client.invalidateQueries({ queryKey: ["timeline"] }),
     ]);
@@ -77,8 +76,8 @@ export function useStartReview(kind: ReviewKind, ownerId: number) {
     mutationFn: ({ reviewerId, newsDays }: StartReview) =>
       kind === "thesis"
         ? unwrap(
-            api.POST("/api/theses/{thesis_id}/draft/review", {
-              params: { path: { thesis_id: ownerId } },
+            api.POST("/api/policies/{policy_id}/draft/thesis-review", {
+              params: { path: { policy_id: ownerId } },
               body: { ai_reviewer_id: reviewerId, ...(newsDays && { news_days: newsDays }) },
             }),
           )
@@ -102,9 +101,9 @@ export function useReviewPrompt(kind: ReviewKind, ownerId: number) {
     mutationFn: ({ newsDays }: { newsDays?: number }) =>
       kind === "thesis"
         ? unwrap(
-            api.GET("/api/theses/{thesis_id}/draft/review-prompt", {
+            api.GET("/api/policies/{policy_id}/draft/thesis-review-prompt", {
               params: {
-                path: { thesis_id: ownerId },
+                path: { policy_id: ownerId },
                 query: newsDays ? { news_days: newsDays } : {},
               },
             }),
@@ -130,8 +129,8 @@ export function useSubmitManualReview(kind: ReviewKind, ownerId: number) {
     mutationFn: (body: ManualAnswer) =>
       kind === "thesis"
         ? unwrap(
-            api.POST("/api/theses/{thesis_id}/draft/review/manual", {
-              params: { path: { thesis_id: ownerId } },
+            api.POST("/api/policies/{policy_id}/draft/thesis-review/manual", {
+              params: { path: { policy_id: ownerId } },
               body,
             }),
           )

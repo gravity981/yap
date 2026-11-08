@@ -12,7 +12,7 @@ from yap.db.models import Asset
 from yap.imports import exporter
 from yap.imports.schemas import IMPORT_TYPES, generate
 from yap.messages import msg
-from yap.services import policies, snapshots, theses
+from yap.services import policies, snapshots
 from yap.services.common import NotFoundError, require_investor
 
 router = APIRouter(tags=["catalog"])
@@ -45,22 +45,16 @@ def _download(text: str, filename: str) -> Response:
     )
 
 
-@router.get("/theses/{thesis_id}/revisions/{revision_no}/export")
+@router.get("/policies/{policy_id}/versions/{version_no}/thesis/export")
 def export_thesis(
-    thesis_id: int, revision_no: int, session: DbSession, user: CurrentUser
+    policy_id: int, version_no: int, session: DbSession, user: CurrentUser
 ) -> Response:
-    thesis = theses.get_readable_thesis(session, user, thesis_id)
-    revision = next(
-        (
-            r
-            for r in theses.readable_revisions(session, user, thesis)
-            if r.revision_no == revision_no
-        ),
-        None,
-    )
-    if revision is None:
-        raise NotFoundError(msg("thesis_revision_no_not_found", number=revision_no, id=thesis_id))
-    return _download(exporter.thesis(revision), f"thesis-{thesis_id}-r{revision_no}.json")
+    """IMP-10: the thesis of a policy version."""
+    policy = policies.get_policy(session, user, policy_id)
+    version = next((v for v in policy.versions if v.version_no == version_no), None)
+    if version is None:
+        raise NotFoundError(msg("policy_version_no_not_found", number=version_no, name=policy.name))
+    return _download(exporter.thesis(version), f"thesis-{policy.name}-v{version_no}.json")
 
 
 @router.get("/policies/{policy_id}/versions/{version_no}/export")

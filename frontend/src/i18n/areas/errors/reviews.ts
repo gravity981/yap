@@ -34,7 +34,6 @@ export const de = {
     "Der KI-Reviewer {{name}} kann nicht verwendet werden: {{detail}} Frag den Admin.",
   review_reviewer_no_reviews: "Der KI-Reviewer {{name}} umfasst keine Prüfungen",
   review_limit_reached: "Alle {{limit}} Prüfungen mit {{name}} sind für diesen Monat verbraucht",
-  review_thesis_no_draft: "Anlagethese {{id}} hat keinen Entwurf",
   review_policy_no_draft: "Anlagestrategie {{name}} hat keinen Entwurf",
   review_running: "Eine Prüfung dieses Entwurfs läuft noch",
   review_running_wait: "Eine Prüfung dieses Entwurfs läuft noch; warte, bis sie fertig ist",
@@ -43,10 +42,7 @@ export const de = {
   review_news_days_invalid: "Der Nachrichtenzeitraum muss zwischen 1 und {{max}} Tagen liegen",
   review_interrupted: "Durch einen Neustart der App unterbrochen; starte die Prüfung neu",
   review_failed_unexpectedly: "Die Prüfung ist unerwartet fehlgeschlagen ({{detail}})",
-  review_revision_not_found:
-    "Revision {{revision_no}} der Anlagethese {{thesis_id}} nicht gefunden",
   review_version_not_found: "Version {{version_no}} der Anlagestrategie {{policy}} nicht gefunden",
-  review_revision_no_review: "Revision {{revision_no}} hat keine Prüfung",
   review_version_no_review: "{{version}} hat keine Prüfung",
   rebalance_values_missing: "Erfasse zuerst die aktuellen Werte des Portfolios",
   rebalance_snapshot_not_found: "Stand {{id}} nicht gefunden",

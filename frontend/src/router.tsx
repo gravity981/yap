@@ -16,9 +16,6 @@ import { DashboardPage } from "@/features/dashboard/dashboard";
 import { DraftEditorPage } from "@/features/policies/draft-editor";
 import { PolicyPage } from "@/features/policies/detail";
 import { PoliciesPage } from "@/features/policies/list";
-import { ThesisPage } from "@/features/theses/detail";
-import { EditThesisPage, NewThesisPage } from "@/features/theses/editor";
-import { ThesesPage } from "@/features/theses/list";
 import { PortfolioPage } from "@/features/portfolios/detail";
 import { PortfoliosPage } from "@/features/portfolios/list";
 import { SnapshotPage } from "@/features/portfolios/snapshot";
@@ -127,40 +124,6 @@ const draftRoute = createRoute({
   component: function Draft() {
     const { policyId } = draftRoute.useParams();
     return <WithId value={policyId} render={(id) => <DraftEditorPage key={id} policyId={id} />} />;
-  },
-});
-const thesesRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/theses",
-  component: () => (
-    <InvestorOnly>
-      <ThesesPage />
-    </InvestorOnly>
-  ),
-});
-const newThesisRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/theses/new",
-  component: () => (
-    <InvestorOnly>
-      <NewThesisPage />
-    </InvestorOnly>
-  ),
-});
-const thesisRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/theses/$thesisId",
-  component: function Thesis() {
-    const { thesisId } = thesisRoute.useParams();
-    return <WithId value={thesisId} render={(id) => <ThesisPage key={id} thesisId={id} />} />;
-  },
-});
-const editThesisRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "/theses/$thesisId/edit",
-  component: function EditThesis() {
-    const { thesisId } = editThesisRoute.useParams();
-    return <WithId value={thesisId} render={(id) => <EditThesisPage key={id} thesisId={id} />} />;
   },
 });
 const timelineRoute = createRoute({
@@ -358,10 +321,6 @@ const routeTree = rootRoute.addChildren([
     policiesRoute,
     policyRoute,
     draftRoute,
-    thesesRoute,
-    newThesisRoute,
-    thesisRoute,
-    editThesisRoute,
     timelineRoute,
     accountsRoute,
     aiReviewersRoute,

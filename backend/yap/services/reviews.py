@@ -1,4 +1,4 @@
-"""Thesis and policy reviews of drafts (REV-01 to REV-17).
+"""Thesis and policy reviews of policy drafts (REV-01 to REV-19).
 
 A review is started on a draft, runs in the background (REV-08) and is confirmed by
 activating the draft (REV-11). Every started run counts towards the monthly limit of its
@@ -25,8 +25,6 @@ from yap.db.models import (
     ReviewRun,
     ReviewSource,
     ReviewSuggestion,
-    Thesis,
-    ThesisRevision,
 )
 from yap.domain.reviews import (
     SCORING_VERSION,
@@ -132,14 +130,6 @@ def usage(
 # --- Start -----------------------------------------------------------------------------
 
 
-def _thesis_draft(session: Session, actor: Investor, thesis_id: int) -> ThesisRevision:
-    thesis = get_owned(session, Thesis, thesis_id, actor)
-    draft = next((r for r in thesis.revisions if r.is_draft), None)
-    if draft is None:
-        raise NotFoundError(msg("review_thesis_no_draft", id=thesis_id))
-    return draft
-
-
 def _policy_draft(session: Session, actor: Investor, policy_id: int) -> PolicyVersion:
     policy = get_owned(session, Policy, policy_id, actor)
     draft = next((v for v in policy.versions if v.activated_at is None), None)
@@ -148,11 +138,11 @@ def _policy_draft(session: Session, actor: Investor, policy_id: int) -> PolicyVe
     return draft
 
 
-def draft_review(session: Session, draft: ThesisRevision | PolicyVersion) -> Review | None:
-    column = (
-        Review.thesis_revision_id if isinstance(draft, ThesisRevision) else Review.policy_version_id
+def draft_review(session: Session, draft: PolicyVersion, kind: ReviewKind) -> Review | None:
+    """The review of the given kind of a version; at most one each (REV-09)."""
+    return session.scalar(
+        select(Review).where(Review.policy_version_id == draft.id, Review.kind == kind.value)
     )
-    return session.scalar(select(Review).where(column == draft.id))
 
 
 def _start(
@@ -161,14 +151,14 @@ def _start(
     clock: Clock,
     keys: KeyBox,
     kind: ReviewKind,
-    draft: ThesisRevision | PolicyVersion,
+    draft: PolicyVersion,
     news_days: int | None = None,
     reviewer_id: int | None = None,
 ) -> Review:
     status = usage(session, actor, clock, keys, reviewer_id)
     if status.unavailable_reason:
         raise ConflictError(status.unavailable_reason)
-    previous = draft_review(session, draft)
+    previous = draft_review(session, draft, kind)
     if previous is not None:
         if previous.state in UNFINISHED:
             raise ConflictError(msg("review_running"))
@@ -189,8 +179,7 @@ def _start(
     )
     review = Review(
         kind=kind.value,
-        thesis_revision_id=draft.id if isinstance(draft, ThesisRevision) else None,
-        policy_version_id=draft.id if isinstance(draft, PolicyVersion) else None,
+        policy_version_id=draft.id,
         started_by=actor.id,
         state="queued",
         news_from=now - timedelta(days=news_days) if news_days else None,
@@ -220,14 +209,15 @@ def start_thesis_review(
     actor: Investor,
     clock: Clock,
     keys: KeyBox,
-    thesis_id: int,
+    policy_id: int,
     news_days: int = NEWS_DAYS_DEFAULT,
     reviewer_id: int | None = None,
 ) -> Review:
-    """REV-01, REV-04: a review of the thesis draft, with news of the last `news_days`,
+    """REV-01, REV-04: a review of the thesis of the policy draft, with news of the last
+    `news_days`,
     by the given AI reviewer or the investor's default (USR-08)."""
     _check_news_days(news_days)
-    draft = _thesis_draft(session, actor, thesis_id)
+    draft = _policy_draft(session, actor, policy_id)
     return _start(session, actor, clock, keys, ReviewKind.THESIS, draft, news_days, reviewer_id)
 
 
@@ -251,13 +241,13 @@ def thesis_review_prompt(
     session: Session,
     actor: Investor,
     clock: Clock,
-    thesis_id: int,
+    policy_id: int,
     news_days: int = NEWS_DAYS_DEFAULT,
 ) -> review_prompts.ReviewPrompt:
     """The review prompt of the thesis draft as it is saved now, the same an AI reviewer
     would receive. Making it changes nothing; it counts towards no limit (REV-16)."""
     _check_news_days(news_days)
-    draft = _thesis_draft(session, actor, thesis_id)
+    draft = _policy_draft(session, actor, policy_id)
     ref = review_prompts.PromptRef(ReviewKind.THESIS, draft.id, clock.now(), news_days)
     return _prompt(session, ref)
 
@@ -281,7 +271,7 @@ def _submit_manual(
     actor: Investor,
     clock: Clock,
     kind: ReviewKind,
-    draft: ThesisRevision | PolicyVersion,
+    draft: PolicyVersion,
     answer: str,
     model: str,
 ) -> Review:
@@ -313,7 +303,7 @@ def _submit_manual(
     if problems:
         raise ValidationError(problems)
     assert ref is not None and parsed is not None
-    previous = draft_review(session, draft)
+    previous = draft_review(session, draft, kind)
     if previous is not None:
         if previous.state in UNFINISHED:
             raise ConflictError(msg("review_running"))
@@ -321,8 +311,7 @@ def _submit_manual(
         session.flush()
     review = Review(
         kind=kind.value,
-        thesis_revision_id=draft.id if isinstance(draft, ThesisRevision) else None,
-        policy_version_id=draft.id if isinstance(draft, PolicyVersion) else None,
+        policy_version_id=draft.id,
         started_by=actor.id,
         state="done",
         news_from=ref.issued_at - timedelta(days=ref.news_days) if ref.news_days else None,
@@ -342,10 +331,11 @@ def _submit_manual(
 
 
 def submit_manual_thesis_review(
-    session: Session, actor: Investor, clock: Clock, thesis_id: int, answer: str, model: str
+    session: Session, actor: Investor, clock: Clock, policy_id: int, answer: str, model: str
 ) -> Review:
-    """REV-18: a manual review of the thesis draft; counts towards no limit (REV-16)."""
-    draft = _thesis_draft(session, actor, thesis_id)
+    """REV-18: a manual review of the thesis of the policy draft; counts towards no limit
+    (REV-16)."""
+    draft = _policy_draft(session, actor, policy_id)
     return _submit_manual(session, actor, clock, ReviewKind.THESIS, draft, answer, model)
 
 
@@ -417,26 +407,23 @@ def run_review(
 def _prompt_ref(review: Review) -> review_prompts.PromptRef:
     """The prompt of an AI review is made when the review starts."""
     if review.kind == ReviewKind.THESIS:
-        assert review.thesis_revision_id and review.news_from and review.news_to
+        assert review.news_from and review.news_to
         return review_prompts.PromptRef(
             ReviewKind.THESIS,
-            review.thesis_revision_id,
+            review.policy_version_id,
             review.started_at,
             (review.news_to - review.news_from).days,
         )
-    assert review.policy_version_id
     return review_prompts.PromptRef(
         ReviewKind.POLICY, review.policy_version_id, review.started_at, 0
     )
 
 
 def _prompt(session: Session, ref: review_prompts.PromptRef) -> review_prompts.ReviewPrompt:
-    if ref.kind == ReviewKind.THESIS:
-        revision = session.get(ThesisRevision, ref.draft_id)
-        assert revision is not None
-        return review_prompts.thesis_prompt(revision, ref)
     version = session.get(PolicyVersion, ref.draft_id)
     assert version is not None
+    if ref.kind == ReviewKind.THESIS:
+        return review_prompts.thesis_prompt(version, ref)
     return review_prompts.policy_prompt(version, ref)
 
 
@@ -487,11 +474,7 @@ def fail_interrupted(session: Session, clock: Clock) -> int:
 # --- Read ----------------------------------------------------------------------
 
 
-def draft_of(session: Session, review: Review) -> ThesisRevision | PolicyVersion:
-    if review.thesis_revision_id is not None:
-        revision = session.get(ThesisRevision, review.thesis_revision_id)
-        assert revision is not None
-        return revision
+def draft_of(session: Session, review: Review) -> PolicyVersion:
     version = session.get(PolicyVersion, review.policy_version_id)
     assert version is not None
     return version
@@ -505,7 +488,7 @@ def is_outdated(session: Session, review: Review) -> bool:
     return outdated(review, draft_of(session, review))
 
 
-def outdated(review: Review, draft: ThesisRevision | PolicyVersion) -> bool:
+def outdated(review: Review, draft: PolicyVersion) -> bool:
     """REV-09: the draft changed after the review was started."""
     return (
         draft.activated_at is None
@@ -515,19 +498,11 @@ def outdated(review: Review, draft: ThesisRevision | PolicyVersion) -> bool:
 
 
 def get_review(session: Session, actor: Investor, review_id: int) -> Review:
-    """Thesis reviews are readable like their revision once confirmed (REV-12); drafts,
-    and policy reviews, only by their owner."""
-    from yap.services.theses import can_read_revision
-
+    """Reviews are readable by the owner of their policy (REV-12)."""
     require_investor(actor)
     review = session.get(Review, review_id)
-    if review is not None:
-        draft = draft_of(session, review)
-        if isinstance(draft, ThesisRevision):
-            if can_read_revision(session, actor, draft):
-                return review
-        elif draft.policy.owner_id == actor.id:
-            return review
+    if review is not None and draft_of(session, review).policy.owner_id == actor.id:
+        return review
     raise NotFoundError(msg("review_not_found", id=review_id))
 
 
@@ -565,61 +540,53 @@ def aspect_names(kind: str, scoring_version: str) -> dict[str, str]:
 # --- Draft lifecycle (REV-11) ----------------------------------------------------------
 
 
-def check_draft_can_change(session: Session, draft: ThesisRevision | PolicyVersion) -> None:
+def draft_reviews(session: Session, draft: PolicyVersion) -> list[Review]:
+    return list(session.scalars(select(Review).where(Review.policy_version_id == draft.id)))
+
+
+def check_draft_can_change(session: Session, draft: PolicyVersion) -> None:
     """A draft whose review is still running can be neither activated nor deleted."""
-    review = draft_review(session, draft)
-    if review is not None and review.state in UNFINISHED:
+    if any(r.state in UNFINISHED for r in draft_reviews(session, draft)):
         raise ConflictError(msg("review_running_wait"))
 
 
-def delete_with_draft(session: Session, draft: ThesisRevision | PolicyVersion) -> None:
-    """Deleting a draft deletes its review (REV-11)."""
+def delete_with_draft(session: Session, draft: PolicyVersion) -> None:
+    """Deleting a draft deletes its reviews (REV-11)."""
     check_draft_can_change(session, draft)
-    review = draft_review(session, draft)
-    if review is not None:
+    for review in draft_reviews(session, draft):
         session.delete(review)
-        session.flush()
+    session.flush()
 
 
-def prepare_activation(session: Session, draft: ThesisRevision | PolicyVersion) -> None:
-    """Before a draft is activated: no review may be running, and a failed one is
-    dropped, as it cannot be changed once the draft is activated (REV-11)."""
+def prepare_activation(session: Session, draft: PolicyVersion) -> None:
+    """Before a draft is activated: no review may be running, and failed ones are
+    dropped, as they cannot be changed once the draft is activated (REV-11)."""
     check_draft_can_change(session, draft)
-    review = draft_review(session, draft)
-    if review is not None and review.state == "failed":
-        session.delete(review)
-        session.flush()
+    for review in draft_reviews(session, draft):
+        if review.state == "failed":
+            session.delete(review)
+    session.flush()
 
 
 def confirm_with_draft(
-    session: Session, draft: ThesisRevision | PolicyVersion, owner_id: int, now: datetime
+    session: Session, draft: PolicyVersion, owner_id: int, now: datetime
 ) -> None:
-    """After a draft was activated: its finished review is confirmed with it and appears
+    """After a draft was activated: its finished reviews are confirmed with it and appear
     in the timeline (REV-11, REV-12)."""
-    review = draft_review(session, draft)
-    if review is None:
-        return
-    summary = _summary(review)
-    params = _summary_params(review)
-    if isinstance(draft, ThesisRevision):
+    for review in draft_reviews(session, draft):
+        summary = _summary(review)
+        params = {**_summary_params(review), "version": draft.label}
+        if review.kind == ReviewKind.THESIS:
+            event, text = EventType.THESIS_REVIEW_CONFIRMED, f"Thesis review of {draft.label}"
+        else:
+            event, text = EventType.POLICY_REVIEW_CONFIRMED, f"Policy review of {draft.label}"
         add_event(
             session,
             owner_id,
             now,
-            EventType.THESIS_REVIEW_CONFIRMED,
-            f"Thesis review of '{draft.title}' revision {draft.revision_no}: {summary}",
-            {**params, "title": draft.title, "revision": draft.revision_no},
-            review_id=review.id,
-            thesis_revision_id=draft.id,
-        )
-    else:
-        add_event(
-            session,
-            owner_id,
-            now,
-            EventType.POLICY_REVIEW_CONFIRMED,
-            f"Policy review of {draft.label}: {summary}",
-            {**params, "version": draft.label},
+            event,
+            f"{text}: {summary}",
+            params,
             review_id=review.id,
             policy_version_id=draft.id,
         )

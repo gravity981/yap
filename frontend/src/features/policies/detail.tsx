@@ -14,13 +14,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ReviewSection, activationWarning } from "@/features/reviews/review";
-import { statusLabel } from "@/features/theses/status";
+import { Markdown } from "@/components/markdown";
+import { ReviewBriefLine, ReviewSection, activationWarning } from "@/features/reviews/review";
+import { ScoreCourse } from "@/features/reviews/score-course";
+import { ThesisStatusBadge, statusLabel } from "@/features/theses/status";
 import { formatDateTime } from "@/lib/format";
 
 import {
   policiesKey,
   targetImport,
+  thesisImport,
   useCompare,
   usePolicy,
   usePolicyActions,
@@ -37,9 +40,10 @@ export function PolicyPage({ policyId }: { policyId: number }) {
   const navigate = useNavigate();
   const client = useQueryClient();
   const [activating, setActivating] = useState(false);
-  const [importing, setImporting] = useState(false);
-  const [tab, setTab] = useState("structure");
-  // Counts finished imports; remounts the version view so it shows the imported draft
+  const [importing, setImporting] = useState<"target" | "thesis" | null>(null);
+  const [tab, setTab] = useState("thesis");
+  // Counts finished imports and activations; remounts the version view so it shows the
+  // imported draft or the newly active version
   const [imports, setImports] = useState(0);
 
   if (policy.error) return <FormError error={policy.error} />;
@@ -50,11 +54,7 @@ export function PolicyPage({ policyId }: { policyId: number }) {
   const archived = p.archived_at !== null;
   const editDraft = () =>
     navigate({ to: "/policies/$policyId/draft", params: { policyId: String(p.id) } });
-  const error =
-    actions.createDraft.error ??
-    actions.deleteDraft.error ??
-    actions.adopt.error ??
-    actions.archive.error;
+  const error = actions.createDraft.error ?? actions.deleteDraft.error ?? actions.archive.error;
 
   return (
     <div className="grid gap-4">
@@ -73,18 +73,14 @@ export function PolicyPage({ policyId }: { policyId: number }) {
               </Badge>
             )}
             {archived && <Badge variant="secondary">{t("policies.detail.archived")}</Badge>}
-            <Link
-              to="/theses/$thesisId"
-              params={{ thesisId: String(p.thesis_id) }}
-              className="underline"
-            >
-              {t("policies.detail.thesis")}
-            </Link>
           </div>
         </div>
         {!archived && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setImporting(true)}>
+            <Button variant="outline" onClick={() => setImporting("thesis")}>
+              {t("policies.detail.importThesis")}
+            </Button>
+            <Button variant="outline" onClick={() => setImporting("target")}>
               {t("policies.detail.importTarget")}
             </Button>
             {draft ? (
@@ -114,30 +110,22 @@ export function PolicyPage({ policyId }: { policyId: number }) {
           {t("policies.detail.thesisWarningAfter")}
         </Alert>
       )}
-      {p.newer_thesis_revision_id !== null && !archived && (
-        <Alert variant="warning" className="flex flex-wrap items-center justify-between gap-2">
-          <span>{t("policies.detail.newerRevision")}</span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => actions.adopt.mutate(undefined, { onSuccess: editDraft })}
-          >
-            {t("policies.detail.takeOver")}
-          </Button>
-        </Alert>
-      )}
       <FormError error={error} />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
+          <TabsTrigger value="thesis">{t("policies.detail.tabThesis")}</TabsTrigger>
           <TabsTrigger value="structure">{t("policies.detail.tabStructure")}</TabsTrigger>
           <TabsTrigger value="versions">{t("policies.detail.tabVersions")}</TabsTrigger>
           <TabsTrigger value="compare" disabled={p.versions.length < 2}>
             {t("policies.detail.tabCompare")}
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="thesis">
+          <VersionView key={imports} policy={p} part="thesis" showDraft={imports > 0} />
+        </TabsContent>
         <TabsContent value="structure">
-          <VersionView key={imports} policy={p} showDraft={imports > 0} />
+          <VersionView key={imports} policy={p} part="structure" showDraft={imports > 0} />
         </TabsContent>
         <TabsContent value="versions" className="grid gap-4">
           <VersionList policy={p} />
@@ -171,9 +159,39 @@ export function PolicyPage({ policyId }: { policyId: number }) {
           policy={p}
           draftNo={draft.version_no}
           onClose={() => setActivating(false)}
+          // Shows the version that is active now, not the one selected before
+          onActivated={() => {
+            setActivating(false);
+            setImports((n) => n + 1);
+          }}
         />
       )}
-      {importing && (
+      {importing === "thesis" && (
+        <FileImport
+          title={t("policies.detail.importThesis")}
+          description={t("policies.detail.importDescription", { name: p.name })}
+          preview={(text) => thesisImport.preview(text, p.id)}
+          run={(text) => thesisImport.runIntoDraft(text, p.id)}
+          renderPreview={(preview) => (
+            <p className="text-sm">
+              {t("policies.detail.importThesisPreview", {
+                title: preview.title,
+                status: statusLabel(preview.status),
+                no: preview.version_no,
+              })}
+            </p>
+          )}
+          onClose={() => setImporting(null)}
+          onDone={() => {
+            setImporting(null);
+            setTab("thesis");
+            void client
+              .invalidateQueries({ queryKey: policiesKey })
+              .then(() => setImports((n) => n + 1));
+          }}
+        />
+      )}
+      {importing === "target" && (
         <FileImport
           title={t("policies.detail.importTarget")}
           description={t("policies.detail.importDescription", { name: p.name })}
@@ -191,9 +209,9 @@ export function PolicyPage({ policyId }: { policyId: number }) {
               <ImportPriceSources positions={positions} />
             </div>
           )}
-          onClose={() => setImporting(false)}
+          onClose={() => setImporting(null)}
           onDone={() => {
-            setImporting(false);
+            setImporting(null);
             setTab("structure");
             // Like the other policy changes; the import may add tickers to the catalog
             for (const key of [["assets"], ["portfolios"], ["timeline"]]) {
@@ -210,7 +228,17 @@ export function PolicyPage({ policyId }: { policyId: number }) {
   );
 }
 
-function VersionView({ policy, showDraft }: { policy: Policy; showDraft: boolean }) {
+/** One version of the policy: its thesis (THS-01) or its target structure (POL-02), each
+ * with its review. */
+function VersionView({
+  policy,
+  part,
+  showDraft,
+}: {
+  policy: Policy;
+  part: "thesis" | "structure";
+  showDraft: boolean;
+}) {
   const { t } = useTranslation();
   const newest = policy.versions.at(-1)!.version_no;
   const draft = policy.versions.find((v) => v.is_draft);
@@ -225,9 +253,9 @@ function VersionView({ policy, showDraft }: { policy: Policy; showDraft: boolean
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <Label htmlFor="version">{t("policies.version.label")}</Label>
+        <Label htmlFor={`${part}-version`}>{t("policies.version.label")}</Label>
         <NativeSelect
-          id="version"
+          id={`${part}-version`}
           className="w-auto"
           value={versionNo}
           onChange={(e) => setVersionNo(Number(e.target.value))}
@@ -245,28 +273,38 @@ function VersionView({ policy, showDraft }: { policy: Policy; showDraft: boolean
         </NativeSelect>
         <a
           className="text-sm underline"
-          href={`/api/policies/${policy.id}/versions/${versionNo}/export`}
+          href={
+            part === "thesis"
+              ? `/api/policies/${policy.id}/versions/${versionNo}/thesis/export`
+              : `/api/policies/${policy.id}/versions/${versionNo}/export`
+          }
           download
         >
           {t("policies.version.export")}
         </a>
       </div>
-      {version.data && (
-        <>
-          <p className="text-sm text-muted-foreground">
-            {t("policies.version.thesisRevision", {
-              no: version.data.thesis_revision_no,
-              status: statusLabel(version.data.thesis_status),
-            })}
-          </p>
-          {version.data.positions.length === 0 ? (
-            <p className="text-muted-foreground">{t("policies.version.noPositions")}</p>
-          ) : (
-            <PositionsTable version={version.data} />
-          )}
-        </>
-      )}
-      {summary && <ReviewSection key={summary.version_no} kind="policy" brief={summary.review} />}
+      {version.data &&
+        (part === "thesis" ? (
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-semibold">{version.data.thesis_title}</h2>
+              <ThesisStatusBadge status={version.data.thesis_status} />
+            </div>
+            <div className="rounded-md border p-4">
+              <Markdown source={version.data.thesis_md} />
+            </div>
+          </div>
+        ) : version.data.positions.length === 0 ? (
+          <p className="text-muted-foreground">{t("policies.version.noPositions")}</p>
+        ) : (
+          <PositionsTable version={version.data} />
+        ))}
+      {summary &&
+        (part === "thesis" ? (
+          <ReviewSection key={summary.version_no} kind="thesis" brief={summary.thesis_review} />
+        ) : (
+          <ReviewSection key={summary.version_no} kind="policy" brief={summary.review} />
+        ))}
       {/* REV-01: reviews are made in the draft editor */}
       {summary?.is_draft && policy.archived_at === null && (
         <p className="text-sm text-muted-foreground">
@@ -288,30 +326,62 @@ function VersionView({ policy, showDraft }: { policy: Policy; showDraft: boolean
   );
 }
 
+/** POL-12, THS-08: the versions with their reviews and the course of the thesis score. */
 function VersionList({ policy }: { policy: Policy }) {
   const { t } = useTranslation();
   return (
-    <ol className="grid gap-2">
-      {[...policy.versions].reverse().map((v) => (
-        <li key={v.version_no} className="rounded-md border p-3 text-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium">{v.label}</span>
-            {v.is_draft ? (
-              <Badge variant="outline">{t("policies.version.draft")}</Badge>
-            ) : v.active_until === null ? (
-              <Badge variant="success">{t("policies.version.active")}</Badge>
-            ) : null}
-            {v.active_from && (
-              <span className="text-muted-foreground">
-                {formatDateTime(v.active_from)}
-                {v.active_until && ` – ${formatDateTime(v.active_until)}`}
-              </span>
+    <div className="grid gap-4">
+      <ScoreCourse
+        points={policy.versions
+          .filter(
+            (v) =>
+              !v.is_draft && v.thesis_review?.state === "done" && v.thesis_review.total !== null,
+          )
+          .map((v) => ({
+            label: v.label,
+            date: v.active_from ?? "",
+            score: v.thesis_review!.total!,
+            version: v.thesis_review!.scoring_version,
+          }))}
+      />
+      <ol className="grid gap-2">
+        {[...policy.versions].reverse().map((v) => (
+          <li key={v.version_no} className="rounded-md border p-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{v.label}</span>
+              {v.is_draft ? (
+                <Badge variant="outline">{t("policies.version.draft")}</Badge>
+              ) : v.active_until === null ? (
+                <Badge variant="success">{t("policies.version.active")}</Badge>
+              ) : null}
+              {v.active_from && (
+                <span className="text-muted-foreground">
+                  {formatDateTime(v.active_from)}
+                  {v.active_until && ` – ${formatDateTime(v.active_until)}`}
+                </span>
+              )}
+            </div>
+            {v.change_note && <p className="mt-1">{v.change_note}</p>}
+            {(v.thesis_review || v.review) && (
+              <div className="mt-2 grid gap-1">
+                {v.thesis_review && (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-muted-foreground">{t("reviews.section.thesis")}:</span>
+                    <ReviewBriefLine brief={v.thesis_review} />
+                  </span>
+                )}
+                {v.review && (
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-muted-foreground">{t("reviews.section.policy")}:</span>
+                    <ReviewBriefLine brief={v.review} />
+                  </span>
+                )}
+              </div>
             )}
-          </div>
-          {v.change_note && <p className="mt-1">{v.change_note}</p>}
-        </li>
-      ))}
-    </ol>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -388,18 +458,22 @@ function ActivateDialog({
   policy,
   draftNo,
   onClose,
+  onActivated,
 }: {
   policy: Policy;
   draftNo: number;
   onClose: () => void;
+  onActivated: () => void;
 }) {
   const { t } = useTranslation();
   const { activate } = usePolicyActions(policy.id);
   const [note, setNote] = useState("");
-  const warning = activationWarning(policy.versions.find((v) => v.is_draft)?.review); // REV-11
+  // REV-11: both reviews of the draft, the thesis review first
+  const draft = policy.versions.find((v) => v.is_draft);
+  const warning = activationWarning(draft?.thesis_review) ?? activationWarning(draft?.review);
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    activate.mutate(note.trim() || null, { onSuccess: onClose });
+    activate.mutate(note.trim() || null, { onSuccess: onActivated });
   };
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>

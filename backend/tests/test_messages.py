@@ -17,12 +17,12 @@ def test_codes_are_snake_case_and_templates_valid() -> None:
 
 
 def test_a_message_needs_a_known_code_and_all_its_values() -> None:
-    assert str(msg("thesis_not_found", id=7)) == "Thesis 7 not found"
+    assert str(msg("policy_not_found", id=7)) == "Policy 7 not found"
     with pytest.raises(ValueError, match="Unknown message code"):
         msg("no_such_code")
     with pytest.raises(ValueError, match="needs id"):
-        msg("thesis_not_found")
-    assert placeholders(CATALOG["thesis_not_found"]) == {"id"}
+        msg("policy_not_found")
+    assert placeholders(CATALOG["policy_not_found"]) == {"id"}
     assert Message("not_logged_in").params == {}
 
 
@@ -35,9 +35,9 @@ def test_errors_carry_code_and_params_next_to_the_english_text(
     assert response.json() == {"detail": "Not logged in", "code": "not_logged_in", "params": {}}
     accounts_api.create("alice")
     alice = accounts_api.client("alice")
-    missing = alice.get("/api/theses/999")
+    missing = alice.get("/api/policies/999")
     assert missing.json() == {
-        "detail": "Thesis 999 not found",
-        "code": "thesis_not_found",
+        "detail": "Policy 999 not found",
+        "code": "policy_not_found",
         "params": {"id": 999},
     }

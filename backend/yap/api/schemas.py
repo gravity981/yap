@@ -17,7 +17,6 @@ from yap.db.models import (
     PolicyVersion,
     Snapshot,
     SnapshotValue,
-    ThesisRevision,
     TimelineEvent,
 )
 from yap.domain.bands import Band
@@ -39,29 +38,11 @@ class AssetOut(BaseModel):
         return cls(ticker=asset.ticker, name=asset.name, type=asset.type)
 
 
-# --- Theses -------------------------------------------------------------------
-
-
-class NewThesis(BaseModel):
-    title: str
-    content_md: str
-    visibility: str = "private"
-    status: str = "intact"
-
-
-class ThesisDraftIn(BaseModel):
-    title: str
-    content_md: str
-    status: str
-    change_note: str | None = None  # may be given now or at activation (THS-03)
-
-
-class VisibilityIn(BaseModel):
-    visibility: str
+# --- Reviews in short -------------------------------------------------------
 
 
 class ReviewBrief(BaseModel):
-    """The review of a revision or version, in short (THS-08, REV-11)."""
+    """A review of a version, in short (THS-08, REV-11)."""
 
     id: int
     state: str
@@ -74,10 +55,10 @@ class ReviewBrief(BaseModel):
     outdated: bool
 
     @classmethod
-    def of(cls, draft: ThesisRevision | PolicyVersion) -> ReviewBrief | None:
+    def of(cls, draft: PolicyVersion, kind: str) -> ReviewBrief | None:
         from yap.services import reviews
 
-        review = draft.review
+        review = next((r for r in draft.reviews if r.kind == kind), None)
         if review is None:
             return None
         total = reviews.total(review)
@@ -94,54 +75,22 @@ class ReviewBrief(BaseModel):
         )
 
 
-class RevisionSummary(BaseModel):
-    id: int
-    revision_no: int
-    title: str
-    status: str
-    change_note: str | None
-    is_draft: bool
-    activated_at: datetime | None
-    created_at: datetime
-    review: ReviewBrief | None
-
-
-class RevisionOut(RevisionSummary):
-    thesis_id: int
-    content_md: str
-
-
-class ThesisSummary(BaseModel):
-    id: int
-    is_own: bool
-    visibility: str
-    latest: RevisionSummary  # for the owner this can be the draft
-    has_draft: bool
-    active_revision_no: int | None  # latest activated revision; policies can only use these
-
-
-class ThesisOut(BaseModel):
-    """THS-08: revisions in chronological order (reviews follow with stage 4)."""
-
-    id: int
-    is_own: bool
-    visibility: str
-    created_at: datetime
-    revisions: list[RevisionSummary]
-
-
-class RevisionDiff(BaseModel):
-    from_revision_no: int
-    to_revision_no: int
-    unified_diff: str
-
-
 # --- Policies -----------------------------------------------------------------
 
 
 class NewPolicy(BaseModel):
+    """POL-01: draft v1 holds the thesis given here (the template, filled in by the UI)."""
+
     name: str
-    thesis_id: int
+    thesis_title: str | None = None  # null: the name
+    thesis_md: str = ""
+    thesis_status: str = "intact"
+
+
+class ThesisIn(BaseModel):
+    title: str
+    content_md: str
+    status: str = "intact"
 
 
 class PositionIn(BaseModel):
@@ -157,10 +106,7 @@ class PositionIn(BaseModel):
 
 class DraftIn(BaseModel):
     positions: list[PositionIn]
-
-
-class DraftThesisRevision(BaseModel):
-    thesis_revision_id: int
+    thesis: ThesisIn | None = None  # null: the thesis stays as it is
 
 
 class Activation(BaseModel):
@@ -202,17 +148,18 @@ class VersionSummary(BaseModel):
     id: int
     version_no: int
     label: str
-    thesis_revision_id: int
-    thesis_revision_no: int
+    thesis_title: str
     thesis_status: str
     change_note: str | None
     active_from: datetime | None
     active_until: datetime | None
     is_draft: bool
-    review: ReviewBrief | None
+    thesis_review: ReviewBrief | None
+    review: ReviewBrief | None  # the policy review
 
 
 class VersionOut(VersionSummary):
+    thesis_md: str
     positions: list[PositionOut]
 
     @classmethod
@@ -221,6 +168,7 @@ class VersionOut(VersionSummary):
     ) -> VersionOut:
         return cls(
             **version_summary(version, active_from, active_until).model_dump(),
+            thesis_md=version.thesis_md,
             positions=[PositionOut.of(p) for p in version.positions],
         )
 
@@ -232,14 +180,14 @@ def version_summary(
         id=version.id,
         version_no=version.version_no,
         label=version.label,
-        thesis_revision_id=version.thesis_revision_id,
-        thesis_revision_no=version.thesis_revision.revision_no,
-        thesis_status=version.thesis_revision.status,
+        thesis_title=version.thesis_title,
+        thesis_status=version.thesis_status,
         change_note=version.change_note,
         active_from=active_from,
         active_until=active_until,
         is_draft=version.activated_at is None,
-        review=ReviewBrief.of(version),
+        thesis_review=ReviewBrief.of(version, "thesis"),
+        review=ReviewBrief.of(version, "policy"),
     )
 
 
@@ -258,15 +206,13 @@ class PortfolioRef(BaseModel):
 class PolicyOut(BaseModel):
     id: int
     name: str
-    thesis_id: int
     archived_at: datetime | None
     created_at: datetime
     versions: list[VersionSummary]
     portfolios: list[PortfolioRef]
-    newer_thesis_revision_id: int | None
-    # POL-11: the active version pins a thesis revision that needs adaptation or is broken
+    # POL-11: the thesis of the active version needs adaptation or is broken
     thesis_warning: bool
-    thesis_status: str | None  # status of the revision pinned by the active version
+    thesis_status: str | None  # of the active version
 
 
 class PolicySummary(BaseModel):
@@ -275,7 +221,6 @@ class PolicySummary(BaseModel):
     archived_at: datetime | None
     active_version_label: str | None
     has_draft: bool
-    newer_thesis_revision_id: int | None
     thesis_warning: bool
     thesis_status: str | None
 
@@ -288,7 +233,8 @@ class PositionChangeOut(BaseModel):
 
 class VersionDiffOut(BaseModel):
     positions: list[PositionChangeOut]
-    thesis_revision: tuple[int, int] | None
+    thesis_changed: bool
+    thesis_diff: str  # unified diff of thesis title and text (POL-09)
 
 
 # --- Portfolios and snapshots -------------------------------------------------
@@ -515,7 +461,6 @@ class EventOut(BaseModel):
     policy_version_id: int | None
     rebalance_id: int | None
     review_id: int | None
-    thesis_revision_id: int | None
 
     @classmethod
     def of(cls, e: TimelineEvent) -> EventOut:
@@ -529,7 +474,6 @@ class EventOut(BaseModel):
             policy_version_id=e.policy_version_id,
             rebalance_id=e.rebalance_id,
             review_id=e.review_id,
-            thesis_revision_id=e.thesis_revision_id,
         )
 
 
@@ -537,11 +481,12 @@ class EventOut(BaseModel):
 
 
 class ThesisImportPreview(BaseModel):
-    creates_new_thesis: bool
-    revision_no: int
+    """IMP-01: a new policy, or the draft (version) of the selected one."""
+
+    creates_new_policy: bool
+    version_no: int
     title: str
     status: str
-    visibility: str | None
 
 
 class CurrentStructurePreviewOut(BaseModel):

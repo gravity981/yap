@@ -492,6 +492,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/policies/import-thesis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Thesis As Policy
+         * @description IMP-01: a new policy whose draft v1 holds the thesis of the file.
+         */
+        post: operations["import_thesis_as_policy_api_policies_import_thesis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/import-thesis/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Thesis As Policy */
+        post: operations["preview_thesis_as_policy_api_policies_import_thesis_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/policies/{policy_id}": {
         parameters: {
             query?: never;
@@ -503,26 +540,6 @@ export interface paths {
         get: operations["get_policy_api_policies__policy_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/policies/{policy_id}/adopt-thesis-revision": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Adopt Thesis Revision
-         * @description POL-10: draft pinning the newest thesis revision.
-         */
-        post: operations["adopt_thesis_revision_api_policies__policy_id__adopt_thesis_revision_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -662,7 +679,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/policies/{policy_id}/draft/thesis-revision": {
+    "/api/policies/{policy_id}/draft/thesis-review": {
         parameters: {
             query?: never;
             header?: never;
@@ -670,9 +687,53 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Set Draft Thesis Revision */
-        put: operations["set_draft_thesis_revision_api_policies__policy_id__draft_thesis_revision_put"];
+        put?: never;
+        /**
+         * Start Thesis Review
+         * @description REV-01, REV-04: starts a review of the thesis of the policy draft; it runs in the
+         *     background.
+         */
+        post: operations["start_thesis_review_api_policies__policy_id__draft_thesis_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/thesis-review-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Thesis Review Prompt
+         * @description REV-19: the prompt of the draft's thesis as it is saved now; changes nothing.
+         */
+        get: operations["get_thesis_review_prompt_api_policies__policy_id__draft_thesis_review_prompt_get"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/thesis-review/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Manual Thesis Review
+         * @description REV-18: stores the pasted answer as the review of the draft's thesis.
+         */
+        post: operations["submit_manual_thesis_review_api_policies__policy_id__draft_thesis_review_manual_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -690,6 +751,43 @@ export interface paths {
         put?: never;
         /** Import Target Structure */
         post: operations["import_target_structure_api_policies__policy_id__import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/import-thesis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Thesis
+         * @description IMP-01: replaces the thesis of the policy's draft (created if there is none).
+         */
+        post: operations["import_thesis_api_policies__policy_id__import_thesis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/import-thesis/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Thesis */
+        post: operations["preview_thesis_api_policies__policy_id__import_thesis_preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -754,8 +852,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Version Review */
+        /**
+         * Get Version Review
+         * @description The thesis or policy review of a version: confirmed (REV-12) or of the draft.
+         */
         get: operations["get_version_review_api_policies__policy_id__versions__version_no__review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/versions/{version_no}/thesis/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Thesis
+         * @description IMP-10: the thesis of a policy version.
+         */
+        get: operations["export_thesis_api_policies__policy_id__versions__version_no__thesis_export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1196,339 +1317,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/theses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Theses */
-        get: operations["list_theses_api_theses_get"];
-        put?: never;
-        /** Create Thesis */
-        post: operations["create_thesis_api_theses_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Import New Thesis */
-        post: operations["import_new_thesis_api_theses_import_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/import/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Preview New Thesis */
-        post: operations["preview_new_thesis_api_theses_import_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Thesis */
-        get: operations["get_thesis_api_theses__thesis_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/copy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Copy Thesis */
-        post: operations["copy_thesis_api_theses__thesis_id__copy_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/diff": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Diff Revisions
-         * @description THS-02: compare any two readable revisions.
-         */
-        get: operations["diff_revisions_api_theses__thesis_id__diff_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Update Draft */
-        put: operations["update_draft_api_theses__thesis_id__draft_put"];
-        /**
-         * Create Draft
-         * @description THS-02: a new draft as a copy of the latest revision.
-         */
-        post: operations["create_draft_api_theses__thesis_id__draft_post"];
-        /** Delete Draft */
-        delete: operations["delete_draft_api_theses__thesis_id__draft_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/draft/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Activate Draft
-         * @description THS-02, THS-03: the draft becomes an immutable revision.
-         */
-        post: operations["activate_draft_api_theses__thesis_id__draft_activate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/draft/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start Thesis Review
-         * @description REV-01, REV-04: starts a review of the thesis draft; it runs in the background.
-         */
-        post: operations["start_thesis_review_api_theses__thesis_id__draft_review_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/draft/review-prompt": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Thesis Review Prompt
-         * @description REV-19: the prompt of the thesis draft as it is saved now; changes nothing.
-         */
-        get: operations["get_thesis_review_prompt_api_theses__thesis_id__draft_review_prompt_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/draft/review/manual": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Submit Manual Thesis Review
-         * @description REV-18: stores the pasted answer as the review of the thesis draft.
-         */
-        post: operations["submit_manual_thesis_review_api_theses__thesis_id__draft_review_manual_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Import Thesis Revision */
-        post: operations["import_thesis_revision_api_theses__thesis_id__import_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/import/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Preview Thesis Revision */
-        post: operations["preview_thesis_revision_api_theses__thesis_id__import_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/revisions/{revision_no}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Revision */
-        get: operations["get_revision_api_theses__thesis_id__revisions__revision_no__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/revisions/{revision_no}/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Export Thesis */
-        get: operations["export_thesis_api_theses__thesis_id__revisions__revision_no__export_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/revisions/{revision_no}/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Revision Review
-         * @description The review of a revision: confirmed (REV-12) or, for the owner, of the draft.
-         */
-        get: operations["get_revision_review_api_theses__thesis_id__revisions__revision_no__review_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/theses/{thesis_id}/visibility": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Set Visibility */
-        put: operations["set_visibility_api_theses__thesis_id__visibility_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/thesis-revisions/{revision_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Revision By Id
-         * @description A revision addressed by its own ID (e.g. from a timeline event, TL-02).
-         */
-        get: operations["get_revision_by_id_api_thesis_revisions__revision_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/timeline": {
         parameters: {
             query?: never;
@@ -1852,11 +1640,7 @@ export interface components {
         DraftIn: {
             /** Positions */
             positions: components["schemas"]["PositionIn"][];
-        };
-        /** DraftThesisRevision */
-        DraftThesisRevision: {
-            /** Thesis Revision Id */
-            thesis_revision_id: number;
+            thesis?: components["schemas"]["ThesisIn"] | null;
         };
         /** EventOut */
         EventOut: {
@@ -1881,8 +1665,6 @@ export interface components {
             review_id: number | null;
             /** Summary */
             summary: string;
-            /** Thesis Revision Id */
-            thesis_revision_id: number | null;
             /** Type */
             type: string;
         };
@@ -2056,12 +1838,25 @@ export interface components {
             /** Username */
             username: string;
         };
-        /** NewPolicy */
+        /**
+         * NewPolicy
+         * @description POL-01: draft v1 holds the thesis given here (the template, filled in by the UI).
+         */
         NewPolicy: {
             /** Name */
             name: string;
-            /** Thesis Id */
-            thesis_id: number;
+            /**
+             * Thesis Md
+             * @default
+             */
+            thesis_md?: string;
+            /**
+             * Thesis Status
+             * @default intact
+             */
+            thesis_status?: string;
+            /** Thesis Title */
+            thesis_title?: string | null;
         };
         /** NewPortfolio */
         NewPortfolio: {
@@ -2088,23 +1883,6 @@ export interface components {
             corrects_snapshot_id?: number | null;
             /** Values */
             values: components["schemas"]["ValueIn"][];
-        };
-        /** NewThesis */
-        NewThesis: {
-            /** Content Md */
-            content_md: string;
-            /**
-             * Status
-             * @default intact
-             */
-            status?: string;
-            /** Title */
-            title: string;
-            /**
-             * Visibility
-             * @default private
-             */
-            visibility?: string;
         };
         /** PasswordChange */
         PasswordChange: {
@@ -2157,12 +1935,8 @@ export interface components {
             id: number;
             /** Name */
             name: string;
-            /** Newer Thesis Revision Id */
-            newer_thesis_revision_id: number | null;
             /** Portfolios */
             portfolios: components["schemas"]["PortfolioRef"][];
-            /** Thesis Id */
-            thesis_id: number;
             /** Thesis Status */
             thesis_status: string | null;
             /** Thesis Warning */
@@ -2182,8 +1956,6 @@ export interface components {
             id: number;
             /** Name */
             name: string;
-            /** Newer Thesis Revision Id */
-            newer_thesis_revision_id: number | null;
             /** Thesis Status */
             thesis_status: string | null;
             /** Thesis Warning */
@@ -2639,7 +2411,7 @@ export interface components {
         };
         /**
          * ReviewBrief
-         * @description The review of a revision or version, in short (THS-08, REV-11).
+         * @description A review of a version, in short (THS-08, REV-11).
          */
         ReviewBrief: {
             /** Ai Reviewer Name */
@@ -2661,6 +2433,11 @@ export interface components {
             /** Verdict */
             verdict: string | null;
         };
+        /**
+         * ReviewKind
+         * @enum {string}
+         */
+        ReviewKind: "thesis" | "policy";
         /** ReviewOut */
         ReviewOut: {
             /** Ai Reviewer Name */
@@ -2707,8 +2484,6 @@ export interface components {
             state: string;
             /** Suggestions */
             suggestions: components["schemas"]["SuggestionOut"][];
-            /** Thesis Revision Id */
-            thesis_revision_id: number | null;
             /** Total */
             total: number | null;
             /** Verdict */
@@ -2723,65 +2498,6 @@ export interface components {
             prompt_id: string;
             /** Text */
             text: string;
-        };
-        /** RevisionDiff */
-        RevisionDiff: {
-            /** From Revision No */
-            from_revision_no: number;
-            /** To Revision No */
-            to_revision_no: number;
-            /** Unified Diff */
-            unified_diff: string;
-        };
-        /** RevisionOut */
-        RevisionOut: {
-            /** Activated At */
-            activated_at: string | null;
-            /** Change Note */
-            change_note: string | null;
-            /** Content Md */
-            content_md: string;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Id */
-            id: number;
-            /** Is Draft */
-            is_draft: boolean;
-            review: components["schemas"]["ReviewBrief"] | null;
-            /** Revision No */
-            revision_no: number;
-            /** Status */
-            status: string;
-            /** Thesis Id */
-            thesis_id: number;
-            /** Title */
-            title: string;
-        };
-        /** RevisionSummary */
-        RevisionSummary: {
-            /** Activated At */
-            activated_at: string | null;
-            /** Change Note */
-            change_note: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Id */
-            id: number;
-            /** Is Draft */
-            is_draft: boolean;
-            review: components["schemas"]["ReviewBrief"] | null;
-            /** Revision No */
-            revision_no: number;
-            /** Status */
-            status: string;
-            /** Title */
-            title: string;
         };
         /** Roles */
         Roles: {
@@ -2880,62 +2596,31 @@ export interface components {
             /** Kind */
             kind: string;
         };
-        /** ThesisDraftIn */
-        ThesisDraftIn: {
-            /** Change Note */
-            change_note?: string | null;
+        /**
+         * ThesisImportPreview
+         * @description IMP-01: a new policy, or the draft (version) of the selected one.
+         */
+        ThesisImportPreview: {
+            /** Creates New Policy */
+            creates_new_policy: boolean;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** ThesisIn */
+        ThesisIn: {
             /** Content Md */
             content_md: string;
-            /** Status */
-            status: string;
-            /** Title */
-            title: string;
-        };
-        /** ThesisImportPreview */
-        ThesisImportPreview: {
-            /** Creates New Thesis */
-            creates_new_thesis: boolean;
-            /** Revision No */
-            revision_no: number;
-            /** Status */
-            status: string;
-            /** Title */
-            title: string;
-            /** Visibility */
-            visibility: string | null;
-        };
-        /**
-         * ThesisOut
-         * @description THS-08: revisions in chronological order (reviews follow with stage 4).
-         */
-        ThesisOut: {
             /**
-             * Created At
-             * Format: date-time
+             * Status
+             * @default intact
              */
-            created_at: string;
-            /** Id */
-            id: number;
-            /** Is Own */
-            is_own: boolean;
-            /** Revisions */
-            revisions: components["schemas"]["RevisionSummary"][];
-            /** Visibility */
-            visibility: string;
-        };
-        /** ThesisSummary */
-        ThesisSummary: {
-            /** Active Revision No */
-            active_revision_no: number | null;
-            /** Has Draft */
-            has_draft: boolean;
-            /** Id */
-            id: number;
-            /** Is Own */
-            is_own: boolean;
-            latest: components["schemas"]["RevisionSummary"];
-            /** Visibility */
-            visibility: string;
+            status?: string;
+            /** Title */
+            title: string;
         };
         /** TimeZoneChoice */
         TimeZoneChoice: {
@@ -3010,11 +2695,10 @@ export interface components {
         VersionDiffOut: {
             /** Positions */
             positions: components["schemas"]["PositionChangeOut"][];
-            /** Thesis Revision */
-            thesis_revision: [
-                number,
-                number
-            ] | null;
+            /** Thesis Changed */
+            thesis_changed: boolean;
+            /** Thesis Diff */
+            thesis_diff: string;
         };
         /** VersionOut */
         VersionOut: {
@@ -3033,12 +2717,13 @@ export interface components {
             /** Positions */
             positions: components["schemas"]["PositionOut"][];
             review: components["schemas"]["ReviewBrief"] | null;
-            /** Thesis Revision Id */
-            thesis_revision_id: number;
-            /** Thesis Revision No */
-            thesis_revision_no: number;
+            /** Thesis Md */
+            thesis_md: string;
+            thesis_review: components["schemas"]["ReviewBrief"] | null;
             /** Thesis Status */
             thesis_status: string;
+            /** Thesis Title */
+            thesis_title: string;
             /** Version No */
             version_no: number;
         };
@@ -3066,12 +2751,13 @@ export interface components {
             /** Positions */
             positions: components["schemas"]["PositionOut"][];
             review: components["schemas"]["ReviewBrief"] | null;
-            /** Thesis Revision Id */
-            thesis_revision_id: number;
-            /** Thesis Revision No */
-            thesis_revision_no: number;
+            /** Thesis Md */
+            thesis_md: string;
+            thesis_review: components["schemas"]["ReviewBrief"] | null;
             /** Thesis Status */
             thesis_status: string;
+            /** Thesis Title */
+            thesis_title: string;
             /** Version No */
             version_no: number;
         };
@@ -3090,19 +2776,13 @@ export interface components {
             /** Label */
             label: string;
             review: components["schemas"]["ReviewBrief"] | null;
-            /** Thesis Revision Id */
-            thesis_revision_id: number;
-            /** Thesis Revision No */
-            thesis_revision_no: number;
+            thesis_review: components["schemas"]["ReviewBrief"] | null;
             /** Thesis Status */
             thesis_status: string;
+            /** Thesis Title */
+            thesis_title: string;
             /** Version No */
             version_no: number;
-        };
-        /** VisibilityIn */
-        VisibilityIn: {
-            /** Visibility */
-            visibility: string;
         };
     };
     responses: never;
@@ -4166,6 +3846,68 @@ export interface operations {
             };
         };
     };
+    import_thesis_as_policy_api_policies_import_thesis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_thesis_as_policy_api_policies_import_thesis_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThesisImportPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_policy_api_policies__policy_id__get: {
         parameters: {
             query?: never;
@@ -4186,39 +3928,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PolicyOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    adopt_thesis_revision_api_policies__policy_id__adopt_thesis_revision_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                policy_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VersionOut"];
                 };
             };
             /** @description Validation Error */
@@ -4546,7 +4255,7 @@ export interface operations {
             };
         };
     };
-    set_draft_thesis_revision_api_policies__policy_id__draft_thesis_revision_put: {
+    start_thesis_review_api_policies__policy_id__draft_thesis_review_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4559,9 +4268,44 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DraftThesisRevision"];
+                "application/json": components["schemas"]["StartThesisReview"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_thesis_review_prompt_api_policies__policy_id__draft_thesis_review_prompt_get: {
+        parameters: {
+            query?: {
+                news_days?: number;
+            };
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -4569,7 +4313,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VersionOut"];
+                    "application/json": components["schemas"]["ReviewPromptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_manual_thesis_review_api_policies__policy_id__draft_thesis_review_manual_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
                 };
             };
             /** @description Validation Error */
@@ -4603,6 +4384,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_thesis_api_policies__policy_id__import_thesis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_thesis_api_policies__policy_id__import_thesis_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThesisImportPreview"];
                 };
             };
             /** @description Validation Error */
@@ -4719,7 +4566,9 @@ export interface operations {
     };
     get_version_review_api_policies__policy_id__versions__version_no__review_get: {
         parameters: {
-            query?: never;
+            query?: {
+                kind?: components["schemas"]["ReviewKind"];
+            };
             header?: never;
             path: {
                 policy_id: number;
@@ -4738,6 +4587,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_thesis_api_policies__policy_id__versions__version_no__thesis_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+                version_no: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -5665,721 +5548,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_theses_api_theses_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThesisSummary"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_thesis_api_theses_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NewThesis"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThesisOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    import_new_thesis_api_theses_import_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_new_thesis_api_theses_import_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThesisImportPreview"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_thesis_api_theses__thesis_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThesisOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    copy_thesis_api_theses__thesis_id__copy_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThesisOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    diff_revisions_api_theses__thesis_id__diff_get: {
-        parameters: {
-            query: {
-                from_revision: number;
-                to_revision: number;
-            };
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionDiff"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_draft_api_theses__thesis_id__draft_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ThesisDraftIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_draft_api_theses__thesis_id__draft_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_draft_api_theses__thesis_id__draft_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    activate_draft_api_theses__thesis_id__draft_activate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Activation"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    start_thesis_review_api_theses__thesis_id__draft_review_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StartThesisReview"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_thesis_review_prompt_api_theses__thesis_id__draft_review_prompt_get: {
-        parameters: {
-            query?: {
-                news_days?: number;
-            };
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewPromptOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_manual_thesis_review_api_theses__thesis_id__draft_review_manual_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ManualAnswer"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    import_thesis_revision_api_theses__thesis_id__import_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_thesis_revision_api_theses__thesis_id__import_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThesisImportPreview"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_revision_api_theses__thesis_id__revisions__revision_no__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-                revision_no: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    export_thesis_api_theses__thesis_id__revisions__revision_no__export_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-                revision_no: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_revision_review_api_theses__thesis_id__revisions__revision_no__review_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-                revision_no: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReviewOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    set_visibility_api_theses__thesis_id__visibility_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                thesis_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VisibilityIn"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ThesisOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_revision_by_id_api_thesis_revisions__revision_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                revision_id: number;
-            };
-            cookie?: {
-                itk_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RevisionOut"];
                 };
             };
             /** @description Validation Error */

@@ -1,4 +1,5 @@
-"""End-to-end flows through the API (theses, policies, portfolios, imports, timeline)."""
+"""End-to-end flows through the API (policies with their thesis, portfolios, imports,
+timeline)."""
 
 import json
 from decimal import Decimal
@@ -20,24 +21,6 @@ def ok(response, status: int = 200):  # type: ignore[no-untyped-def]
     return response.json() if response.content else None
 
 
-def active_thesis(client: TestClient, body: dict[str, str]) -> dict[str, object]:
-    """A new thesis with its first revision activated (THS-02)."""
-    thesis: dict[str, object] = ok(client.post("/api/theses", json=body), 201)
-    ok(client.post(f"/api/theses/{thesis['id']}/draft/activate", json={}))
-    return thesis
-
-
-def revise(client: TestClient, thesis_id: object, **body: str) -> dict[str, object]:
-    """Draft, save and activate a new revision; returns the activated revision."""
-    ok(client.post(f"/api/theses/{thesis_id}/draft"), 201)
-    note = body.pop("change_note")
-    ok(client.put(f"/api/theses/{thesis_id}/draft", json=body))
-    revision: dict[str, object] = ok(
-        client.post(f"/api/theses/{thesis_id}/draft/activate", json={"change_note": note})
-    )
-    return revision
-
-
 def positions(*rows: tuple[str, int]) -> list[dict[str, object]]:
     return [
         {
@@ -52,55 +35,19 @@ def positions(*rows: tuple[str, int]) -> list[dict[str, object]]:
     ]
 
 
-@pytest.mark.req("THS-01", "THS-02", "THS-03", "THS-08", "THS-10")
-def test_thesis_flow(alice: TestClient, accounts_api: Accounts) -> None:
-    thesis = ok(alice.post("/api/theses", json={"title": "T", "content_md": "a\nb\n"}), 201)
-    tid = thesis["id"]
-    assert thesis["revisions"][0]["is_draft"] is True
-    listed = ok(alice.get("/api/theses"))[0]
-    assert (listed["has_draft"], listed["active_revision_no"]) == (True, None)
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={}))
-
-    draft = ok(alice.post(f"/api/theses/{tid}/draft"), 201)
-    assert (draft["revision_no"], draft["is_draft"]) == (2, True)
-    body = {"title": "T", "content_md": "a\nc\n", "status": "needs_adaptation"}
-    ok(alice.put(f"/api/theses/{tid}/draft", json=body))
-    missing_note = alice.post(f"/api/theses/{tid}/draft/activate", json={})
-    assert missing_note.status_code == 422
-    assert missing_note.json()["problems"][0]["path"] == "change_note"
-    activated = ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "b→c"}))
-    assert (activated["is_draft"], activated["status"]) == (False, "needs_adaptation")
-
-    history = ok(alice.get(f"/api/theses/{tid}"))
-    assert [(r["revision_no"], r["is_draft"]) for r in history["revisions"]] == [
-        (1, False),
-        (2, False),
-    ]
-    assert history["revisions"][1]["change_note"] == "b→c"
-    revision = ok(alice.get(f"/api/theses/{tid}/revisions/1"))
-    assert revision["content_md"] == "a\nb\n"
-    diff = ok(alice.get(f"/api/theses/{tid}/diff?from_revision=1&to_revision=2"))
-    assert "-b\n" in diff["unified_diff"] and "+c\n" in diff["unified_diff"]
-
-    ok(alice.post(f"/api/theses/{tid}/draft"), 201)
-    assert alice.put(f"/api/theses/{tid}/draft", json={**body, "status": "soft"}).status_code == 422
-    assert alice.delete(f"/api/theses/{tid}/draft").status_code == 204
-
-    ok(alice.put(f"/api/theses/{tid}/visibility", json={"visibility": "shared"}))
-    accounts_api.create("bob")
-    bob = accounts_api.client("bob")
-    listed = ok(bob.get("/api/theses"))
-    assert [(t["id"], t["is_own"]) for t in listed] == [(tid, False)]
-    copy = ok(bob.post(f"/api/theses/{tid}/copy"), 201)
-    assert copy["is_own"] is True and copy["visibility"] == "private"
-    assert ok(bob.get(f"/api/theses/{copy['id']}/revisions/1"))["content_md"] == "a\nc\n"
-
-
-@pytest.mark.req("POL-01", "POL-06", "POL-09", "POL-10", "POL-11", "POL-12")
+@pytest.mark.req("POL-01", "POL-02", "POL-06", "POL-09", "POL-11", "POL-12", "THS-01")
 def test_policy_flow(alice: TestClient) -> None:
-    thesis = active_thesis(alice, {"title": "T", "content_md": ""})
-    policy = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": thesis["id"]}), 201)
+    policy = ok(
+        alice.post("/api/policies", json={"name": "core", "thesis_md": "# Investment Thesis"}),
+        201,
+    )
     pid = policy["id"]
+    v1_draft = ok(alice.get(f"/api/policies/{pid}/versions/1"))
+    assert (v1_draft["thesis_title"], v1_draft["thesis_md"], v1_draft["positions"]) == (
+        "core",
+        "# Investment Thesis",
+        [],
+    )
     draft = ok(
         alice.put(
             f"/api/policies/{pid}/draft",
@@ -137,14 +84,20 @@ def test_policy_flow(alice: TestClient) -> None:
         ("BBB", "removed"),
     ]
     assert diff["positions"][0]["fields"] == {"target_pct": ["60", "50"]}
+    assert diff["thesis_changed"] is False
 
-    # A broken thesis revision: newer revision offered, warning only after adoption
-    revise(alice, thesis["id"], title="T", content_md="", status="broken", change_note="broken")
-    details = ok(alice.get(f"/api/policies/{pid}"))
-    assert details["newer_thesis_revision_id"] is not None
-    assert details["thesis_warning"] is False
-    ok(alice.post(f"/api/policies/{pid}/adopt-thesis-revision"))
+    # The thesis changes with a new version; a broken one is shown as a warning (POL-11)
+    ok(alice.post(f"/api/policies/{pid}/draft"), 201)
+    body = {
+        "positions": positions(("AAA", 50), ("CCC", 50)),
+        "thesis": {"title": "Core", "content_md": "# Broken now", "status": "broken"},
+    }
+    assert ok(alice.put(f"/api/policies/{pid}/draft", json=body))["thesis_md"] == "# Broken now"
+    assert ok(alice.get(f"/api/policies/{pid}"))["thesis_warning"] is False  # still a draft
     ok(alice.post(f"/api/policies/{pid}/draft/activate", json={"change_note": "new thesis"}))
+    thesis_diff = ok(alice.get(f"/api/policies/{pid}/compare?from_version=2&to_version=3"))
+    assert thesis_diff["positions"] == [] and thesis_diff["thesis_changed"] is True
+    assert "+# Broken now" in thesis_diff["thesis_diff"]
     details = ok(alice.get(f"/api/policies/{pid}"))
     assert details["thesis_warning"] is True
     assert [(v["label"], v["active_until"] is None) for v in details["versions"]] == [
@@ -160,12 +113,9 @@ def test_policy_flow(alice: TestClient) -> None:
     "PTF-01", "PTF-03", "PTF-04", "PTF-05", "PTF-06", "CMP-01", "CMP-08", "CMP-09", "TL-03"
 )
 def test_portfolio_flow(alice: TestClient, accounts_api: Accounts) -> None:
-    thesis = active_thesis(alice, {"title": "T", "content_md": ""})
     pids = []
     for name in ("core", "growth"):
-        pid = ok(alice.post("/api/policies", json={"name": name, "thesis_id": thesis["id"]}), 201)[
-            "id"
-        ]
+        pid = ok(alice.post("/api/policies", json={"name": name}), 201)["id"]
         ok(
             alice.put(
                 f"/api/policies/{pid}/draft",
@@ -270,24 +220,19 @@ def test_portfolio_flow(alice: TestClient, accounts_api: Accounts) -> None:
 @pytest.mark.req("IMP-01", "IMP-02", "IMP-03", "IMP-06", "IMP-07", "IMP-09")
 def test_import_flow(alice: TestClient) -> None:
     thesis_file = json.dumps({"schema_version": "1.0", "title": "Imported", "content_md": "x"})
-    preview = ok(alice.post("/api/theses/import/preview", content=thesis_file))
-    assert preview["creates_new_thesis"] is True
-    revision = ok(alice.post("/api/theses/import", content=thesis_file), 201)
-    assert (revision["revision_no"], revision["is_draft"]) == (1, True)
-    tid = revision["thesis_id"]
+    preview = ok(alice.post("/api/policies/import-thesis/preview", content=thesis_file))
+    assert (preview["creates_new_policy"], preview["version_no"]) == (True, 1)
+    policy = ok(alice.post("/api/policies/import-thesis", content=thesis_file), 201)
+    assert policy["name"] == "Imported" and policy["versions"][0]["is_draft"] is True
+    pid = policy["id"]
     update = json.dumps(
         {"schema_version": "1.1", "title": "Imported", "content_md": "y", "change_note": "y"}
     )
-    # Into the existing draft, then into a new draft; never activated by the import
-    assert ok(alice.post(f"/api/theses/{tid}/import/preview", content=update))["revision_no"] == 1
-    assert ok(alice.post(f"/api/theses/{tid}/import", content=update), 201)["revision_no"] == 1
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={}))
-    assert ok(alice.post(f"/api/theses/{tid}/import/preview", content=update))["revision_no"] == 2
-    draft = ok(alice.post(f"/api/theses/{tid}/import", content=update), 201)
-    assert (draft["revision_no"], draft["is_draft"], draft["change_note"]) == (2, True, "y")
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={}))
-
-    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": tid}), 201)["id"]
+    # Into the existing draft; never activated by the import
+    preview = ok(alice.post(f"/api/policies/{pid}/import-thesis/preview", content=update))
+    assert (preview["creates_new_policy"], preview["version_no"]) == (False, 1)
+    draft = ok(alice.post(f"/api/policies/{pid}/import-thesis", content=update), 201)
+    assert (draft["version_no"], draft["is_draft"], draft["thesis_md"]) == (1, True, "y")
     structure = json.dumps({"schema_version": "1.0", "positions": positions(("AAA", 100))})
     diff = ok(alice.post(f"/api/policies/{pid}/import/preview", content=structure))
     assert diff["positions"] == [{"ticker": "AAA", "change": "added", "fields": {}}]
@@ -326,10 +271,7 @@ def test_import_flow(alice: TestClient) -> None:
 
 @pytest.mark.req("RB-02", "RB-03", "RB-11", "RB-12", "RB-13", "RB-16", "RB-17", "RB-20", "RB-22")
 def test_rebalance_flow(alice: TestClient) -> None:
-    thesis = active_thesis(alice, {"title": "T", "content_md": ""})
-    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": thesis["id"]}), 201)[
-        "id"
-    ]
+    pid = ok(alice.post("/api/policies", json={"name": "core"}), 201)["id"]
     ok(
         alice.put(
             f"/api/policies/{pid}/draft",
@@ -428,57 +370,37 @@ def test_rebalance_flow(alice: TestClient) -> None:
     assert alice.post(f"/api/portfolios/{pfid}/simulate", json={"cycles": 0}).status_code == 422
 
 
-@pytest.mark.req("TL-02", "POL-10", "POL-11")
+@pytest.mark.req("TL-02", "POL-11")
 def test_lookups_for_timeline_details_and_warnings(alice: TestClient) -> None:
-    thesis = active_thesis(alice, {"title": "T", "content_md": "v1"})
-    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": thesis["id"]}), 201)[
-        "id"
-    ]
-    ok(
-        alice.put(
-            f"/api/policies/{pid}/draft",
-            json={"positions": positions(("AAA", 100))},
-        )
-    )
+    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_md": "v1"}), 201)["id"]
+    ok(alice.put(f"/api/policies/{pid}/draft", json={"positions": positions(("AAA", 100))}))
     ok(alice.post(f"/api/policies/{pid}/draft/activate", json={}))
-    summary = ok(alice.get("/api/policies"))[0]
-    assert (summary["thesis_warning"], summary["newer_thesis_revision_id"]) == (False, None)
+    assert ok(alice.get("/api/policies"))[0]["thesis_warning"] is False
 
-    revision = revise(
-        alice, thesis["id"], title="T", content_md="v2", status="broken", change_note="broken"
-    )
     events = ok(alice.get("/api/timeline"))
     activated = next(e for e in events if e["type"] == "policy_activated")
-    revised = next(e for e in events if e["type"] == "thesis_revised")
-
     version = ok(alice.get(f"/api/policy-versions/{activated['policy_version_id']}"))
     assert (version["policy_id"], version["policy_name"], version["label"]) == (
         pid,
         "core",
         "core-v1",
     )
-    assert version["positions"][0]["ticker"] == "AAA"
-    found = ok(alice.get(f"/api/thesis-revisions/{revised['thesis_revision_id']}"))
-    assert (found["thesis_id"], found["revision_no"], found["content_md"]) == (
-        thesis["id"],
-        2,
-        "v2",
-    )
-    assert found["id"] == revision["id"]
+    assert (version["positions"][0]["ticker"], version["thesis_md"]) == ("AAA", "v1")
 
+    ok(alice.post(f"/api/policies/{pid}/draft"), 201)
+    thesis = {"title": "core", "content_md": "v2", "status": "broken"}
+    body = {"positions": positions(("AAA", 100)), "thesis": thesis}
+    ok(alice.put(f"/api/policies/{pid}/draft", json=body))
+    ok(alice.post(f"/api/policies/{pid}/draft/activate", json={"change_note": "broken"}))
     summary = ok(alice.get("/api/policies"))[0]
-    assert summary["newer_thesis_revision_id"] == revision["id"]
-    ok(alice.post(f"/api/policies/{pid}/adopt-thesis-revision"))
-    ok(alice.post(f"/api/policies/{pid}/draft/activate", json={"change_note": "adopt"}))
-    assert ok(alice.get("/api/policies"))[0]["thesis_warning"] is True
+    assert (summary["thesis_warning"], summary["thesis_status"]) == (True, "broken")
 
 
 @pytest.mark.req("IMP-10", "RB-19")
 def test_exports_and_rebalance_result(alice: TestClient) -> None:
-    thesis = active_thesis(alice, {"title": "T", "content_md": "body"})
-    pid = ok(
-        alice.post("/api/policies", json={"name": "core / 2026", "thesis_id": thesis["id"]}), 201
-    )["id"]
+    pid = ok(alice.post("/api/policies", json={"name": "core / 2026", "thesis_md": "body"}), 201)[
+        "id"
+    ]
     ok(
         alice.put(
             f"/api/policies/{pid}/draft",
@@ -506,12 +428,11 @@ def test_exports_and_rebalance_result(alice: TestClient) -> None:
         201,
     )
 
-    exported = alice.get(f"/api/theses/{thesis['id']}/revisions/1/export")
-    assert (
-        exported.headers["content-disposition"]
-        == f'attachment; filename="thesis-{thesis["id"]}-r1.json"'
+    exported = alice.get(f"/api/policies/{pid}/versions/1/thesis/export")
+    assert exported.headers["content-disposition"] == (
+        'attachment; filename="thesis-core___2026-v1.json"'
     )
-    assert exported.json()["content_md"] == "body"
+    assert (exported.json()["title"], exported.json()["content_md"]) == ("core / 2026", "body")
     version = alice.get(f"/api/policies/{pid}/versions/1/export")
     assert version.headers["content-disposition"] == 'attachment; filename="core___2026-v1.json"'
     assert [p["ticker"] for p in version.json()["positions"]] == ["AAA", "BBB"]
@@ -525,7 +446,7 @@ def test_exports_and_rebalance_result(alice: TestClient) -> None:
         "name": "AAA name",
         "type": "ETF",
     }
-    assert alice.get(f"/api/theses/{thesis['id']}/revisions/9/export").status_code == 404
+    assert alice.get(f"/api/policies/{pid}/versions/9/thesis/export").status_code == 404
     assert alice.get(f"/api/policies/{pid}/versions/9/export").status_code == 404
 
     plan = ok(alice.get(f"/api/portfolios/{pfid}/rebalance?contribution=0"))

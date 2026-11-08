@@ -226,7 +226,7 @@ def test_admin_becomes_investor_too_and_sees_only_own_data(
     admin: TestClient, accounts_api: Accounts, factory: Factory, session: Session
 ) -> None:
     alice = accounts_api.create("alice")
-    factory.thesis(alice)
+    factory.policy_draft(alice)
     session.commit()
     root_id = admin.get("/api/auth/me").json()["id"]
     assert roles(admin, root_id, is_admin=True, is_investor=True).status_code == 422
@@ -234,8 +234,8 @@ def test_admin_becomes_investor_too_and_sees_only_own_data(
     assert response.status_code == 200, response.text
     me = admin.get("/api/auth/me").json()
     assert (me["is_admin"], me["is_investor"], me["base_currency"]) == (True, True, "CHF")
-    assert admin.get("/api/theses").json() == []  # alice's private thesis stays hidden
-    created = admin.post("/api/theses", json={"title": "Mine", "content_md": "x"})
+    assert admin.get("/api/policies").json() == []  # alice's policy stays hidden
+    created = admin.post("/api/policies", json={"name": "Mine", "thesis_md": "x"})
     assert created.status_code == 201, created.text
     assert admin.get("/api/admin/accounts").status_code == 200  # still an admin
 
@@ -246,14 +246,14 @@ def test_investor_role_is_removed_only_without_investment_data(
 ) -> None:
     alice = accounts_api.create("alice")
     bob = accounts_api.create("bob")
-    factory.thesis(alice)
+    factory.policy_draft(alice)
     session.commit()
     assert roles(admin, alice.id, is_admin=True, is_investor=False).status_code == 409
     response = roles(admin, bob.id, is_admin=True, is_investor=False)
     assert response.status_code == 200, response.text
     assert response.json()["base_currency"] is None
     client = accounts_api.client("bob")
-    assert client.get("/api/theses").status_code == 403
+    assert client.get("/api/policies").status_code == 403
     assert client.get("/api/admin/accounts").status_code == 200
     assert roles(admin, bob.id, is_admin=False, is_investor=False).status_code == 422
 

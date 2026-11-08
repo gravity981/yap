@@ -57,7 +57,7 @@ describe("login and navigation", () => {
     const links = within(nav[0]!)
       .getAllByRole("link")
       .map((l) => l.textContent);
-    expect(links).toEqual(["Dashboard", "Portfolios", "Policies", "Theses", "Timeline"]);
+    expect(links).toEqual(["Dashboard", "Portfolios", "Policies", "Timeline"]);
     expect(await screen.findAllByText("Version 1.2.0")).not.toHaveLength(0);
   });
 
@@ -128,7 +128,6 @@ describe("login and navigation", () => {
       "Dashboard",
       "Portfolios",
       "Policies",
-      "Theses",
       "Timeline",
       "Accounts",
       "AI reviewers",
@@ -156,8 +155,8 @@ describe("login and navigation", () => {
     renderApp("/");
     await userEvent.click(await screen.findByRole("button", { name: "Open menu" }));
     const dialog = await screen.findByRole("dialog");
-    await userEvent.click(within(dialog).getByRole("link", { name: "Theses" }));
-    expect(await screen.findByRole("heading", { name: "Theses" })).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("link", { name: "Policies" }));
+    expect(await screen.findByRole("heading", { name: "Policies" })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 

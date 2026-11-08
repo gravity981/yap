@@ -62,11 +62,18 @@ export function eventSummary(event: TimelineEvent): string {
         : i18n.t("timeline.summary.rebalance", values);
     }
     case "thesis_review_confirmed":
-      return i18n.t("timeline.summary.thesisReview", {
-        title: text(p.title),
-        revision: text(p.revision),
-        result: reviewResult(p),
-      });
+      // Since policies hold their thesis, the review names the version; older events
+      // name the thesis revision
+      return p.version !== undefined
+        ? i18n.t("timeline.summary.thesisReviewOfVersion", {
+            version: text(p.version),
+            result: reviewResult(p),
+          })
+        : i18n.t("timeline.summary.thesisReview", {
+            title: text(p.title),
+            revision: text(p.revision),
+            result: reviewResult(p),
+          });
     case "policy_review_confirmed":
       return i18n.t("timeline.summary.policyReview", {
         version: text(p.version),

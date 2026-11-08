@@ -5,15 +5,17 @@ import { describe, expect, it, vi } from "vitest";
 import { Stars } from "@/components/stars";
 import { investor, json, mockApi, renderApp, type Handler } from "@/test/utils";
 
-const rev = (n: number, extra: Record<string, unknown> = {}) => ({
-  id: 100 + n,
-  revision_no: n,
-  title: "Core thesis",
-  status: "intact",
+const version = (n: number, extra: Record<string, unknown> = {}) => ({
+  id: 200 + n,
+  version_no: n,
+  label: `core-v${n}`,
+  thesis_title: "Core thesis",
+  thesis_status: "intact",
   change_note: n === 1 ? null : `change ${n}`,
   is_draft: false,
-  activated_at: `2026-0${n}-01T10:00:00+00:00`,
-  created_at: `2026-0${n}-01T10:00:00+00:00`,
+  active_from: `2026-0${n}-01T10:00:00+00:00`,
+  active_until: n === 1 ? "2026-02-01T10:00:00+00:00" : null,
+  thesis_review: null,
   review: null,
   ...extra,
 });
@@ -54,8 +56,7 @@ const review = (extra: Record<string, unknown> = {}) => ({
   kind: "thesis",
   state: "done",
   error: null,
-  thesis_revision_id: 103,
-  policy_version_id: null,
+  policy_version_id: 203,
   provider: "anthropic",
   model: "claude-x",
   scoring_version: "2",
@@ -120,39 +121,58 @@ const usageOf: Handler = (request) => {
   );
 };
 
-function thesis(draftReview: unknown = null) {
+function policy(draftReview: unknown = null) {
+  const v1Review = brief(10, 6, { scoring_version: "1", method: "manual", model: "GPT 5" });
   return {
     id: 7,
-    is_own: true,
-    visibility: "private",
+    name: "core",
+    archived_at: null,
     created_at: "2026-01-01T10:00:00+00:00",
-    revisions: [
-      rev(1, { review: brief(10, 6, { scoring_version: "1", method: "manual", model: "GPT 5" }) }),
-      rev(2, { review: brief(20, 7.5, { verdict: "needs_adaptation" }) }),
-      rev(3, { is_draft: true, activated_at: null, change_note: null, review: draftReview }),
+    portfolios: [],
+    thesis_warning: false,
+    thesis_status: "intact",
+    versions: [
+      version(1, { thesis_review: v1Review }),
+      version(2, { thesis_review: brief(20, 7.5, { verdict: "needs_adaptation" }) }),
+      version(3, {
+        is_draft: true,
+        active_from: null,
+        change_note: null,
+        thesis_review: draftReview,
+      }),
     ],
   };
 }
+
+const draftVersion = { ...version(3, { is_draft: true }), thesis_md: "# Draft", positions: [] };
 
 function setup(handlers: Record<string, Handler> = {}, draftReview: unknown = null) {
   return mockApi({
     "GET /api/version": () => json({ version: "1.2.0", commit: "abc" }),
     "GET /api/auth/me": () => json(investor),
-    "GET /api/theses/7": () => json(thesis(draftReview)),
-    "GET /api/theses/7/revisions/3": () =>
-      json({ ...rev(3, { is_draft: true }), thesis_id: 7, content_md: "# Draft" }),
+    "GET /api/policies/7": () => json(policy(draftReview)),
+    "GET /api/policies/7/versions/2": () =>
+      json({ ...version(2), thesis_md: "# Active", positions: [] }),
+    "GET /api/policies/7/versions/3": () => json(draftVersion),
+    "GET /api/assets": () => json([]),
     "GET /api/reviews/usage": usageOf,
     "GET /api/ai-reviewers": () => json(reviewers),
     "GET /api/reviews/30": () => json(review()),
-    "PUT /api/theses/7/draft": () =>
-      json({ ...rev(3, { is_draft: true }), thesis_id: 7, content_md: "# Draft" }),
+    "PUT /api/policies/7/draft": () => json(draftVersion),
     ...handlers,
   });
 }
 
+/** The draft on the policy page: its thesis with the review, read-only. */
+async function draftOnPage() {
+  const result = renderApp("/policies/7");
+  await userEvent.selectOptions(await screen.findByLabelText("Version"), "3");
+  return result;
+}
+
 /** REV-01: the review is a tab of the draft editor (narrow layout in jsdom). */
 async function openPane() {
-  renderApp("/theses/7/edit");
+  renderApp("/policies/7/draft");
   await userEvent.click(await screen.findByRole("tab", { name: "Review" }));
   return screen.findByRole("region", { name: "Thesis review" });
 }
@@ -166,7 +186,8 @@ describe("reviews", () => {
 
   it("[REV-01] [REV-04] [REV-16] [NFR-01] [NFR-15] starts a thesis review of the draft with a news period", async () => {
     const calls = setup({
-      "POST /api/theses/7/draft/review": () => json(review({ state: "queued", aspects: [] }), 202),
+      "POST /api/policies/7/draft/thesis-review": () =>
+        json(review({ state: "queued", aspects: [] }), 202),
     });
     const section = await openPane();
     expect(within(section).getByText(/has no review yet; it needs one/)).toBeInTheDocument();
@@ -183,22 +204,23 @@ describe("reviews", () => {
     await userEvent.type(days, "30");
     await userEvent.click(within(section).getByRole("button", { name: "Start review" }));
     await waitFor(() =>
-      expect(calls.find((c) => c.path === "/api/theses/7/draft/review")?.body).toEqual({
+      expect(calls.find((c) => c.path === "/api/policies/7/draft/thesis-review")?.body).toEqual({
         ai_reviewer_id: 1,
         news_days: 30,
       }),
     );
     // The draft is saved first, so the review sees what is in the editor
     const order = calls.map((c) => `${c.method} ${c.path}`);
-    expect(order.indexOf("PUT /api/theses/7/draft")).toBeLessThan(
-      order.indexOf("POST /api/theses/7/draft/review"),
+    expect(order.indexOf("PUT /api/policies/7/draft")).toBeLessThan(
+      order.indexOf("POST /api/policies/7/draft/thesis-review"),
     );
     expect(within(section).queryByRole("button", { name: "Copy review prompt" })).toBeNull();
   });
 
   it("[USR-08] [REV-16] chooses another AI reviewer than the default for one review", async () => {
     const calls = setup({
-      "POST /api/theses/7/draft/review": () => json(review({ state: "queued", aspects: [] }), 202),
+      "POST /api/policies/7/draft/thesis-review": () =>
+        json(review({ state: "queued", aspects: [] }), 202),
     });
     const section = await openPane();
     const select = await within(section).findByLabelText("Review method");
@@ -211,7 +233,7 @@ describe("reviews", () => {
     expect(within(section).getByText("Thorough, slower")).toBeInTheDocument();
     await userEvent.click(within(section).getByRole("button", { name: "Start review" }));
     await waitFor(() =>
-      expect(calls.find((c) => c.path === "/api/theses/7/draft/review")?.body).toEqual({
+      expect(calls.find((c) => c.path === "/api/policies/7/draft/thesis-review")?.body).toEqual({
         ai_reviewer_id: 2,
         news_days: 90,
       }),
@@ -241,7 +263,7 @@ describe("reviews", () => {
       { "GET /api/reviews/30": () => json(review({ state: "running", aspects: [] })) },
       brief(30, 0, { state: "running", total: null }),
     );
-    renderApp("/theses/7");
+    await openPane();
     expect(await screen.findByRole("status")).toHaveTextContent(/you can leave the page/);
   });
 
@@ -260,7 +282,7 @@ describe("reviews", () => {
 
   it("[REV-02] [REV-03] [REV-04] [REV-07] [REV-17] [NFR-15] shows the result of a draft review", async () => {
     setup({}, brief(30, 6.5));
-    renderApp("/theses/7");
+    await draftOnPage();
     const section = await screen.findByRole("region", { name: "Thesis review" });
     expect(
       await within(section).findByRole("img", { name: "Total score: 6.5 of 10" }),
@@ -295,7 +317,7 @@ describe("reviews", () => {
       },
       brief(30, 6.5),
     );
-    renderApp("/theses/7");
+    await draftOnPage();
     const section = await screen.findByRole("region", { name: "Thesis review" });
     expect(
       await within(section).findByText(/You changed this result when reviews could still/),
@@ -313,7 +335,7 @@ describe("reviews", () => {
   });
 
   it("[REV-06] [NFR-10] names the aspects by the scoring version of the review", async () => {
-    const german = (version: string) => {
+    const german = async (version: string) => {
       setup(
         {
           "GET /api/auth/me": () => json({ ...investor, language: "de" }),
@@ -329,16 +351,16 @@ describe("reviews", () => {
         },
         brief(30, 6.5, { scoring_version: version }),
       );
-      return renderApp("/theses/7");
+      return draftOnPage();
     };
-    const current = german("2");
+    const current = await german("2");
     const section = await screen.findByRole("region", { name: "Prüfung der Anlagethese" });
     expect(await within(section).findByText("T1 Überzeugung")).toBeInTheDocument();
     expect(
       within(section).getByText("T5 Widerlegung, Frühwarnungen und Überwachung"),
     ).toBeInTheDocument();
     current.unmount();
-    german("1");
+    await german("1");
     const old = await screen.findByRole("region", { name: "Prüfung der Anlagethese" });
     expect(await within(old).findByText("T1 Kernaussage")).toBeInTheDocument();
   });
@@ -351,7 +373,7 @@ describe("reviews", () => {
       },
       brief(30, 6.5),
     );
-    renderApp("/theses/7");
+    await draftOnPage();
     const section = await screen.findByRole("region", { name: "Thesis review" });
     expect(
       await within(section).findByText(/manual review with ChatGPT 5 · scoring v2/),
@@ -378,10 +400,10 @@ describe("reviews", () => {
     const manual = review({ method: "manual", provider: "manual", model: "ChatGPT 5" });
     let draftReview: unknown = null;
     const calls = setup({
-      "GET /api/theses/7": () => json(thesis(draftReview)),
-      "GET /api/theses/7/draft/review-prompt": () =>
+      "GET /api/policies/7": () => json(policy(draftReview)),
+      "GET /api/policies/7/draft/thesis-review-prompt": () =>
         json({ prompt_id: "T103-20260301T100000Z-30-abcdef", text: "THE PROMPT" }),
-      "POST /api/theses/7/draft/review/manual": () => {
+      "POST /api/policies/7/draft/thesis-review/manual": () => {
         draftReview = brief(30, 6.5);
         return json(manual, 201);
       },
@@ -401,8 +423,8 @@ describe("reviews", () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("THE PROMPT"));
     expect(await within(section).findByRole("status")).toHaveTextContent(/Copied/);
     const order = calls.map((c) => `${c.method} ${c.path}`);
-    expect(order.indexOf("PUT /api/theses/7/draft")).toBeLessThan(
-      order.indexOf("GET /api/theses/7/draft/review-prompt?news_days=30"),
+    expect(order.indexOf("PUT /api/policies/7/draft")).toBeLessThan(
+      order.indexOf("GET /api/policies/7/draft/thesis-review-prompt?news_days=30"),
     );
     await userEvent.type(within(section).getByLabelText("AI model used"), "ChatGPT 5");
     fireEvent.change(within(section).getByLabelText("Answer of the AI"), {
@@ -410,7 +432,9 @@ describe("reviews", () => {
     });
     await userEvent.click(within(section).getByRole("button", { name: "Save review" }));
     await waitFor(() =>
-      expect(calls.find((c) => c.path === "/api/theses/7/draft/review/manual")?.body).toEqual({
+      expect(
+        calls.find((c) => c.path === "/api/policies/7/draft/thesis-review/manual")?.body,
+      ).toEqual({
         answer: '{"prompt_id": "T103-20260301T100000Z-30-abcdef"}',
         model: "ChatGPT 5",
       }),
@@ -422,7 +446,7 @@ describe("reviews", () => {
 
   it("[REV-18] lists every problem of a pasted answer", async () => {
     const calls = setup({
-      "POST /api/theses/7/draft/review/manual": () =>
+      "POST /api/policies/7/draft/thesis-review/manual": () =>
         json(
           {
             detail: "invalid",
@@ -460,7 +484,7 @@ describe("reviews", () => {
       clipboard: { writeText: () => Promise.reject(new Error("not allowed")) },
     });
     setup({
-      "GET /api/theses/7/draft/review-prompt": () =>
+      "GET /api/policies/7/draft/thesis-review-prompt": () =>
         json({ prompt_id: "T1-20260301T100000Z-90-abcdef", text: "THE PROMPT" }),
     });
     const section = await openPane();
@@ -495,12 +519,12 @@ describe("reviews", () => {
     );
   });
 
-  it("[REV-01] points from the thesis page to the editor for reviews", async () => {
+  it("[REV-01] points from the policy page to the editor for reviews", async () => {
     setup();
-    renderApp("/theses/7");
+    await draftOnPage();
     expect(await screen.findByRole("link", { name: "editor" })).toHaveAttribute(
       "href",
-      "/theses/7/edit",
+      "/policies/7/draft",
     );
     const section = screen.getByRole("region", { name: "Thesis review" });
     expect(within(section).queryByRole("button")).toBeNull();
@@ -508,26 +532,26 @@ describe("reviews", () => {
 
   it("[REV-12] [THS-08] shows confirmed reviews read-only in the history, with the score course", async () => {
     setup({ "GET /api/reviews/20": () => json(review({ id: 20, confirmed: true })) });
-    renderApp("/theses/7");
-    await userEvent.click(await screen.findByRole("tab", { name: "History" }));
-    const course = screen.getByRole("figure", { name: "Review score over the revisions" });
-    expect(within(course).getByRole("img", { name: "Revision 1: 6.0 of 10" })).toBeInTheDocument();
-    expect(within(course).getByRole("img", { name: "Revision 2: 7.5 of 10" })).toBeInTheDocument();
-    // REV-06: revision 1 was scored with version 1, revision 2 with version 2
+    renderApp("/policies/7");
+    await userEvent.click(await screen.findByRole("tab", { name: "Versions" }));
+    const course = screen.getByRole("figure", { name: "Thesis review score over the versions" });
+    expect(within(course).getByRole("img", { name: "core-v1: 6.0 of 10" })).toBeInTheDocument();
+    expect(within(course).getByRole("img", { name: "core-v2: 7.5 of 10" })).toBeInTheDocument();
+    // REV-06: v1 was scored with scoring version 1, v2 with scoring version 2
     expect(within(course).getByTestId("version-change")).toHaveTextContent("v2");
     expect(
       within(course).getByText(/scores before and after are not directly comparable/),
     ).toBeInTheDocument();
-    const second = screen.getByText("Revision 2").closest("li")!;
+    const second = screen.getByText("core-v2").closest("li")!;
     expect(within(second).getByRole("img", { name: "Review: 7.5 of 10" })).toBeInTheDocument();
     expect(within(second).getByText("needs adaptation")).toBeInTheDocument();
     // REV-17: who made each review
     expect(within(second).getByText("Standard (claude-x)")).toBeInTheDocument();
-    const first = screen.getByText("Revision 1").closest("li")!;
+    const first = screen.getByText("core-v1").closest("li")!;
     expect(within(first).getByText("manual review with GPT 5")).toBeInTheDocument();
-    // An activated revision's review cannot be changed or run again
-    await userEvent.click(screen.getByRole("tab", { name: "Content" }));
-    await userEvent.selectOptions(screen.getByLabelText("Revision"), "2");
+    // An activated version's review cannot be changed or run again
+    await userEvent.click(screen.getByRole("tab", { name: "Thesis" }));
+    await userEvent.selectOptions(await screen.findByLabelText("Version"), "2");
     const section = await screen.findByRole("region", { name: "Thesis review" });
     expect(await within(section).findByText("confirmed")).toBeInTheDocument();
     expect(within(section).queryByRole("button")).not.toBeInTheDocument();

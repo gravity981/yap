@@ -54,14 +54,3 @@ export function useVersionById(id: number | null) {
       ),
   });
 }
-
-export function useRevisionById(id: number | null) {
-  return useQuery({
-    queryKey: ["thesis-revisions", id],
-    enabled: id !== null,
-    queryFn: () =>
-      unwrap(
-        api.GET("/api/thesis-revisions/{revision_id}", { params: { path: { revision_id: id! } } }),
-      ),
-  });
-}

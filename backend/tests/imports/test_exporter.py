@@ -27,32 +27,31 @@ def test_decimals_are_written_as_exact_numbers() -> None:
 @pytest.mark.req("IMP-10")
 def test_thesis_round_trip(session: Session, factory: Factory) -> None:
     owner = factory.investor()
-    thesis = factory.thesis(owner, shared=True)
-    revision = factory.revise_thesis(
-        owner,
-        thesis,
-        title="Ünïcode title",
-        content_md="# Body\n\n- point",
-        status="broken",
-        change_note="why",
+    policy = factory.policy_draft(
+        owner, thesis_title="Ünïcode title", thesis_md="# Body\n\n- point"
     )
-    text = exporter.thesis(revision)
+    version = policies.update_thesis(
+        session,
+        owner,
+        factory.clock,
+        policy.id,
+        policies.ThesisSpec("Ünïcode title", "# Body\n\n- point", "broken"),
+    )
+    text = exporter.thesis(version)
     data = json.loads(text)
     assert data["$schema"] == "thesis.v1.schema.json"
-    assert (data["title"], data["visibility"], data["status"], data["change_note"]) == (
+    assert (data["title"], data["visibility"], data["status"]) == (
         "Ünïcode title",
-        "shared",
+        "private",
         "broken",
-        "why",
     )
+    assert "change_note" not in data  # v1 has none; the field is left out
     imported = importer.import_thesis(session, factory.investor(), factory.clock, text)
-    assert (imported.title, imported.content_md, imported.status) == (
+    assert (imported.thesis_title, imported.thesis_md, imported.thesis_status) == (
         "Ünïcode title",
         "# Body\n\n- point",
         "broken",
     )
-    # the first revision has no change note; the field is left out
-    assert "change_note" not in json.loads(exporter.thesis(thesis.revisions[0]))
 
 
 @pytest.mark.req("IMP-10")

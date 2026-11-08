@@ -484,17 +484,6 @@ A **review** judges a policy as a whole: whether its thesis is good and still ho
 | IMP-09 | The JSON Schemas can be downloaded from the app and are kept in the repository; the backend generates them from the same models it uses for validation, so they cannot drift apart. | M |
 | IMP-10 | Policy versions (thesis and target structure as the two files) and snapshots can be exported in the same JSON formats, so an export can be imported again. | C |
 
-### 3.10a Requirements dropped by stage 2
-
-Stage 2 (merged policies) drops these requirements. They stay listed here until the step that removes their code removes them and their tests (spec/README.md), so the requirement report keeps passing meanwhile.
-
-| ID | Requirement | Prio |
-|---|---|---|
-| THS-02 | **Dropped:** theses edited in separate drafts and revisions. Replaced by the drafts of policy versions (POL-06, POL-14 to POL-17). | M |
-| THS-03 | **Dropped:** a change note per thesis revision. Replaced by the change note of the policy version (POL-06). | M |
-| THS-05 | **Dropped:** theses shared on their own. Replaced by the sharing level of the policy (POL-18). | M |
-| POL-10 | **Dropped:** a newer revision of a pinned thesis. A policy version holds its own thesis (POL-02). | M |
-
 ### 3.11 Prices
 
 Prices make snapshots easier: the investor enters units, and the app fills in the price wherever a price provider offers the asset. Assets no provider offers stay `manual`: the investor enters their price, and can try to switch to a provider at any time. The app keeps only the latest price of each listing and does not value portfolios between snapshots. The prices used are kept with each snapshot instead (CMP-10): every comparison and every confirmed rebalance (RB-17) stays exactly as it was decided, whatever the prices do later.

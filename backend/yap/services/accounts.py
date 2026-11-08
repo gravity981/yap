@@ -16,7 +16,6 @@ from yap.db.models import (
     LoginFailure,
     Policy,
     Portfolio,
-    Thesis,
     UserSession,
 )
 from yap.messages import msg
@@ -269,7 +268,7 @@ def admin_create_account(
 def _owns_investment_data(session: Session, account: Investor) -> bool:
     return any(
         session.scalar(select(exists().where(model.owner_id == account.id)))
-        for model in (Thesis, Policy, Portfolio)
+        for model in (Policy, Portfolio)
     )
 
 

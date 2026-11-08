@@ -1,14 +1,15 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
+import { FileImport } from "@/components/file-import";
 import { Field, FormError, fieldError } from "@/components/form";
 import { PageTitle } from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -17,20 +18,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useTheses } from "@/features/theses/api";
+import { statusLabel } from "@/features/theses/status";
+import { thesisTemplate } from "@/features/theses/template";
 
-import { useCreatePolicy, usePolicies } from "./api";
+import { policiesKey, thesisImport, useCreatePolicy, usePolicies } from "./api";
 
 /** POL-01, POL-12 */
 export function PoliciesPage() {
   const { t } = useTranslation();
   const policies = usePolicies();
+  const client = useQueryClient();
+  const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <PageTitle title={t("policies.list.title")} description={t("policies.list.description")} />
-        <Button onClick={() => setCreating(true)}>{t("policies.list.newPolicy")}</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImporting(true)}>
+            {t("policies.list.importThesis")}
+          </Button>
+          <Button onClick={() => setCreating(true)}>{t("policies.list.newPolicy")}</Button>
+        </div>
       </div>
       <FormError error={policies.error} />
       {policies.data?.length === 0 && (
@@ -70,27 +80,47 @@ export function PoliciesPage() {
         </Table>
       )}
       {creating && <NewPolicyDialog onClose={() => setCreating(false)} />}
+      {importing && (
+        <FileImport
+          title={t("policies.list.importThesisTitle")}
+          description={t("policies.list.importThesisDescription")}
+          preview={(text) => thesisImport.preview(text)}
+          run={(text) => thesisImport.runNew(text)}
+          renderPreview={(preview) => (
+            <p>
+              <Trans
+                i18nKey="policies.list.importThesisPreview"
+                values={{ title: preview.title, status: statusLabel(preview.status) }}
+                components={{ strong: <strong /> }}
+              />
+            </p>
+          )}
+          onClose={() => setImporting(false)}
+          onDone={(policy) => {
+            setImporting(false);
+            void client.invalidateQueries({ queryKey: policiesKey });
+            void navigate({ to: "/policies/$policyId", params: { policyId: String(policy.id) } });
+          }}
+        />
+      )}
     </div>
   );
 }
 
 function NewPolicyDialog({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
-  const theses = useTheses();
   const create = useCreatePolicy();
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [thesisId, setThesisId] = useState("");
-  // POL-01: a policy can only use an activated thesis revision
-  const usable = (theses.data ?? []).filter((th) => th.active_revision_no !== null);
 
+  // POL-01: draft v1 starts with the thesis template; the editor opens right away
   const submit = (event: FormEvent) => {
     event.preventDefault();
     create.mutate(
-      { name, thesis_id: Number(thesisId) },
+      { name, thesis_md: thesisTemplate() },
       {
         onSuccess: (p) =>
-          navigate({ to: "/policies/$policyId", params: { policyId: String(p.id) } }),
+          navigate({ to: "/policies/$policyId/draft", params: { policyId: String(p.id) } }),
       },
     );
   };
@@ -113,27 +143,6 @@ function NewPolicyDialog({ onClose }: { onClose: () => void }) {
               required
             />
           </Field>
-          <Field id="policy-thesis" label={t("policies.create.thesis")}>
-            <NativeSelect
-              id="policy-thesis"
-              value={thesisId}
-              onChange={(e) => setThesisId(e.target.value)}
-              required
-            >
-              <option value="" disabled>
-                {t("policies.create.chooseThesis")}
-              </option>
-              {usable.map((th) => (
-                <option key={th.id} value={th.id}>
-                  {th.latest.title}
-                  {th.is_own ? "" : t("policies.create.shared")}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-          {theses.data && usable.length < theses.data.length && (
-            <p className="text-sm text-muted-foreground">{t("policies.create.draftsHidden")}</p>
-          )}
           <FormError error={create.error} fields={["name"]} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>

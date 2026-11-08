@@ -7,7 +7,6 @@ export const de = {
   admins_only: "Nur Admins können Konten verwalten",
   investors_only: "Nur aktive Investoren haben Zugriff auf Anlagedaten",
   invalid_input: "Die Eingabe ist ungültig",
-  thesis_not_found: "Anlagethese {{id}} nicht gefunden",
   policy_not_found: "Anlagestrategie {{id}} nicht gefunden",
   portfolio_not_found: "Portfolio {{id}} nicht gefunden",
 } satisfies Partial<Record<MessageCode, string>>;

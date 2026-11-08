@@ -41,6 +41,7 @@ export const en = {
     rebalanceWithdrawal:
       "{{portfolio}}: rebalanced, sold {{sold}}, bought {{bought}}, withdrew {{withdrawal}}",
     thesisReview: "Thesis review of '{{title}}' revision {{revision}}: {{result}}",
+    thesisReviewOfVersion: "Thesis review of {{version}}: {{result}}",
     policyReview: "Policy review of {{version}}: {{result}}",
     score: "{{total}} / 10",
     modified: "modified",
@@ -91,6 +92,7 @@ export const de: Messages<typeof en> = {
     rebalanceWithdrawal:
       "{{portfolio}}: Rebalancing, verkauft {{sold}}, gekauft {{bought}}, entnommen {{withdrawal}}",
     thesisReview: "Prüfung der Anlagethese «{{title}}» Revision {{revision}}: {{result}}",
+    thesisReviewOfVersion: "Prüfung der Anlagethese von {{version}}: {{result}}",
     policyReview: "Prüfung der Anlagestrategie {{version}}: {{result}}",
     score: "{{total}} / 10",
     modified: "geändert",

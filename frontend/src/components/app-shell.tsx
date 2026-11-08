@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
 import {
-  BookOpenText,
   Bot,
   BriefcaseBusiness,
   CandlestickChart,
@@ -34,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme, type Theme } from "@/lib/theme";
 
-type NavLabel = "dashboard" | "portfolios" | "policies" | "theses" | "timeline";
+type NavLabel = "dashboard" | "portfolios" | "policies" | "timeline";
 type AdminNavLabel = "accounts" | "aiReviewers" | "priceProviders";
 
 interface NavItem {
@@ -47,7 +46,6 @@ const INVESTOR_NAV: NavItem[] = [
   { to: "/", label: "dashboard", icon: LayoutDashboard },
   { to: "/portfolios", label: "portfolios", icon: BriefcaseBusiness },
   { to: "/policies", label: "policies", icon: ScrollText },
-  { to: "/theses", label: "theses", icon: BookOpenText },
   { to: "/timeline", label: "timeline", icon: History },
 ];
 

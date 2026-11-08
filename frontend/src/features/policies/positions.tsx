@@ -2,6 +2,7 @@ import i18n from "i18next";
 import { useTranslation } from "react-i18next";
 
 import { Markdown } from "@/components/markdown";
+import { DiffView } from "@/components/diff-view";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -18,7 +19,8 @@ import type { Version } from "./api";
 /** Shape of a version diff as returned by the API client (pairs arrive as arrays). */
 export interface VersionDiffLike {
   positions: { ticker: string; change: string; fields: Record<string, string[]> }[];
-  thesis_revision: number[] | null;
+  thesis_changed: boolean;
+  thesis_diff: string;
 }
 
 /** Target structure with absolute bands (POL-02, POL-04). */
@@ -104,34 +106,35 @@ function fieldLabel(field: string): string {
 /** POL-09, IMP-07: what changes between two versions. */
 export function VersionDiffView({ diff }: { diff: VersionDiffLike }) {
   const { t } = useTranslation();
-  const nothing = diff.positions.length === 0 && !diff.thesis_revision;
+  const nothing = diff.positions.length === 0 && !diff.thesis_changed;
   if (nothing) return <p className="text-sm text-muted-foreground">{t("policies.diff.none")}</p>;
   return (
-    <ul className="grid gap-1 text-sm">
-      {diff.positions.map((c) => (
-        <li key={c.ticker}>
-          <span className="font-medium">{c.ticker}</span>{" "}
-          {c.change === "added" && <Badge variant="success">{t("policies.diff.added")}</Badge>}
-          {c.change === "removed" && (
-            <Badge variant="destructive">{t("policies.diff.removed")}</Badge>
-          )}
-          {c.change === "changed" &&
-            Object.entries(c.fields).map(([field, [before, after]]) => (
-              <span key={field} className="mr-2">
-                {fieldLabel(field)}:{" "}
-                {field === "rationale_md" ? t("policies.diff.changed") : `${before} → ${after}`}
-              </span>
-            ))}
-        </li>
-      ))}
-      {diff.thesis_revision && (
-        <li>
-          {t("policies.diff.thesisRevision", {
-            from: diff.thesis_revision[0],
-            to: diff.thesis_revision[1],
-          })}
-        </li>
+    <div className="grid gap-3">
+      <ul className="grid gap-1 text-sm">
+        {diff.positions.map((c) => (
+          <li key={c.ticker}>
+            <span className="font-medium">{c.ticker}</span>{" "}
+            {c.change === "added" && <Badge variant="success">{t("policies.diff.added")}</Badge>}
+            {c.change === "removed" && (
+              <Badge variant="destructive">{t("policies.diff.removed")}</Badge>
+            )}
+            {c.change === "changed" &&
+              Object.entries(c.fields).map(([field, [before, after]]) => (
+                <span key={field} className="mr-2">
+                  {fieldLabel(field)}:{" "}
+                  {field === "rationale_md" ? t("policies.diff.changed") : `${before} → ${after}`}
+                </span>
+              ))}
+          </li>
+        ))}
+      </ul>
+      {/* POL-09: the thesis as a text diff */}
+      {diff.thesis_changed && (
+        <div className="grid gap-1">
+          <p className="text-sm font-medium">{t("policies.diff.thesisChanged")}</p>
+          <DiffView diff={diff.thesis_diff} />
+        </div>
       )}
-    </ul>
+    </div>
   );
 }

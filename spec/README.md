@@ -38,7 +38,7 @@ Theses are written as markdown and target structures in a table, or both are imp
 
 Work after the first release is planned in stages. A stage's new or changed requirements are written into [sw-architecture.md](sw-architecture.md) and listed as "not yet implemented" in [test-strategy.md](test-strategy.md) §8 until the stage is delivered.
 
-Each stage is one branch, each step one commit; the investor creates branches and commits. Every step leaves CI green: a step takes its requirement IDs off the "not yet implemented" list once they are tested, and removes dropped requirements (sw-architecture.md §3.10a) together with their code and tests.
+Each stage is one branch, each step one commit; the investor creates branches and commits. Every step leaves CI green: a step takes its requirement IDs off the "not yet implemented" list once they are tested.
 
 | Stage | Goal | Status |
 |---|---|---|
@@ -51,7 +51,7 @@ Each stage is one branch, each step one commit; the investor creates branches an
 
 | Step | Content | Requirements |
 |---|---|---|
-| 2.1 | **Data model and migration.** Thesis title and text on the policy version; reviews per version with a review log; theses and thesis revisions removed (migration as in sw-architecture.md §4.1). Backend API and frontend follow: the separate theses pages go, the policy page shows the thesis. Dropped requirements and their tests removed. | POL-01, POL-02, THS-01, IMP-01, IMP-02, IMP-10, USR-02, TL-01; drops THS-02, THS-03, THS-05, POL-10 |
+| 2.1 | **Data model and migration.** Thesis title and text on the policy version; reviews per version (one of each kind until the review log of step 2.6); theses and thesis revisions removed (migration as in sw-architecture.md §4.1). Backend API and frontend follow: the separate theses pages go, the policy page and its editor show the thesis. Dropped requirements (THS-02, THS-03, THS-05, POL-10) removed with their tests. | POL-01, POL-02, THS-01, IMP-02, IMP-10 |
 | 2.2 | **One review of everything.** One prompt and answer format with T1–T6, P1–P6 and the verdict (scoring version 3: semaphore verdicts with a reason, old verdicts mapped); thesis, target-structure and review scores; thesis status removed; manual reviews without a model. | THS-04, THS-07, REV-01, REV-02, REV-03, REV-05, REV-06, REV-17, REV-19 |
 | 2.3 | **Suggestions and proposals.** Structured suggestions (thesis section, position change, add, remove) with Take over, Dismiss and undo; proposed target structures without positions. | REV-07, REV-22 |
 | 2.4 | **Drafts.** Auto-save, discard (also of a never activated policy), fingerprints and matching, the summary with Finalize, activation that confirms and never blocks, marks. | POL-06, POL-14, POL-16, POL-17, REV-09, REV-11, REV-20 |

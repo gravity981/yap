@@ -110,11 +110,11 @@ export const en = {
     outdated: "The draft changed after its review. Activate it with the outdated review?",
   },
   course: {
-    label: "Review score over the revisions",
-    caption: "Total review score per revision",
+    label: "Thesis review score over the versions",
+    caption: "Total score of the thesis review per version",
     point: "{{label}}: {{score}} of 10",
     tooltip: ": {{score}} / 10",
-    tick: "r{{no}}",
+    tick: "v{{no}}",
     version: "v{{version}}",
     versionNote:
       "The scoring changed in between (dashed line); scores before and after are not directly comparable.",
@@ -230,11 +230,11 @@ export const de: Messages<typeof en> = {
       "Der Entwurf wurde nach seiner Prüfung geändert. Mit der veralteten Prüfung aktivieren?",
   },
   course: {
-    label: "Bewertung der Prüfungen über die Revisionen",
-    caption: "Gesamtbewertung der Prüfung pro Revision",
+    label: "Bewertung der Prüfung der Anlagethese über die Versionen",
+    caption: "Gesamtbewertung der Prüfung der Anlagethese pro Version",
     point: "{{label}}: {{score}} von 10",
     tooltip: ": {{score}} / 10",
-    tick: "r{{no}}",
+    tick: "v{{no}}",
     version: "v{{version}}",
     versionNote:
       "Die Bewertung hat sich dazwischen geändert (gestrichelte Linie); Bewertungen davor und danach sind nicht direkt vergleichbar.",

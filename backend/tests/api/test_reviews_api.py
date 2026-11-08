@@ -25,18 +25,35 @@ def alice(accounts_api: Accounts) -> TestClient:
     return client
 
 
-def _thesis_draft(client: TestClient) -> int:
-    thesis = ok(client.post("/api/theses", json={"title": "Growth", "content_md": "# Thesis"}), 201)
-    ok(client.post(f"/api/theses/{thesis['id']}/draft/activate", json={}))
-    ok(client.post(f"/api/theses/{thesis['id']}/draft"), 201)
-    return int(thesis["id"])
+POSITIONS = [
+    {
+        "ticker": "AAA",
+        "name": "A",
+        "type": "ETF",
+        "target_pct": 100,
+        "buy_threshold_pct": -20,
+        "sell_threshold_pct": 20,
+    }
+]
+
+
+def _thesis_draft(client: TestClient, name: str = "Growth") -> int:
+    """A policy with an active v1 and a draft v2, whose thesis is reviewed."""
+    policy = ok(client.post("/api/policies", json={"name": name, "thesis_md": "# Thesis"}), 201)
+    pid = policy["id"]
+    ok(client.put(f"/api/policies/{pid}/draft", json={"positions": POSITIONS}))
+    ok(client.post(f"/api/policies/{pid}/draft/activate", json={}))
+    ok(client.post(f"/api/policies/{pid}/draft"), 201)
+    return int(pid)
 
 
 @pytest.mark.req("REV-01", "REV-08", "REV-11", "REV-12", "REV-16", "REV-17", "TL-02", "THS-08")
 def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
     fake_llm.answers = [thesis_answer()]
     tid = _thesis_draft(alice)
-    started = ok(alice.post(f"/api/theses/{tid}/draft/review", json={"news_days": 60}), 202)
+    started = ok(
+        alice.post(f"/api/policies/{tid}/draft/thesis-review", json={"news_days": 60}), 202
+    )
     assert started["state"] == "queued"
     # The background run has finished when the test client returns
     review = ok(alice.get(f"/api/reviews/{started['id']}"))
@@ -58,11 +75,12 @@ def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
     assert (review["total"], review["verdict"]) == (6.5, "needs_adaptation")
     assert (review["confirmed"], review["outdated"]) == (False, False)
     assert review["legacy_modification"] is None
-    assert ok(alice.get(f"/api/theses/{tid}/revisions/2/review"))["id"] == review["id"]
-    # The revision list carries the review in short (THS-08)
-    revisions = ok(alice.get(f"/api/theses/{tid}"))["revisions"]
-    assert revisions[0]["review"] is None
-    assert revisions[1]["review"] == {
+    found = ok(alice.get(f"/api/policies/{tid}/versions/2/review?kind=thesis"))
+    assert found["id"] == review["id"]
+    # The version list carries the review in short (THS-08)
+    versions = ok(alice.get(f"/api/policies/{tid}"))["versions"]
+    assert versions[0]["thesis_review"] is None and versions[1]["review"] is None
+    assert versions[1]["thesis_review"] == {
         "id": review["id"],
         "state": "done",
         "total": 6.5,
@@ -76,10 +94,10 @@ def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
     usage = ok(alice.get("/api/reviews/usage"))
     assert (usage["used"], usage["left"], usage["unavailable_reason"]) == (1, 2, None)
 
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "Reviewed"}))
+    ok(alice.post(f"/api/policies/{tid}/draft/activate", json={"change_note": "Reviewed"}))
     assert ok(alice.get(f"/api/reviews/{review['id']}"))["confirmed"] is True
     event = ok(alice.get("/api/timeline?type=thesis_review_confirmed"))[0]
-    assert event["summary"] == "Thesis review of 'Growth' revision 2: needs adaptation, 6.5 / 10"
+    assert event["summary"] == "Thesis review of Growth-v2: needs adaptation, 6.5 / 10"
     assert event["review_id"] == review["id"]
     # Reviews cannot be changed (REV-10 dropped)
     assert alice.put(f"/api/reviews/{review['id']}", json={"scores": {}}).status_code == 405
@@ -88,9 +106,8 @@ def test_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
 @pytest.mark.req("REV-01", "REV-05")
 def test_policy_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
     fake_llm.answers = [policy_answer()]
-    tid = _thesis_draft(alice)
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "x"}))
-    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": tid}), 201)["id"]
+    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_md": "# Thesis"}), 201)["id"]
+    ok(alice.put(f"/api/policies/{pid}/draft", json={"positions": POSITIONS}))
     started = ok(alice.post(f"/api/policies/{pid}/draft/review"), 202)
     review = ok(alice.get(f"/api/policies/{pid}/versions/1/review"))
     assert (review["id"], review["state"], review["total"]) == (started["id"], "done", 7.5)
@@ -106,20 +123,25 @@ def test_the_review_prompt_of_a_draft_changes_nothing(
     from yap.services.review_prompts import parse_prompt_id
 
     tid = _thesis_draft(alice)
-    prompt = ok(alice.get(f"/api/theses/{tid}/draft/review-prompt?news_days=30"))
+    prompt = ok(alice.get(f"/api/policies/{tid}/draft/thesis-review-prompt?news_days=30"))
     ref = parse_prompt_id(prompt["prompt_id"])
     assert ref is not None and (ref.kind, ref.news_days) == ("thesis", 30)
     assert prompt["prompt_id"] in prompt["text"] and "# Thesis" in prompt["text"]
     assert "alice" not in prompt["text"]
     # No review is started and nothing counts towards the limit
-    draft = ok(alice.get(f"/api/theses/{tid}"))["revisions"][1]
-    assert draft["review"] is None and ref.draft_id == draft["id"]
+    draft = ok(alice.get(f"/api/policies/{tid}"))["versions"][1]
+    assert draft["thesis_review"] is None and ref.draft_id == draft["id"]
     assert ok(alice.get("/api/reviews/usage"))["used"] == 0
-    assert alice.get(f"/api/theses/{tid}/draft/review-prompt?news_days=0").status_code == 422
+    assert (
+        alice.get(f"/api/policies/{tid}/draft/thesis-review-prompt?news_days=0").status_code == 422
+    )
 
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "x"}))
-    assert alice.get(f"/api/theses/{tid}/draft/review-prompt").status_code == 404  # no draft
-    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": tid}), 201)["id"]
+    ok(alice.post(f"/api/policies/{tid}/draft/activate", json={"change_note": "x"}))
+    assert (
+        alice.get(f"/api/policies/{tid}/draft/thesis-review-prompt").status_code == 404
+    )  # no draft
+    pid = tid
+    ok(alice.post(f"/api/policies/{pid}/draft"), 201)
     policy_prompt = ok(alice.get(f"/api/policies/{pid}/draft/review-prompt"))
     assert parse_prompt_id(policy_prompt["prompt_id"]).kind == "policy"  # type: ignore[union-attr]
     assert "<target_structure>" in policy_prompt["text"]
@@ -132,11 +154,11 @@ def test_the_review_prompt_of_a_draft_changes_nothing(
 @pytest.mark.req("REV-18", "REV-16", "REV-17", "REV-11", "REV-12", "TL-02", "THS-08")
 def test_manual_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None:
     tid = _thesis_draft(alice)
-    prompt = ok(alice.get(f"/api/theses/{tid}/draft/review-prompt?news_days=30"))
+    prompt = ok(alice.get(f"/api/policies/{tid}/draft/thesis-review-prompt?news_days=30"))
     answer = f"Sure, here it is:\n```json\n{thesis_answer(prompt_id=prompt['prompt_id'])}\n```"
     review = ok(
         alice.post(
-            f"/api/theses/{tid}/draft/review/manual",
+            f"/api/policies/{tid}/draft/thesis-review/manual",
             json={"answer": answer, "model": "  ChatGPT   5 "},
         ),
         201,
@@ -157,10 +179,10 @@ def test_manual_thesis_review_flow(alice: TestClient, fake_llm: FakeLlm) -> None
     # No AI reviewer was asked and nothing counts towards the limit
     assert fake_llm.requests == [] and ok(alice.get("/api/reviews/usage"))["used"] == 0
 
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "Reviewed"}))
+    ok(alice.post(f"/api/policies/{tid}/draft/activate", json={"change_note": "Reviewed"}))
     assert ok(alice.get(f"/api/reviews/{review['id']}"))["confirmed"] is True
     event = ok(alice.get("/api/timeline?type=thesis_review_confirmed"))[0]
-    assert event["summary"] == "Thesis review of 'Growth' revision 2: needs adaptation, 6.5 / 10"
+    assert event["summary"] == "Thesis review of Growth-v2: needs adaptation, 6.5 / 10"
 
 
 @pytest.mark.req("REV-18", "REV-09", "REV-05")
@@ -169,27 +191,22 @@ def test_a_manual_answer_replaces_the_review_and_is_outdated_after_a_change(
 ) -> None:
     fake_llm.answers = [thesis_answer()]
     tid = _thesis_draft(alice)
-    first = ok(alice.post(f"/api/theses/{tid}/draft/review", json={}), 202)
-    prompt = ok(alice.get(f"/api/theses/{tid}/draft/review-prompt"))["prompt_id"]
+    first = ok(alice.post(f"/api/policies/{tid}/draft/thesis-review", json={}), 202)
+    prompt = ok(alice.get(f"/api/policies/{tid}/draft/thesis-review-prompt"))["prompt_id"]
     # The draft changes after the prompt was copied
     accounts_api.clock.advance(minutes=5)
-    ok(
-        alice.put(
-            f"/api/theses/{tid}/draft",
-            json={"title": "Growth", "content_md": "new", "status": "intact"},
-        )
-    )
+    thesis = {"title": "Growth", "content_md": "new", "status": "intact"}
+    ok(alice.put(f"/api/policies/{tid}/draft", json={"positions": POSITIONS, "thesis": thesis}))
     body = {"answer": thesis_answer(prompt_id=prompt), "model": "Gemini"}
-    manual = ok(alice.post(f"/api/theses/{tid}/draft/review/manual", json=body), 201)
+    manual = ok(alice.post(f"/api/policies/{tid}/draft/thesis-review/manual", json=body), 201)
     assert manual["outdated"] is True
     assert first["method"] == "ai" and manual["method"] == "manual"
-    draft = ok(alice.get(f"/api/theses/{tid}"))["revisions"][1]
-    assert draft["review"]["id"] == manual["id"]  # the AI review was replaced (REV-09)
+    draft = ok(alice.get(f"/api/policies/{tid}"))["versions"][1]
+    assert draft["thesis_review"]["id"] == manual["id"]  # the AI review was replaced (REV-09)
     assert ok(alice.get(f"/api/reviews/{manual['id']}"))["model"] == "Gemini"
 
     # A policy review the same way
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "x"}))
-    pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": tid}), 201)["id"]
+    pid = tid
     policy_prompt = ok(alice.get(f"/api/policies/{pid}/draft/review-prompt"))["prompt_id"]
     body = {"answer": policy_answer(prompt_id=policy_prompt), "model": "Claude"}
     policy_review = ok(alice.post(f"/api/policies/{pid}/draft/review/manual", json=body), 201)
@@ -203,8 +220,8 @@ def test_a_manual_answer_replaces_the_review_and_is_outdated_after_a_change(
 @pytest.mark.req("REV-18", "REV-19")
 def test_a_manual_answer_with_problems_lists_them_all(alice: TestClient) -> None:
     tid = _thesis_draft(alice)
-    prompt = ok(alice.get(f"/api/theses/{tid}/draft/review-prompt"))["prompt_id"]
-    url = f"/api/theses/{tid}/draft/review/manual"
+    prompt = ok(alice.get(f"/api/policies/{tid}/draft/thesis-review-prompt"))["prompt_id"]
+    url = f"/api/policies/{tid}/draft/thesis-review/manual"
 
     def problems(answer: str, model: str = "GPT") -> list[tuple[str, str]]:
         response = alice.post(url, json={"answer": answer, "model": model})
@@ -222,14 +239,14 @@ def test_a_manual_answer_with_problems_lists_them_all(alice: TestClient) -> None
     assert problems(thesis_answer(prompt_id=other_draft)) == [
         ("answer", "answer_prompt_id_unknown")
     ]
-    pid_tid = _thesis_draft(alice)
-    other = ok(alice.get(f"/api/theses/{pid_tid}/draft/review-prompt"))["prompt_id"]
+    pid_tid = _thesis_draft(alice, "Other")
+    other = ok(alice.get(f"/api/policies/{pid_tid}/draft/thesis-review-prompt"))["prompt_id"]
     assert problems(thesis_answer(prompt_id=other)) == [("answer", "answer_prompt_id_other_draft")]
     assert problems(thesis_answer(prompt_id=prompt), model="x" * 101) == [
         ("model", "review_model_too_long")
     ]
     # Nothing was stored
-    assert ok(alice.get(f"/api/theses/{tid}"))["revisions"][1]["review"] is None
+    assert ok(alice.get(f"/api/policies/{tid}"))["versions"][1]["thesis_review"] is None
 
 
 @pytest.mark.req("USR-08", "REV-18")
@@ -252,8 +269,8 @@ def test_starting_beyond_the_limit_is_refused(alice: TestClient, fake_llm: FakeL
     fake_llm.answers = [thesis_answer()]
     tid = _thesis_draft(alice)
     for _ in range(3):
-        ok(alice.post(f"/api/theses/{tid}/draft/review", json={}), 202)
-    refused = alice.post(f"/api/theses/{tid}/draft/review", json={})
+        ok(alice.post(f"/api/policies/{tid}/draft/thesis-review", json={}), 202)
+    refused = alice.post(f"/api/policies/{tid}/draft/thesis-review", json={})
     assert refused.status_code == 409
     assert "All 3 reviews with Standard of this month are used" in refused.text
     assert len(fake_llm.requests) == 3  # nothing was sent for the refused one
@@ -274,10 +291,10 @@ def test_a_review_runs_on_the_reviewer_chosen_for_it(
 
     fake_llm.answers = [thesis_answer()]
     tid = _thesis_draft(alice)
-    started = alice.post(f"/api/theses/{tid}/draft/review", json={"ai_reviewer_id": deep})
+    started = alice.post(f"/api/policies/{tid}/draft/thesis-review", json={"ai_reviewer_id": deep})
     assert ok(started, 202)["ai_reviewer_name"] == "Deep"
     assert fake_llm.configs[-1].model == "gpt-x"
-    ok(alice.post(f"/api/theses/{tid}/draft/activate", json={"change_note": "x"}))
+    ok(alice.post(f"/api/policies/{tid}/draft/activate", json={"change_note": "x"}))
     pid = ok(alice.post("/api/policies", json={"name": "core", "thesis_id": tid}), 201)["id"]
     refused = alice.post(f"/api/policies/{pid}/draft/review", json={"ai_reviewer_id": deep})
     assert refused.status_code == 409 and "All 1 reviews with Deep" in refused.text

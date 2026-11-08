@@ -28,7 +28,7 @@ class EventType(StrEnum):
     REBALANCE_CONFIRMED = "rebalance_confirmed"
     THESIS_REVIEW_CONFIRMED = "thesis_review_confirmed"
     POLICY_REVIEW_CONFIRMED = "policy_review_confirmed"
-    THESIS_REVISED = "thesis_revised"
+    THESIS_REVISED = "thesis_revised"  # only events from before policies held their thesis
 
 
 def add_event(
@@ -43,7 +43,6 @@ def add_event(
     policy_version_id: int | None = None,
     rebalance_id: int | None = None,
     review_id: int | None = None,
-    thesis_revision_id: int | None = None,
 ) -> TimelineEvent:
     event = TimelineEvent(
         investor_id=investor_id,
@@ -55,7 +54,6 @@ def add_event(
         policy_version_id=policy_version_id,
         rebalance_id=rebalance_id,
         review_id=review_id,
-        thesis_revision_id=thesis_revision_id,
     )
     session.add(event)
     return event

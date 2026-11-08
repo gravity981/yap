@@ -16,7 +16,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from yap.db.models import PolicyVersion, ThesisRevision
+from yap.db.models import PolicyVersion
 from yap.domain.reviews import ASPECTS, ReviewKind, Verdict, to_half_points
 from yap.llm import LlmError
 from yap.llm.base import LlmRequest
@@ -317,14 +317,14 @@ def _aspect_list(kind: ReviewKind) -> str:
     return "\n".join(f"- {a.code} {a.name}: {a.guide}" for a in ASPECTS[kind])
 
 
-def _thesis_text(revision: ThesisRevision) -> str:
+def _thesis_text(version: PolicyVersion) -> str:
     return (
-        f"Title: {revision.title}\nStatus set by the investor: {revision.status}\n\n"
-        f"<thesis>\n{revision.content_md}\n</thesis>"
+        f"Title: {version.thesis_title}\nStatus set by the investor: {version.thesis_status}\n\n"
+        f"<thesis>\n{version.thesis_md}\n</thesis>"
     )
 
 
-def thesis_prompt(revision: ThesisRevision, ref: PromptRef) -> ReviewPrompt:
+def thesis_prompt(version: PolicyVersion, ref: PromptRef) -> ReviewPrompt:
     """REV-02 to REV-04: aspects T1-T6 and a verdict, with current news."""
     news_from, news_to = ref.news_from, ref.news_to
     instructions = f"""You review an investment thesis written by a private investor.
@@ -362,7 +362,7 @@ status (thesis_status). Make none if nothing needs to change.
     return ReviewPrompt(
         prompt_id=ref.prompt_id,
         instructions=instructions,
-        content=_thesis_text(revision),
+        content=_thesis_text(version),
         json_schema=_schema(ReviewKind.THESIS, ref.prompt_id),
         web_search=True,
     )
@@ -406,8 +406,7 @@ flags of positions (policy_position). Make none if nothing needs to change.
 
 {_answer_format(ref.prompt_id)}"""
     content = (
-        f"{_thesis_text(version.thesis_revision)}\n\n"
-        f"<target_structure>\n{_structure(version)}\n</target_structure>"
+        f"{_thesis_text(version)}\n\n<target_structure>\n{_structure(version)}\n</target_structure>"
     )
     return ReviewPrompt(
         prompt_id=ref.prompt_id,

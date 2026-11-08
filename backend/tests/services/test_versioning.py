@@ -58,9 +58,7 @@ def test_same_instant_activations_are_ordered_by_version_number() -> None:
 @pytest.mark.req("POL-12")
 def test_periods_of_policy_with_only_a_draft(session: Session, factory: Factory) -> None:
     owner = factory.investor()
-    policy = policies.create_policy(
-        session, owner, factory.clock, name="p", thesis_id=factory.thesis(owner).id
-    )
+    policy = policies.create_policy(session, owner, factory.clock, name="p")
     periods = versioning.version_periods(policy)
     assert [(p.version.version_no, p.active_from, p.active_until) for p in periods] == [
         (1, None, None)

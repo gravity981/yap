@@ -6,19 +6,9 @@ export const de = {
   // Theses
   title_required: "Der Titel darf nicht leer sein",
   thesis_status_unknown: "Unbekannter Status {{status}}",
-  visibility_unknown: "Unbekannte Sichtbarkeit {{visibility}}",
-  thesis_has_no_draft: "Anlagethese {{id}} hat keinen Entwurf",
-  thesis_has_draft: "Die Anlagethese hat bereits einen Entwurf",
-  thesis_first_revision_kept:
-    "Die erste Revision kann nicht gelöscht werden; sie ist die einzige der Anlagethese",
-  change_note_required: "Eine Änderungsnotiz ist nötig",
-  thesis_revision_not_found: "Revision {{id}} der Anlagethese nicht gefunden",
-  thesis_revision_no_not_found: "Revision {{number}} der Anlagethese {{id}} nicht gefunden",
   // Policies
   name_required: "Der Name darf nicht leer sein",
   policy_name_taken: "Es gibt bereits eine Anlagestrategie namens {{name}}",
-  thesis_not_activated:
-    "Die Anlagethese hat noch keine aktivierte Revision; aktiviere zuerst ihren Entwurf",
   policy_has_no_draft: "Die Anlagestrategie {{name}} hat keinen Entwurf",
   policy_has_draft: "Die Anlagestrategie {{name}} hat bereits einen Entwurf",
   ticker_duplicate: "Der Ticker {{ticker}} kommt mehrfach vor",
@@ -32,10 +22,6 @@ export const de = {
     "Die Ziele ergeben zusammen {{sum}} %, das weicht um {{difference}} Prozentpunkte von 100 % ab",
   multiple_cash_buffers: "Die Anlagestrategie enthält mehr als eine Liquiditätsreserve",
   change_note_required_v2: "Ab v2 ist eine Änderungsnotiz nötig",
-  policy_thesis_current:
-    "Die Anlagestrategie verwendet bereits die neueste Revision der Anlagethese",
-  policy_thesis_revision_not_found:
-    "Revision {{id}} der Anlagethese für diese Anlagestrategie nicht gefunden",
   policy_has_portfolios:
     "Eine Anlagestrategie mit zugewiesenen Portfolios kann nicht archiviert werden",
   policy_archived: "Die Anlagestrategie {{name}} ist archiviert",
