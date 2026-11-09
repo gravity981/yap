@@ -81,11 +81,7 @@ export function PortfolioPage({ portfolioId }: { portfolioId: number }) {
             </Link>
           </Button>
           <Button asChild>
-            <Link
-              to="/portfolios/$portfolioId/values"
-              params={{ portfolioId: id }}
-              search={{ rebalance: true }}
-            >
+            <Link to="/portfolios/$portfolioId/rebalance" params={{ portfolioId: id }}>
               {t("portfolios.detail.rebalance")}
             </Link>
           </Button>

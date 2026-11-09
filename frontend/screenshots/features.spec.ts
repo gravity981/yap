@@ -353,8 +353,7 @@ test("feature screenshots", async ({ page, browser }) => {
 
   await test.step("rebalance", async () => {
     await page.goto(`/portfolios/${ids.portfolio}/rebalance`);
-    // A rebalance starts from a fresh snapshot with the current units and prices
-    await page.getByRole("button", { name: M.portfolios.values.saveAndRebalance }).click();
+    // A rebalance starts from the latest recorded values
     await expect(page.getByText(M.rebalance.cash.sellProceeds, { exact: true })).toBeVisible();
     // Up to the printable report; the confirmation form below is left out
     await shot(page, "rebalance", 670);
@@ -362,7 +361,6 @@ test("feature screenshots", async ({ page, browser }) => {
 
   await test.step("rebalance with a broken thesis", async () => {
     await page.goto(`/portfolios/${ids.small}/rebalance`);
-    await page.getByRole("button", { name: M.portfolios.values.saveAndRebalance }).click();
     await expect(
       page.getByText(
         M.rebalance.page.thesis.brokenTitle.replace("{{policy}}", "Bitcoin satellite"),

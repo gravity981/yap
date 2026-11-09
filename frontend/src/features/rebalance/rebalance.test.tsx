@@ -141,13 +141,28 @@ describe("rebalancing", () => {
     expect(within(sells).getByText("150.40")).toBeInTheDocument();
   });
 
-  it("[RB-02] warns when the values are not from today", async () => {
+  it("[RB-02] warns, without blocking, when the values are older than 3 days", async () => {
+    const days = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
     setup({
-      "GET /api/portfolios/5/rebalance": () =>
-        json(plan({ snapshot_taken_at: "2026-01-01T10:00:00+00:00" })),
+      "GET /api/portfolios/5/rebalance": () => json(plan({ snapshot_taken_at: days(4) })),
     });
-    renderApp("/portfolios/5/rebalance?snapshot=41");
-    expect(await screen.findByText(/The values are from/)).toBeInTheDocument();
+    renderApp("/portfolios/5/rebalance");
+    expect(await screen.findByText(/Values outdated/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Enter values" })).toHaveAttribute(
+      "href",
+      "/portfolios/5/values",
+    );
+    expect(screen.getByRole("list", { name: "Sell" })).toBeInTheDocument();
+  });
+
+  it("[RB-02] does not warn when the values are at most 3 days old", async () => {
+    const days = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
+    setup({
+      "GET /api/portfolios/5/rebalance": () => json(plan({ snapshot_taken_at: days(2) })),
+    });
+    renderApp("/portfolios/5/rebalance");
+    await screen.findByRole("list", { name: "Sell" });
+    expect(screen.queryByText(/Values outdated/)).not.toBeInTheDocument();
   });
 
   it("[RB-01] recalculates with another contribution and uses a chosen snapshot", async () => {
@@ -270,40 +285,13 @@ describe("rebalancing", () => {
     expect(steps).not.toHaveTextContent("Nothing to buy");
   });
 
-  it("[RB-02] starts from a fresh snapshot and rebalances from it", async () => {
-    const calls = setup({
-      "GET /api/portfolios/5": () => json({ id: 5, name: "Main", currency: "CHF" }),
-      "GET /api/portfolios/5/prefill": () =>
-        json([
-          {
-            ticker: "AAA",
-            name: "AAA",
-            type: "ETF",
-            units: "70",
-            price: "10",
-            value: "700",
-            in_policy: true,
-          },
-        ]),
-      "GET /api/portfolios/5/snapshots": () => json([]),
-      "POST /api/portfolios/5/snapshots": () => json({ id: 42 }, 201),
-      "GET /api/portfolios/5/rebalance": () => json(plan({ snapshot_id: 42 })),
-    });
-    renderApp("/portfolios/5/rebalance"); // without a snapshot: to the current values first
-    expect(
-      await screen.findByRole("heading", { name: "Rebalance Main: current values" }),
-    ).toBeInTheDocument();
-    await userEvent.clear(screen.getByLabelText("Price of AAA"));
-    await userEvent.type(screen.getByLabelText("Price of AAA"), "11");
-    await userEvent.click(screen.getByRole("button", { name: "Save and rebalance" }));
+  it("[RB-02] rebalances from the latest snapshot and has no value entry", async () => {
+    const calls = setup();
+    renderApp("/portfolios/5/rebalance");
     expect(await screen.findByRole("list", { name: "Sell" })).toBeInTheDocument();
-    expect(calls.find((c) => c.method === "POST")?.body).toEqual({
-      values: [{ ticker: "AAA", units: "70", price: "11" }],
-      corrects_snapshot_id: null,
-    });
-    expect(calls.some((c) => c.path.startsWith("/api/portfolios/5/rebalance?snapshot_id=42"))).toBe(
-      true,
-    );
+    expect(screen.queryByLabelText("Price of AAA")).not.toBeInTheDocument();
+    expect(screen.queryByText(/corrects the last entry/)).not.toBeInTheDocument();
+    expect(calls.every((c) => c.method === "GET")).toBe(true);
   });
 
   it("[RB-24] [RB-16] shows units and cash left over by rounding", async () => {

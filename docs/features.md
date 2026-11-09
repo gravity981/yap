@@ -73,8 +73,11 @@ settings, where you can switch to another listing or to manual prices at any tim
 
 ## Rebalancing
 
-A rebalance starts from the current values: you check the units and prices first. From
-them, an optional contribution or withdrawal and the policy's rules, the app calculates what
+Recording values and rebalancing are separate: values are entered only on the "Enter
+values" screen. A rebalance starts from the latest recorded values; if they are older than
+3 days it warns "values outdated, recommendation: update first" with a link to the values
+screen, but you can still go on. To update values you leave the rebalance and record them.
+From the values, an optional contribution or withdrawal and the policy's rules, the app calculates what
 to do: buy dips from the cash buffer, sell what is above its band, buy what is below target,
 with the units and amounts per broker. Positions traded in whole units are rounded (buys
 down, sells up); what that leaves over is shown, not invested. A withdrawal is paid from the sells first;

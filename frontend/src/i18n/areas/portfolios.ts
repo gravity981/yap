@@ -84,7 +84,7 @@ export const en = {
     title: "Snapshot",
     export: "Export values",
     portfolio: "Portfolio",
-    rebalance: "Rebalance with current values",
+    rebalance: "Rebalance",
   },
   values: {
     title: "Current values of {{name}}",
@@ -110,10 +110,6 @@ export const en = {
     add: "Add position not in the policy",
     correction: "This corrects the last entry (the last entry is kept in the history)",
     save: "Save values",
-    rebalanceTitle: "Rebalance {{name}}: current values",
-    rebalanceDescription:
-      "A rebalance starts from the current values. Check the units and prices and adjust them where needed; they are saved as a snapshot and the rebalance is calculated from it.",
-    saveAndRebalance: "Save and rebalance",
   },
   comparison: {
     taken: "Taken {{date}} · compared with {{version}} · total {{total}}",
@@ -240,7 +236,7 @@ export const de: Messages<typeof en> = {
     title: "Stand",
     export: "Werte exportieren",
     portfolio: "Portfolio",
-    rebalance: "Rebalancing mit aktuellen Werten",
+    rebalance: "Rebalancing",
   },
   values: {
     title: "Aktuelle Werte von {{name}}",
@@ -267,10 +263,6 @@ export const de: Messages<typeof en> = {
     correction:
       "Dies korrigiert die letzte Erfassung (die letzte Erfassung bleibt im Verlauf erhalten)",
     save: "Werte speichern",
-    rebalanceTitle: "Rebalancing von {{name}}: aktuelle Werte",
-    rebalanceDescription:
-      "Ein Rebalancing geht von den aktuellen Werten aus. Prüfe Anzahl und Preise und passe sie wo nötig an; sie werden als Stand gespeichert und das Rebalancing wird daraus berechnet.",
-    saveAndRebalance: "Speichern und Rebalancing berechnen",
   },
   comparison: {
     taken: "Erfasst {{date}} · verglichen mit {{version}} · Total {{total}}",

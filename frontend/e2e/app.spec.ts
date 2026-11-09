@@ -150,16 +150,16 @@ test("[RB-01] [RB-02] [RB-03] [RB-16] [RB-19] [RB-22] [RB-24] rebalances, prints
   page,
 }) => {
   await asAlice(page);
-  await test.step("rebalance Main from a fresh snapshot with the current prices", async () => {
+  await test.step("record values first, then rebalance Main from them", async () => {
     await page.goto("/portfolios");
     await page.getByRole("link", { name: "Main" }).click();
-    await page.getByRole("link", { name: "Rebalance" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Rebalance Main: current values" }),
-    ).toBeVisible();
+    await page.getByRole("link", { name: "Enter values" }).click();
     await expect(page.getByLabel("Units of XUS")).toHaveValue("70");
     await expect(page.getByLabel("Price of XUS")).toHaveValue("100");
-    await page.getByRole("button", { name: "Save and rebalance" }).click();
+    await page.getByRole("button", { name: "Save values" }).click();
+    await page.getByRole("link", { name: "Rebalance" }).click();
+    await expect(page.getByRole("heading", { name: "Rebalance Main" })).toBeVisible();
+    await expect(page.getByLabel("Units of XUS")).toHaveCount(0);
   });
   await test.step("instructions: sell 15 units XUS (1,500) down to the midband of 55 %", async () => {
     const sells = page.getByRole("list", { name: "Sell" });
@@ -440,7 +440,6 @@ test("[REV-03] [POL-17] [PTF-07] [RB-25] [TL-02] sells a portfolio whose thesis 
     await page.getByLabel("Price of XUS").fill("100");
     await page.getByRole("button", { name: "Save values" }).click();
     await page.getByRole("link", { name: "Rebalance" }).click();
-    await page.getByRole("button", { name: "Save and rebalance" }).click();
     await expect(page.getByText("The thesis of satellite is broken")).toBeVisible();
     await expect(page.getByText(/A break condition of the thesis is met/)).toBeVisible();
     await expect(page.getByRole("radio", { name: /Sell the whole portfolio/ })).toBeChecked();

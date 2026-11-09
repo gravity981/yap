@@ -20,7 +20,7 @@ export const en = {
     intro:
       "These are instructions only; nothing is stored until you confirm that the trades will be carried out as calculated.",
     enterValues: "Enter values",
-    oldValues: "The values are from {{date}}. Enter current values for up-to-date instructions.",
+    oldValues: "Values outdated (from {{date}}). Recommendation: update them first.",
     contribution: "Contribution",
     withdrawal: "Withdrawal",
     recalculate: "Recalculate",
@@ -198,7 +198,7 @@ export const de: Messages<typeof en> = {
     intro:
       "Das sind nur Anweisungen; gespeichert wird erst, wenn du bestätigst, dass die Trades wie berechnet ausgeführt werden.",
     enterValues: "Werte erfassen",
-    oldValues: "Die Werte sind vom {{date}}. Erfasse aktuelle Werte für aktuelle Anweisungen.",
+    oldValues: "Werte veraltet (vom {{date}}), Empfehlung: zuerst aktualisieren.",
     contribution: "Einzahlung",
     withdrawal: "Entnahme",
     recalculate: "Neu berechnen",

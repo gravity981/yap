@@ -99,15 +99,9 @@ function toValueIn(row: Row): ValueIn {
   };
 }
 
-/** CMP-01, CMP-02, CMP-06: enter units and prices; saved with the exact time. For a
- * rebalance (RB-02) it is the fresh snapshot the rebalance starts from. */
-export function EnterValuesPage({
-  portfolioId,
-  forRebalance = false,
-}: {
-  portfolioId: number;
-  forRebalance?: boolean;
-}) {
+/** CMP-01, CMP-02, CMP-06: enter units and prices; saved with the exact time. The only
+ * place where values are entered (RB-02); a rebalance uses the latest snapshot. */
+export function EnterValuesPage({ portfolioId }: { portfolioId: number }) {
   const { t } = useTranslation();
   const prefill = usePrefill(portfolioId);
   const portfolio = usePortfolio(portfolioId);
@@ -119,7 +113,6 @@ export function EnterValuesPage({
       name={portfolio.data.name}
       currency={portfolio.data.currency}
       initial={prefill.data.map(fromPrefill)}
-      forRebalance={forRebalance}
     />
   );
 }
@@ -129,13 +122,11 @@ function ValuesForm({
   name,
   currency,
   initial,
-  forRebalance,
 }: {
   portfolioId: number;
   name: string;
   currency: string;
   initial: Row[];
-  forRebalance: boolean;
 }) {
   const { t } = useTranslation();
   const { snapshot } = usePortfolioActions(portfolioId);
@@ -159,13 +150,7 @@ function ValuesForm({
       { values: rows.map(toValueIn), corrects_snapshot_id: correction ? latestId : null },
       {
         onSuccess: (s) =>
-          forRebalance
-            ? navigate({
-                to: "/portfolios/$portfolioId/rebalance",
-                params: { portfolioId: String(portfolioId) },
-                search: { snapshot: s.id },
-              })
-            : navigate({ to: "/snapshots/$snapshotId", params: { snapshotId: String(s.id) } }),
+          navigate({ to: "/snapshots/$snapshotId", params: { snapshotId: String(s.id) } }),
       },
     );
   };
@@ -173,15 +158,10 @@ function ValuesForm({
   return (
     <form className="grid max-w-4xl gap-4" onSubmit={submit}>
       <div className="grid gap-1">
-        <h1 className="text-2xl font-semibold">
-          {forRebalance
-            ? t("portfolios.values.rebalanceTitle", { name })
-            : t("portfolios.values.title", { name })}
-        </h1>
+        <h1 className="text-2xl font-semibold">{t("portfolios.values.title", { name })}</h1>
         <p className="text-sm text-muted-foreground">
           {t("portfolios.values.description", { currency })}
         </p>
-        {forRebalance && <p className="text-sm">{t("portfolios.values.rebalanceDescription")}</p>}
       </div>
       <div className="grid gap-3">
         <div
@@ -382,7 +362,7 @@ function ValuesForm({
           {t("common.cancel")}
         </Button>
         <Button type="submit" disabled={snapshot.isPending}>
-          {forRebalance ? t("portfolios.values.saveAndRebalance") : t("portfolios.values.save")}
+          {t("portfolios.values.save")}
         </Button>
       </div>
     </form>

@@ -158,21 +158,9 @@ const portfolioRoute = createRoute({
 const valuesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/portfolios/$portfolioId/values",
-  // RB-02: the fresh snapshot a rebalance starts from
-  validateSearch: (search: Record<string, unknown>): { rebalance?: boolean } => ({
-    rebalance: search.rebalance === true || search.rebalance === "true" ? true : undefined,
-  }),
   component: function Values() {
     const { portfolioId } = valuesRoute.useParams();
-    const rebalance = valuesRoute.useSearch().rebalance === true;
-    return (
-      <WithId
-        value={portfolioId}
-        render={(id) => (
-          <EnterValuesPage key={`${id}-${rebalance}`} portfolioId={id} forRebalance={rebalance} />
-        )}
-      />
-    );
+    return <WithId value={portfolioId} render={(id) => <EnterValuesPage portfolioId={id} />} />;
   },
 });
 /** Search parameters are untrusted: only a positive snapshot ID and plain
@@ -195,17 +183,8 @@ const rebalanceRoute = createRoute({
   }),
   component: function Rebalance() {
     const { portfolioId } = rebalanceRoute.useParams();
+    // RB-02: without a snapshot the latest one is the input
     const snapshot = snapshotParam(rebalanceRoute.useSearch().snapshot);
-    // RB-02: a rebalance always starts from a fresh snapshot
-    if (snapshot === undefined)
-      return (
-        <Navigate
-          to="/portfolios/$portfolioId/values"
-          params={{ portfolioId }}
-          search={{ rebalance: true }}
-          replace
-        />
-      );
     return (
       <WithId
         value={portfolioId}

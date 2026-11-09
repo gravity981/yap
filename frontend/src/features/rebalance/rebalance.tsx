@@ -52,8 +52,11 @@ export function actionLabel(action: string): string {
   return key ? i18n.t(`rebalance.action.${key}`) : action;
 }
 
-function isToday(utc: string): boolean {
-  return new Date(utc).toDateString() === new Date().toDateString();
+/** RB-02: values older than this are outdated; rebalancing warns, but stays possible. */
+export const OUTDATED_AFTER_DAYS = 3;
+
+function isOutdated(utc: string): boolean {
+  return Date.now() - new Date(utc).getTime() > OUTDATED_AFTER_DAYS * 24 * 60 * 60 * 1000;
 }
 
 /** RB-01 to RB-03, RB-11 to RB-16, RB-20, RB-22 */
@@ -87,11 +90,7 @@ export function RebalancePage({
         <h1 className="text-2xl font-semibold">{t("rebalance.page.title")}</h1>
         <Alert>{plan.error.message}</Alert>
         <Button asChild className="w-fit">
-          <Link
-            to="/portfolios/$portfolioId/values"
-            params={{ portfolioId: id }}
-            search={{ rebalance: true }}
-          >
+          <Link to="/portfolios/$portfolioId/values" params={{ portfolioId: id }}>
             {t("rebalance.page.enterValues")}
           </Link>
         </Button>
@@ -110,7 +109,7 @@ export function RebalancePage({
       <FormError error={plan.error} />
       {plan.data && (
         <>
-          {!isToday(plan.data.snapshot_taken_at) && (
+          {isOutdated(plan.data.snapshot_taken_at) && (
             <Alert variant="warning" className="flex flex-wrap items-center justify-between gap-2">
               <span>
                 {t("rebalance.page.oldValues", {
@@ -118,11 +117,7 @@ export function RebalancePage({
                 })}
               </span>
               <Button size="sm" variant="outline" asChild>
-                <Link
-                  to="/portfolios/$portfolioId/values"
-                  params={{ portfolioId: id }}
-                  search={{ rebalance: true }}
-                >
+                <Link to="/portfolios/$portfolioId/values" params={{ portfolioId: id }}>
                   {t("rebalance.page.enterValues")}
                 </Link>
               </Button>

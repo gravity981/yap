@@ -438,10 +438,10 @@ describe("portfolios", () => {
     setup();
     renderApp("/snapshots/41");
     expect(await screen.findByText(/compared with core-v2/)).toBeInTheDocument();
-    // RB-02: a rebalance starts from a fresh snapshot, not from this one
-    expect(screen.getByRole("link", { name: "Rebalance with current values" })).toHaveAttribute(
+    // RB-02: a rebalance starts from the latest snapshot, not necessarily from this one
+    expect(screen.getByRole("link", { name: "Rebalance" })).toHaveAttribute(
       "href",
-      "/portfolios/5/values?rebalance=true",
+      "/portfolios/5/rebalance",
     );
   });
 });
