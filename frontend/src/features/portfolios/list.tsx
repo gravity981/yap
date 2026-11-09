@@ -52,7 +52,7 @@ export function PortfolioCards({ portfolios }: { portfolios: PortfolioSummary[] 
               <PolicySemaphore
                 policyId={p.policy_id}
                 semaphore={p.policy_semaphore}
-                reason={p.policy_semaphore_reason}
+                variant="card"
               />
               {latest ? (
                 <>

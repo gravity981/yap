@@ -73,9 +73,6 @@ export const en = {
     editDraft: "Edit draft",
     finalize: "Finalize draft",
     newDraft: "New draft",
-    thesisWarningBefore: "The review of the active version rates its thesis ",
-    thesisWarningAfter:
-      ". Rebalancing is not affected; adapt the thesis, or set exit flags in a new version to leave positions.",
     tabThesis: "Thesis",
     tabStructure: "Target structure",
     tabVersions: "Versions",
@@ -288,9 +285,6 @@ export const de: Messages<typeof en> = {
     editDraft: "Entwurf bearbeiten",
     finalize: "Entwurf abschliessen",
     newDraft: "Neuer Entwurf",
-    thesisWarningBefore: "Die Prüfung der aktiven Version bewertet ihre Anlagethese als ",
-    thesisWarningAfter:
-      ". Das Rebalancing ist davon nicht betroffen; passe die Anlagethese an oder setze in einer neuen Version Exit-Markierungen, um Positionen aufzulösen.",
     tabThesis: "Anlagethese",
     tabStructure: "Zielstruktur",
     tabVersions: "Versionen",

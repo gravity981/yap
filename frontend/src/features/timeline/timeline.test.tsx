@@ -261,9 +261,10 @@ describe("timeline", () => {
     setup();
     renderApp("/");
     expect(await screen.findByRole("link", { name: "Main" })).toBeInTheDocument();
-    // PTF-07: the semaphore of the portfolio's policy, with the reason and a link
+    // PTF-07: the semaphore of the portfolio's policy with a link; the verdict text is on the
+    // policy and portfolio pages, not on the cards
     expect(screen.getByText("broken")).toBeInTheDocument();
-    expect(screen.getByText("A break condition is met.")).toBeInTheDocument();
+    expect(screen.queryByText("A break condition is met.")).toBeNull();
     expect(screen.getByRole("link", { name: "Open the policy" })).toHaveAttribute(
       "href",
       "/policies/3",

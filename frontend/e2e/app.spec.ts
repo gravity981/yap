@@ -354,7 +354,17 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
     await page.getByLabel("Change note").fill("Reviewed");
     await page.getByRole("button", { name: "Activate", exact: true }).click();
     await expect(page.getByText("active: core-v2")).toBeVisible();
-    await expect(review.getByText("confirmed", { exact: true })).toBeVisible();
+    // THS-04: the semaphore of the active version is shown in a box with the verdict
+    await expect(page.getByText(/no break condition is met/).first()).toBeVisible();
+    // REV-24: the review is read in full only in its dialog, e.g. from the review log
+    await page.getByRole("tab", { name: "Reviews" }).click();
+    await page
+      .getByRole("button", { name: /^Read the full review of/ })
+      .first()
+      .click();
+    const confirmed = page.getByRole("dialog", { name: "The full review" });
+    await expect(confirmed.getByText("confirmed", { exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
   });
   await test.step("the confirmed review is in the timeline", async () => {
     await page

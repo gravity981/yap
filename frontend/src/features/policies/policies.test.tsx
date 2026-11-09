@@ -252,6 +252,7 @@ describe("policies", () => {
           policy({
             thesis_warning: true,
             semaphore: "broken",
+            semaphore_reason: "A break condition is met.",
             versions: [
               version(1, { active_until: "2026-02-01T10:00:00+00:00" }),
               version(2, { review: broken, reviews: [broken] }),
@@ -261,9 +262,11 @@ describe("policies", () => {
         ),
     });
     renderApp("/policies/3");
-    expect(
-      await screen.findByText(/The review of the active version rates its thesis/),
-    ).toHaveTextContent("broken");
+    // THS-04: the semaphore in a box of its colour, with the verdict, and nothing about what to do
+    const box = (await screen.findByText("A break condition is met.")).closest("div")!;
+    expect(box).toHaveTextContent("broken");
+    expect(box).toHaveClass("bg-red-50");
+    expect(box).not.toHaveTextContent(/rebalanc|exit/i);
     const heading = await screen.findByRole("heading", { name: "Core thesis" });
     expect(within(heading.parentElement!).getByText("broken")).toBeInTheDocument();
   });
@@ -771,6 +774,7 @@ describe("policies", () => {
         json(
           policy({
             semaphore: "warning",
+            semaphore_reason: "Growth slows down.",
             thesis_warning: true,
             latest_review: reviewBrief({ total: 6.5, semaphore: "warning" }),
           }),
@@ -783,9 +787,7 @@ describe("policies", () => {
     );
     expect(screen.getByRole("img", { name: "Score: 6.5 of 10" })).toBeInTheDocument();
     expect(screen.getByText(/active since .*· last reviewed .*· used by Main/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/The review of the active version rates its thesis/),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Growth slows down.").closest("div")).toHaveClass("bg-amber-50");
   });
 
   it("[POL-18] shares a reviewed policy; an unreviewed one stays private", async () => {

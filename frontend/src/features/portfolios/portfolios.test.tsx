@@ -202,10 +202,11 @@ describe("portfolios", () => {
     });
     renderApp("/portfolios");
     const main = (await screen.findByRole("link", { name: "Main" })).closest("div.rounded-lg")!;
-    // warning in amber with the reason and a link to the policy
+    // warning in amber with a link to the policy, without the verdict text
     expect(within(main as HTMLElement).getByText("warning")).toBeInTheDocument();
+    expect(within(main as HTMLElement).queryByText("Two warning signals are observed.")).toBeNull();
     expect(
-      within(main as HTMLElement).getByText("Two warning signals are observed."),
+      within(main as HTMLElement).getByRole("link", { name: "Open the policy" }),
     ).toBeInTheDocument();
     const extra = screen.getByRole("link", { name: "Extra" }).closest("div.rounded-lg")!;
     // good: the semaphore only, no reason and no link

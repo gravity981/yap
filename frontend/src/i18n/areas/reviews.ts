@@ -104,8 +104,9 @@ export const en = {
   full: {
     open: "Read the full review →",
     title: "The full review",
-    description: "Every aspect with its reasoning, the verdict and the sources.",
-    suggestionsInPane: "The suggestions are in the review pane, with Take over.",
+    description:
+      "The verdict and the sources, then every aspect of the thesis and the target structure with its reasoning.",
+    read: "Read",
   },
   semaphore: {
     thesis: "Thesis:",
@@ -127,6 +128,8 @@ export const en = {
     empty: "No saved reviews yet.",
     compare: "Compare",
     pick: "Compare the review of {{date}} ({{version}})",
+    full: "Full review",
+    readOf: "Read the full review of {{date}} ({{version}})",
     date: "Date",
     version: "Version",
     atActivation: "at activation",
@@ -299,8 +302,9 @@ export const de: Messages<typeof en> = {
   full: {
     open: "Ganze Prüfung lesen →",
     title: "Die ganze Prüfung",
-    description: "Jeder Aspekt mit seiner Begründung, das Urteil und die Quellen.",
-    suggestionsInPane: "Die Vorschläge sind im Prüfungsbereich, mit Übernehmen.",
+    description:
+      "Das Urteil und die Quellen, dann jeder Aspekt der Anlagethese und der Zielstruktur mit seiner Begründung.",
+    read: "Lesen",
   },
   semaphore: {
     thesis: "Anlagethese:",
@@ -322,6 +326,8 @@ export const de: Messages<typeof en> = {
     empty: "Noch keine gespeicherten Prüfungen.",
     compare: "Vergleichen",
     pick: "Die Prüfung vom {{date}} ({{version}}) vergleichen",
+    full: "Ganze Prüfung",
+    readOf: "Die ganze Prüfung vom {{date}} ({{version}}) lesen",
     date: "Datum",
     version: "Version",
     atActivation: "bei Aktivierung",
