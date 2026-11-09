@@ -131,7 +131,6 @@ export const en = {
   },
   bandStatus: {
     below_buy_threshold: "below buy threshold",
-    below_target: "below target",
     within_band: "within band",
     above_sell_threshold: "above sell threshold",
     not_in_policy: "not in policy",
@@ -283,7 +282,6 @@ export const de: Messages<typeof en> = {
   },
   bandStatus: {
     below_buy_threshold: "unter Kaufschwelle",
-    below_target: "unter Ziel",
     within_band: "im Band",
     above_sell_threshold: "über Verkaufsschwelle",
     not_in_policy: "nicht in der Anlagestrategie",

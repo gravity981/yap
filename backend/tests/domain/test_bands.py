@@ -23,8 +23,8 @@ def test_midband_is_halfway_between_target_and_sell_threshold() -> None:
     ("allocation", "expected"),
     [
         (D("31.99"), BandStatus.BELOW_BUY_THRESHOLD),
-        (D(32), BandStatus.BELOW_TARGET),
-        (D("39.99"), BandStatus.BELOW_TARGET),
+        (D(32), BandStatus.WITHIN_BAND),
+        (D("39.99"), BandStatus.WITHIN_BAND),
         (D(40), BandStatus.WITHIN_BAND),
         (D(50), BandStatus.WITHIN_BAND),
         (D("50.01"), BandStatus.ABOVE_SELL_THRESHOLD),

@@ -19,7 +19,6 @@ export interface AllocationRow {
 
 const BAND_STATUSES = [
   "below_buy_threshold",
-  "below_target",
   "within_band",
   "above_sell_threshold",
   "not_in_policy",

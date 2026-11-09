@@ -11,7 +11,7 @@ const rows = [
     target: 40,
     buyAbs: 32,
     sellAbs: 50,
-    status: "below_target",
+    status: "within_band",
   },
   {
     ticker: "ETH",
