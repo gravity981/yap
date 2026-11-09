@@ -294,8 +294,9 @@ def set_sharing(
         raise ValidationError.single(msg("sharing_level_unknown", level=level), "sharing")
     if level != "private":
         active = active_version(policy, clock.now())
-        review = reviews.current_review(active) if active is not None else None
-        if review is None or review.state != "done":
+        # A quick review has no score; sharing needs a reviewed version (REV-20, REV-26)
+        review = reviews.scored_review(active) if active is not None else None
+        if review is None:
             raise ConflictError(msg("sharing_needs_review", name=policy.name))
     policy.sharing = level
     session.flush()

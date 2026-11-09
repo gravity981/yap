@@ -9,12 +9,12 @@ from sqlalchemy.exc import DatabaseError
 from sqlalchemy.orm import Session
 
 from tests.fixtures import TEST_SECRET, Factory, FakeLlm
-from tests.reviews.answers import answer, suggestion
+from tests.reviews.answers import quick_answer
 from yap.db.engine import make_engine, make_session_factory
 from yap.db.models import AiReviewer, Investor, Policy, Review, ReviewRun
 from yap.domain.reviews import Verdict
 from yap.messages import msg
-from yap.services import policies, reviews, suggestions
+from yap.services import policies, reviews
 from yap.services.common import ConflictError, NotFoundError
 from yap.services.secrets import KeyBox
 from yap.services.timeline import EventType, TimelineFilter, list_events
@@ -26,7 +26,7 @@ Run = Callable[[Review], Review]
 
 @pytest.fixture
 def fake() -> FakeLlm:
-    return FakeLlm(answers=[answer(verdict="broken")])
+    return FakeLlm(answers=[quick_answer(verdict="broken")])
 
 
 @pytest.fixture
@@ -63,8 +63,8 @@ def _again(session: Session, factory: Factory, owner: Investor, policy: Policy) 
     return reviews.start_review(session, owner, factory.clock, KEYS, policy.id, 30, active=True)
 
 
-@pytest.mark.req("POL-20", "REV-12", "REV-21", "POL-11", "THS-04")
-def test_an_ai_review_of_the_active_version_is_saved_in_its_log(
+@pytest.mark.req("POL-20", "REV-12", "REV-21", "REV-26", "POL-11", "THS-04")
+def test_an_ai_quick_review_of_the_active_version_is_saved_in_its_log(
     session: Session, factory: Factory, run: Run
 ) -> None:
     owner = _owner(session, factory)
@@ -87,11 +87,14 @@ def test_an_ai_review_of_the_active_version_is_saved_in_its_log(
     assert reviews.current_review(v1) is review  # the latest saved review counts
     assert reviews.pending_review(v1) is None
     assert reviews.review_semaphore(review) == Verdict.BROKEN
+    # REV-26: verdict and news only; the score stays that of the review at activation
+    assert (review.kind, list(review.aspects), list(review.suggestions)) == ("quick", [], [])
+    assert reviews.scored_review(v1) is confirmed
     event = list_events(session, owner, TimelineFilter(types=frozenset({EventType.REVIEW_SAVED})))[
         0
     ]
     assert event.review_id == review.id
-    assert event.summary == f"Review of {v1.label} (again): broken, 7 / 10"
+    assert event.summary == f"Quick review of {v1.label}: broken"
     assert event.params is not None and event.params["method"] == "ai"
 
 
@@ -136,8 +139,8 @@ def test_only_a_policy_with_an_active_version_is_reviewed_again(
         reviews.review_prompt(session, owner, factory.clock, policy.id, active=True)
 
 
-@pytest.mark.req("POL-20", "REV-18", "REV-19", "REV-20", "REV-21")
-def test_a_manual_review_of_the_active_version_is_saved_at_once_and_clears_the_mark(
+@pytest.mark.req("POL-20", "REV-18", "REV-19", "REV-20", "REV-21", "REV-26")
+def test_a_manual_quick_review_is_saved_at_once_and_does_not_clear_the_mark(
     session: Session, factory: Factory
 ) -> None:
     owner = _owner(session, factory)
@@ -156,15 +159,16 @@ def test_a_manual_review_of_the_active_version_is_saved_at_once_and_clears_the_m
         owner,
         factory.clock,
         policy.id,
-        answer(verdict="good", prompt_id=prompt.prompt_id),
+        quick_answer(verdict="good", prompt_id=prompt.prompt_id),
         active=True,
     )
     assert (review.method, review.saved_at) == ("manual", factory.clock.now())
     session.expire_all()
     assert reviews.current_review(v1) is review
-    assert v1.mark == "not_reviewed"  # stored as it was at activation
-    assert reviews.effective_mark(v1) is None  # but it no longer counts
-    assert reviews.effective_mark(v1) is None
+    assert prompt.quick and reviews.scored_review(v1) is None
+    # Only a review of the whole policy, made in a draft, clears a mark (REV-20)
+    assert v1.mark == "not_reviewed"
+    assert reviews.effective_mark(v1) == "not_reviewed"
     event = list_events(session, owner, TimelineFilter(types=frozenset({EventType.REVIEW_SAVED})))[
         0
     ]
@@ -208,50 +212,6 @@ def test_the_review_log_has_the_saved_reviews_newest_first(
     assert reviews.current_review(v1) is again
     assert reviews.pending_review(v1) is unsaved
     assert reviews.pending_review(draft) is None
-
-
-@pytest.mark.req("REV-07", "POL-20")
-def test_suggestions_of_a_review_of_the_active_version_go_into_a_draft(
-    session: Session, factory: Factory, fake: FakeLlm, run: Run
-) -> None:
-    fake.answers = [
-        answer(
-            suggestions=[
-                suggestion("position_change", "Wider.", ticker="AAA", sell_threshold_pct=30),
-                suggestion("thesis_section", "Horizon.", section=1, text="Ten years."),
-                suggestion("position_remove", "Drop.", ticker="BBB"),
-            ]
-        )
-    ]
-    owner = _owner(session, factory)
-    policy = _active(factory, owner)
-    review = run(_again(session, factory, owner, policy))
-    change, section, remove = review.suggestions
-    # Dismissing needs no draft
-    assert suggestions.dismiss(session, owner, factory.clock, review.id, remove.id) is None
-    assert policies.get_draft(policy) is None
-    # Take over creates the draft of v2 and applies the change there
-    draft = suggestions.take_over(session, owner, factory.clock, review.id, change.id)
-    assert (draft.version_no, draft.activated_at) == (2, None)
-    assert {p.asset.ticker: str(p.sell_threshold_pct) for p in draft.positions}["AAA"] == "30"
-    assert change.state == "taken_over"
-    # A second one goes into the same draft
-    again = suggestions.take_over(session, owner, factory.clock, review.id, section.id)
-    assert again.id == draft.id and "Ten years." in again.thesis_md
-    # The active version stays as it was
-    v1 = policy.versions[0]
-    assert {p.asset.ticker: str(p.sell_threshold_pct) for p in v1.positions}["AAA"] != "30"
-    # Undo works in the draft
-    undone = suggestions.undo(session, owner, factory.clock, review.id, change.id)
-    assert undone is not None and undone.id == draft.id
-    assert change.state == "open"
-    # Without the draft, a taken over suggestion cannot be undone
-    policies.delete_draft(session, owner, policy.id)
-    with pytest.raises(ConflictError) as error:
-        suggestions.undo(session, owner, factory.clock, review.id, section.id)
-    assert error.value.message == msg("suggestion_no_draft")
-    # Reopening a dismissed one needs no draft either
-    assert suggestions.undo(session, owner, factory.clock, review.id, remove.id) is None
 
 
 @pytest.mark.req("REV-12", "REV-11", "POL-20")

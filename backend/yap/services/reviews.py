@@ -187,13 +187,35 @@ def pending_review(version: PolicyVersion) -> Review | None:
     return max(open_reviews, key=lambda r: r.id) if open_reviews else None
 
 
+def scored_review(version: PolicyVersion) -> Review | None:
+    """REV-21: the review that gives a version its score: the latest one with scores. Quick
+    reviews of the active version (REV-26) have none, so they leave the score as it is."""
+    scored = [
+        r
+        for r in version.reviews
+        if r.kind != ReviewKind.QUICK
+        and r.state == "done"
+        and (r.saved_at or version.activated_at is None)
+    ]
+    if not scored:
+        return None
+    return max(
+        scored,
+        key=lambda r: (r.saved_at or r.started_at, _KIND_ORDER.get(ReviewKind(r.kind), 0), r.id),
+    )
+
+
 def effective_mark(version: PolicyVersion) -> str | None:
-    """REV-20: a version's mark counts until it gets a review saved after its activation
-    (POL-20), which always matches the immutable version."""
+    """REV-20: a version's mark counts until it gets a review with scores saved after its
+    activation; a quick review (REV-26) does not clear it. Only reviews from before quick
+    reviews existed can: they were full reviews of the active version."""
     if version.mark is None or version.activated_at is None:
         return version.mark
     activated = version.activated_at
-    if any(r.saved_at is not None and r.saved_at > activated for r in version.reviews):
+    if any(
+        r.kind != ReviewKind.QUICK and r.saved_at is not None and r.saved_at > activated
+        for r in version.reviews
+    ):
         return None
     return version.mark
 
@@ -228,7 +250,7 @@ def _save_on_active(
         owner_id,
         now,
         EventType.REVIEW_SAVED,
-        f"Review of {version.label} (again): {_summary(review)}",
+        f"Quick review of {version.label}: {_summary(review)}",
         {**_summary_params(review), "version": version.label, "method": review.method},
         review_id=review.id,
         policy_version_id=version.id,
@@ -265,10 +287,11 @@ def start_review(
     reviewer = session.get(AiReviewer, status.reviewer_id)
     assert reviewer is not None
     now = clock.now()
+    kind = ReviewKind.QUICK if active else ReviewKind.FULL  # REV-26
     session.add(
         ReviewRun(
             investor_id=actor.id,
-            kind=ReviewKind.FULL.value,
+            kind=kind.value,
             ai_reviewer_id=reviewer.id,
             provider=reviewer.provider,
             model=reviewer.model,
@@ -276,7 +299,7 @@ def start_review(
         )
     )
     review = Review(
-        kind=ReviewKind.FULL.value,
+        kind=kind.value,
         policy_version_id=draft.id,
         started_by=actor.id,
         state="queued",
@@ -313,7 +336,7 @@ def review_prompt(
     _check_news_days(news_days)
     draft = _target(session, actor, clock, policy_id, active)
     ref = review_prompts.PromptRef(draft.id, clock.now(), news_days, draft_fingerprint(draft))
-    return review_prompts.review_prompt(draft, ref, actor.language)
+    return review_prompts.review_prompt(draft, ref, actor.language, quick=active)
 
 
 # --- Manual review (REV-18) ------------------------------------------------------------
@@ -337,7 +360,7 @@ def submit_manual_review(
     ref = review_prompts.parse_prompt_id(prompt_id) if prompt_id else None
     with_positions = bool(draft.positions)
     if ref is None:
-        _, format_problems = review_prompts.check_answer(answer, "", with_positions)
+        _, format_problems = review_prompts.check_answer(answer, "", with_positions, quick=active)
         problems = [
             msg("answer_prompt_id_unknown"),
             *(p for p in format_problems if p.code != "answer_prompt_id_wrong"),
@@ -346,12 +369,14 @@ def submit_manual_review(
     if ref.version_id != draft.id:
         raise ValidationError.single(msg("answer_prompt_id_other_draft"), "answer")
     tickers = [p.asset.ticker for p in draft.positions]
-    parsed, problems = review_prompts.check_answer(answer, ref.prompt_id, with_positions, tickers)
+    parsed, problems = review_prompts.check_answer(
+        answer, ref.prompt_id, with_positions, tickers, quick=active
+    )
     if parsed is None:
         raise ValidationError([("answer", p) for p in problems])
     _replace_previous(session, draft)
     review = Review(
-        kind=ReviewKind.FULL.value,
+        kind=(ReviewKind.QUICK if active else ReviewKind.FULL).value,
         policy_version_id=draft.id,
         started_by=actor.id,
         state="done",
@@ -412,7 +437,7 @@ def run_review(
     try:
         answer = adapters(config).generate(prompt.llm_request())
         parsed = review_prompts.parse_answer(
-            answer, prompt.prompt_id, prompt.with_positions, prompt.tickers
+            answer, prompt.prompt_id, prompt.with_positions, prompt.tickers, prompt.quick
         )
         error = None
     except LlmError as e:
@@ -446,7 +471,9 @@ def _prompt(session: Session, review: Review) -> review_prompts.ReviewPrompt:
         version.id, review.started_at, (review.news_to - review.news_from).days
     )
     owner = session.get(Investor, review.started_by)
-    return review_prompts.review_prompt(version, ref, owner.language if owner else None)
+    return review_prompts.review_prompt(
+        version, ref, owner.language if owner else None, quick=review.kind == ReviewKind.QUICK
+    )
 
 
 def _fail(review: Review, clock: Clock, error: str) -> None:

@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tests.fixtures import Accounts, FakeClock, FakeLlm
-from tests.reviews.answers import answer, suggestion
+from tests.reviews.answers import answer, quick_answer
 
 POSITIONS = [
     {
@@ -55,8 +55,8 @@ def _reviewed(client: TestClient, clock: FakeClock, name: str = "core") -> int:
     return int(pid)
 
 
-@pytest.mark.req("POL-20", "REV-12", "REV-21", "REV-23", "POL-11", "THS-08")
-def test_reviewing_the_active_version_again_adds_to_its_log(
+@pytest.mark.req("POL-20", "REV-12", "REV-21", "REV-23", "REV-26", "POL-11", "THS-08")
+def test_a_quick_review_of_the_active_version_adds_to_its_log(
     alice: TestClient, fake_llm: FakeLlm, clock: FakeClock
 ) -> None:
     pid = _reviewed(alice, clock)
@@ -66,8 +66,8 @@ def test_reviewing_the_active_version_again_adds_to_its_log(
     confirmed_at = before["latest_review"]["saved_at"]
     assert confirmed_at == before["active_from"]
 
-    # AI re-review: broken; no new version
-    fake_llm.answers = [answer(verdict="broken", verdict_reason="A break condition is met.")]
+    # AI quick review: broken; no new version
+    fake_llm.answers = [quick_answer(verdict="broken", verdict_reason="A break condition is met.")]
     started = ok(alice.post(f"/api/policies/{pid}/active/review", json={"news_days": 30}), 202)
     review = ok(alice.get(f"/api/reviews/{started['id']}"))
     assert review["saved_at"] is not None and review["confirmed"] is True
@@ -77,53 +77,36 @@ def test_reviewing_the_active_version_again_adds_to_its_log(
     assert policy["semaphore_reason"] == "A break condition is met."
     assert policy["latest_review"]["id"] == review["id"]
     assert policy["pending_review"] is None
+    # REV-26: the score stays that of the review at activation, there are no aspects
+    assert (review["kind"], review["aspects"], review["suggestions"]) == ("quick", [], [])
+    assert policy["latest_review"]["total"] == 7.0
 
-    # Manual re-review a day later
+    # Manual quick review a day later
     clock.advance(minutes=5)
     prompt = ok(alice.get(f"/api/policies/{pid}/active/review-prompt?news_days=60"))
-    body = {"answer": answer(verdict="warning", prompt_id=prompt["prompt_id"])}
+    body = {"answer": quick_answer(verdict="warning", prompt_id=prompt["prompt_id"])}
     manual = ok(alice.post(f"/api/policies/{pid}/active/review/manual", json=body), 201)
     assert manual["saved_at"] is not None
+    # A full answer is no answer to a quick prompt
+    full = {"answer": answer(prompt_id=prompt["prompt_id"])}
+    assert alice.post(f"/api/policies/{pid}/active/review/manual", json=full).status_code == 422
 
     log = ok(alice.get(f"/api/policies/{pid}/reviews"))
     assert [e["id"] for e in log] == [manual["id"], review["id"], log[2]["id"]]
     assert [e["at_activation"] for e in log] == [False, False, True]
     assert [e["semaphore"] for e in log] == ["warning", "broken", "good"]
     assert [e["method"] for e in log] == ["manual", "ai", "manual"]
-    assert log[0]["version_label"] == "core-v1" and log[0]["total"] == 7.0
+    assert log[0]["version_label"] == "core-v1"
+    assert [e["total"] for e in log] == [None, None, 7.0]  # only the full review has a score
     assert log[2]["saved_at"] == confirmed_at
 
     events = ok(alice.get("/api/timeline?type=review_saved"))
     assert [e["review_id"] for e in events] == [review["id"], manual["id"]]
-    assert events[0]["summary"] == "Review of core-v1 (again): broken, 7 / 10"
+    assert events[0]["summary"] == "Quick review of core-v1: broken"
 
 
-@pytest.mark.req("POL-20", "REV-07")
-def test_a_suggestion_of_a_review_again_is_taken_over_into_a_new_draft(
-    alice: TestClient, fake_llm: FakeLlm, clock: FakeClock
-) -> None:
-    pid = _reviewed(alice, clock)
-    fake_llm.answers = [
-        answer(
-            suggestions=[
-                suggestion("position_change", "Wider.", ticker="AAA", sell_threshold_pct=30)
-            ]
-        )
-    ]
-    rid = ok(alice.post(f"/api/policies/{pid}/active/review", json={}), 202)["id"]
-    sid = ok(alice.get(f"/api/reviews/{rid}"))["suggestions"][0]["id"]
-    result = ok(alice.post(f"/api/reviews/{rid}/suggestions/{sid}/take-over"))
-    assert result["draft"]["version_no"] == 2
-    assert result["draft"]["positions"][0]["sell_threshold_pct"] == "30"
-    assert result["review"]["suggestions"][0]["state"] == "taken_over"
-    draft = ok(alice.get(f"/api/policies/{pid}"))["draft"]
-    assert (draft["version_no"], draft["positions"]) == (2, 1)
-    result = ok(alice.post(f"/api/reviews/{rid}/suggestions/{sid}/undo"))
-    assert result["draft"]["positions"][0]["sell_threshold_pct"] == "20"
-
-
-@pytest.mark.req("REV-20", "POL-20")
-def test_a_review_again_clears_the_mark_of_a_version_activated_without_one(
+@pytest.mark.req("REV-20", "POL-20", "REV-26")
+def test_a_quick_review_does_not_clear_the_mark_of_a_version_activated_without_a_review(
     alice: TestClient, fake_llm: FakeLlm, clock: FakeClock
 ) -> None:
     pid = ok(alice.post("/api/policies", json={"name": "bare", "thesis_md": "# T"}), 201)["id"]
@@ -136,14 +119,18 @@ def test_a_review_again_clears_the_mark_of_a_version_activated_without_one(
         None,
     )
     clock.advance(minutes=5)
-    fake_llm.answers = [answer(verdict="good")]
+    fake_llm.answers = [quick_answer(verdict="good")]
     ok(alice.post(f"/api/policies/{pid}/active/review", json={}), 202)
     policy = ok(alice.get(f"/api/policies/{pid}"))
-    assert (policy["mark"], policy["semaphore"]) == (None, "good")
-    # REV-20: the mark of the version is cleared by the review saved after its activation
-    assert policy["versions"][0]["mark"] is None
+    # The quick review gives the semaphore, but no score and no review of the whole policy
+    assert (policy["mark"], policy["semaphore"]) == ("not_reviewed", "good")
+    assert policy["latest_review"]["total"] is None
+    assert policy["versions"][0]["mark"] == "not_reviewed"
     listed = {p["name"]: p for p in ok(alice.get("/api/policies"))}
-    assert listed["bare"]["mark"] is None
+    assert listed["bare"]["mark"] == "not_reviewed"
+    # Sharing needs a review with scores (REV-20)
+    refused = alice.put(f"/api/policies/{pid}/sharing", json={"sharing": "text"})
+    assert refused.status_code == 409
 
 
 @pytest.mark.req("POL-18", "REV-20")
@@ -208,7 +195,7 @@ def test_portfolios_show_the_semaphore_of_their_policy_with_its_reason(
         "good",
         "Warning signals are observed [1].",
     )
-    fake_llm.answers = [answer(verdict="warning", verdict_reason="Growth slows down.")]
+    fake_llm.answers = [quick_answer(verdict="warning", verdict_reason="Growth slows down.")]
     ok(alice.post(f"/api/policies/{pid}/active/review", json={}), 202)
     portfolio = ok(alice.get(f"/api/portfolios/{pfid}"))
     assert (portfolio["policy_semaphore"], portfolio["policy_semaphore_reason"]) == (

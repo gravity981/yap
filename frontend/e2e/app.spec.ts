@@ -359,17 +359,17 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
       .click();
     await expect(page.getByText("Review of core-v2: good, 7 / 10")).toBeVisible();
   });
-  await test.step("review the active version again, without a new version", async () => {
+  await test.step("give the active version a quick review, without a new version", async () => {
     await page.goto("/policies");
     await page.getByRole("link", { name: "core", exact: true }).click();
     // POL-20: the section around the pane has the same name as the pane
-    const again = page.getByRole("region", { name: "Review again" }).first();
-    await again.getByRole("button", { name: "Run review again" }).click();
+    const again = page.getByRole("region", { name: "Quick review" }).first();
+    await again.getByRole("button", { name: "Run quick review" }).click();
     await expect(page.getByText("active: core-v2")).toBeVisible();
     // REV-23: the review log holds the review at activation and the new one
     await page.getByRole("tab", { name: "Reviews" }).click();
     const log = page.getByRole("region", { name: "Review log" });
-    await expect(log.getByText("core-v2 · reviewed again")).toBeVisible({ timeout: 15_000 });
+    await expect(log.getByText("core-v2 · quick review")).toBeVisible({ timeout: 15_000 });
     await expect(log.getByText("core-v2 · at activation")).toBeVisible();
     // The two are compared side by side
     await expect(
@@ -379,7 +379,7 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "Timeline" })
       .click();
-    await expect(page.getByText("Review of core-v2 (again): good, 7 / 10")).toBeVisible();
+    await expect(page.getByText("Quick review of core-v2: good")).toBeVisible();
   });
 });
 

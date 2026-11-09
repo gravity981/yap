@@ -37,6 +37,21 @@ class FakeAdapter:
 
     def generate(self, request: LlmRequest) -> str:
         properties = request.json_schema["properties"]
+        sources = [
+            {
+                "title": "Example news: global equity funds see steady inflows",
+                "published_on": None,
+                "url": "https://example.com/news",
+            }
+        ]
+        if "aspects" not in properties:  # a quick review: the verdict and the news (REV-26)
+            return json.dumps(
+                {
+                    "prompt_id": properties["prompt_id"]["enum"][0],
+                    **_verdict(request.prompt),
+                    "sources": sources,
+                }
+            )
         codes = properties["aspects"]["items"]["properties"]["code"]["enum"]
         answer: dict[str, Any] = {
             "prompt_id": properties["prompt_id"]["enum"][0],
@@ -45,13 +60,7 @@ class FakeAdapter:
                 for code, score in zip(codes, SCORES, strict=False)
             ],
             **_verdict(request.prompt),
-            "sources": [
-                {
-                    "title": "Example news: global equity funds see steady inflows",
-                    "published_on": None,
-                    "url": "https://example.com/news",
-                }
-            ],
+            "sources": sources,
             "suggestions": _suggestions(request.prompt if "P1" in codes else None),
             "proposals": [] if "P1" in codes else PROPOSALS,
         }

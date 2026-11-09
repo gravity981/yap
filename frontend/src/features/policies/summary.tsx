@@ -72,6 +72,8 @@ function Summary({
   const complete = Math.abs(total - 100) <= TOLERANCE && cashBuffers <= 1;
   const warning = activationWarning(brief);
   const running = isRunning(brief?.state);
+  // No review, a failed one, or one of an earlier text: strongly recommended to complete it
+  const incomplete = !running && (!brief || brief.state === "failed" || brief.outdated);
   const editor = { to: "/policies/$policyId/draft", params: { policyId: String(policy.id) } };
 
   const submit = () =>
@@ -90,6 +92,23 @@ function Summary({
           {t("policies.summary.title", { name: policy.name, no: draft.version_no })}
         </h1>
       </div>
+
+      {incomplete && (
+        <Alert
+          variant="warning"
+          className="grid gap-2 border-2 border-amber-500 bg-amber-50 text-amber-950 dark:bg-amber-950 dark:text-amber-100"
+        >
+          <p className="text-base font-semibold">{t("policies.summary.recommend.title")}</p>
+          <p>
+            {brief && brief.state !== "failed"
+              ? t("policies.summary.recommend.outdated")
+              : t("policies.summary.recommend.none")}
+          </p>
+          <Button asChild className="w-fit">
+            <Link {...editor}>{t("policies.summary.recommend.toEditor")}</Link>
+          </Button>
+        </Alert>
+      )}
 
       <Card>
         <CardContent className="grid gap-3 pt-5">

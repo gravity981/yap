@@ -107,9 +107,12 @@ its reasoning. The review gives a score and the thesis a **semaphore**: *good*, 
 - **Proposals:** when a policy has no positions yet, the review proposes target structures.
 - A review **warns, never blocks**: you can activate a draft without a review or with a
   review that no longer matches; the version is marked, and you confirm.
-- **Review again** any time for the active version, without a new version. The results are
-  kept in a review log that you can compare, and the latest review sets the score and
-  semaphore shown on the policy and on its portfolios.
+- A **quick review** can be run on the active version any time, without a new version: it
+  only checks the verdict against current news. The score stays as the last full review set
+  it, and there are no suggestions. Only a draft gets a review of the whole policy; the
+  Finalize page strongly recommends completing it before you activate. All results are kept
+  in a review log that you can compare, and the latest one sets the semaphore shown on the
+  policy and on its portfolios.
 
 ![The review log with the score course and the comparison of two reviews](screenshots/policy-reviews.png)
 

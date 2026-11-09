@@ -61,10 +61,14 @@ class ReviewBrief(BaseModel):
     saved_at: datetime | None  # REV-21: the date of the latest review
 
     @classmethod
-    def of(cls, version: PolicyVersion, review: Review) -> ReviewBrief:
+    def of(
+        cls, version: PolicyVersion, review: Review, score_from: Review | None = None
+    ) -> ReviewBrief:
+        """The review in short. The scores are its own, or those of `score_from`: a quick
+        review has none (REV-26), so the version keeps the scores of its latest full one."""
         from yap.services import reviews
 
-        scores = reviews.scores(review)
+        scores = reviews.scores(score_from or review)
         semaphore = reviews.review_semaphore(review)
         return cls(
             id=review.id,
@@ -89,7 +93,7 @@ class ReviewBrief(BaseModel):
         from yap.services import reviews
 
         review = reviews.current_review(version)
-        return cls.of(version, review) if review else None
+        return cls.of(version, review, reviews.scored_review(version)) if review else None
 
 
 def half(half_points: int | None) -> float | None:

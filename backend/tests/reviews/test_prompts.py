@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from tests.fixtures import Factory, spec
-from tests.reviews.answers import PROMPT_ID, answer, thesis_answer
+from tests.reviews.answers import PROMPT_ID, answer, quick_answer, thesis_answer
 from yap.domain.reviews import Verdict
 from yap.llm import LlmError
 from yap.services import review_prompts, snapshots
@@ -242,4 +242,42 @@ def test_the_review_is_requested_in_the_language_of_the_investor(
     assert "free text of the answer in English:" in instructions("en")
     assert "free text of the answer in the language of the thesis:" in instructions(None)
     # What the parser relies on stays as it is
-    assert "Keep the field names, the codes" in instructions("de")
+    assert "Keep the field names" in instructions("de")
+
+
+@pytest.mark.req("REV-26", "REV-04", "NFR-01")
+def test_the_quick_prompt_asks_for_the_verdict_and_the_news_only(
+    session: Session, factory: Factory
+) -> None:
+    draft = factory.policy_draft(factory.investor("alice"), thesis_title="Growth").versions[0]
+    ref = review_prompts.PromptRef(draft.id, _at(2026, 1, 15), 90)
+    prompt = review_prompts.review_prompt(draft, ref, "de", quick=True)
+    assert prompt.quick and prompt.llm_request().web_search is True
+    assert "2025-10-17" in prompt.instructions and "make no suggestions" in prompt.instructions
+    assert "in German" in prompt.instructions
+    # The answer format has no aspects, suggestions or proposals
+    properties = prompt.json_schema["properties"]
+    assert list(properties) == ["prompt_id", "verdict", "verdict_reason", "sources"]
+    # What is sent is what the full prompt sends (NFR-01)
+    assert prompt.content == review_prompts.review_prompt(draft, ref).content
+    assert "alice" not in prompt.instructions + prompt.content
+
+
+@pytest.mark.req("REV-26", "REV-18")
+def test_a_quick_answer_has_verdict_and_sources_and_nothing_else() -> None:
+    good = quick_answer(prompt_id=PROMPT_ID)
+    parsed, problems = review_prompts.check_answer(good, PROMPT_ID, True, quick=True)
+    assert problems == [] and parsed is not None
+    assert (parsed.aspects, parsed.suggestions) == ([], [])
+    assert parsed.verdict.value == "warning" and len(parsed.sources) == 1
+    # The full answer is refused (extra fields), and so is another prompt's ID
+    _, problems = review_prompts.check_answer(
+        answer(prompt_id=PROMPT_ID), PROMPT_ID, True, quick=True
+    )
+    assert any("aspects" in str(p) for p in problems)
+    _, problems = review_prompts.check_answer(
+        quick_answer(prompt_id="x"), PROMPT_ID, True, quick=True
+    )
+    assert [p.code for p in problems] == ["answer_prompt_id_wrong"]
+    with pytest.raises(LlmError):
+        review_prompts.parse_answer(quick_answer(prompt_id="x"), PROMPT_ID, True, quick=True)

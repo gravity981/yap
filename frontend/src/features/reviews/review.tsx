@@ -40,6 +40,7 @@ export function aspectName(aspect: { code: string; name: string }, version: stri
 export function reviewTitle(kind: string | undefined) {
   if (kind === "thesis") return i18n.t("reviews.section.thesis");
   if (kind === "policy") return i18n.t("reviews.section.policy");
+  if (kind === "quick") return i18n.t("reviews.section.quick");
   return i18n.t("reviews.section.title");
 }
 
@@ -146,6 +147,21 @@ export function ReviewShort({ review, actions }: { review: Review; actions?: Sug
       : null;
   const thesis = review.aspects.filter((a) => a.code.startsWith("T"));
   const structure = review.aspects.filter((a) => a.code.startsWith("P"));
+  // REV-26: a quick review is the verdict and the news, nothing to score or take over
+  if (review.kind === "quick") {
+    return (
+      <div className="grid gap-3">
+        <p className="text-sm text-muted-foreground">
+          {reviewerLabel(review)}
+          {review.completed_at && ` · ${formatDateTime(review.completed_at)}`}
+          {days !== null && ` · ${t("reviews.result.newsDays", { count: days })}`}
+        </p>
+        <Total review={review} />
+        <Verdict review={review} />
+        <Sources review={review} />
+      </div>
+    );
+  }
   return (
     <div className="grid gap-4">
       <div className="grid gap-1">
@@ -258,7 +274,13 @@ export function FullReview({ review }: { review: Review }) {
  * of a review of the whole policy. */
 function Total({ review }: { review: Review }) {
   const { t } = useTranslation();
-  if (review.total === null) return null;
+  // A quick review has a semaphore, but no scores (REV-26)
+  if (review.total === null)
+    return review.semaphore ? (
+      <div className="flex flex-wrap items-center gap-3">
+        <SemaphoreBadge semaphore={review.semaphore} />
+      </div>
+    ) : null;
   const parts = review.kind === "full";
   return (
     <div className="grid gap-1">

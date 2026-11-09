@@ -185,6 +185,13 @@ export const en = {
     noReview:
       "Not reviewed. You can activate the draft anyway; the version is marked as not reviewed.",
     running: "The review is still running; wait for it before activating.",
+    recommend: {
+      title: "Complete the review before you activate",
+      none: "The draft has no review. Activating it anyway marks the version as not reviewed, and a quick review of an active version cannot give it a score later.",
+      outdated:
+        "The thesis or target structure was edited after the review, which no longer matches. Activating it anyway marks the version as reviewed with a review that did not match.",
+      toEditor: "Review the draft in the editor",
+    },
     matches: "matches the draft",
     doesNotMatch: "no longer matches the draft",
     broken:
@@ -395,6 +402,13 @@ export const de: Messages<typeof en> = {
     noReview:
       "Nicht geprüft. Du kannst den Entwurf trotzdem aktivieren; die Version wird als nicht geprüft markiert.",
     running: "Die Prüfung läuft noch; warte vor dem Aktivieren auf sie.",
+    recommend: {
+      title: "Schliesse die Prüfung ab, bevor du aktivierst",
+      none: "Der Entwurf hat keine Prüfung. Aktivierst du ihn trotzdem, wird die Version als nicht geprüft markiert, und eine Schnellprüfung einer aktiven Version kann ihr später keine Bewertung geben.",
+      outdated:
+        "Die Anlagethese oder die Zielstruktur wurde nach der Prüfung geändert, die deshalb nicht mehr passt. Aktivierst du trotzdem, wird die Version mit einer nicht passenden Prüfung markiert.",
+      toEditor: "Entwurf im Editor prüfen",
+    },
     matches: "passt zum Entwurf",
     doesNotMatch: "passt nicht mehr zum Entwurf",
     broken:

@@ -716,12 +716,12 @@ describe("reviews", () => {
     const course = await screen.findByRole("figure", { name: "Review score over the versions" });
     expect(within(course).getByRole("img", { name: "core-v1: 6.0 of 10" })).toBeInTheDocument();
     expect(within(course).getByTestId("version-change")).toHaveTextContent("v3");
-    // REV-23: newest first, at activation or reviewed again, with reviewer, score, semaphore
+    // REV-23: newest first, at activation or a quick review, with reviewer, score, semaphore
     const table = screen.getByRole("region", { name: "Review log" });
     const rows = within(table).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toHaveTextContent(
-      /core-v2 · reviewed again.*Standard \(claude-x\).*6\.5.*warning/,
+      /core-v2 · quick review.*Standard \(claude-x\).*6\.5.*warning/,
     );
     expect(rows[1]).toHaveTextContent(/core-v2 · at activation/);
     expect(rows[2]).toHaveTextContent(/core-v1 · at activation.*manual review with GPT 5.*6\.0/);
@@ -755,56 +755,50 @@ describe("reviews", () => {
     ).toBeInTheDocument();
   });
 
-  it("[POL-20] [REV-07] reviews the active version again and takes a suggestion over into a new draft", async () => {
-    const saved = review({
+  it("[POL-20] [REV-26] gives the active version a quick review: verdict and news, no scores or suggestions", async () => {
+    const quick = review({
       id: 20,
+      kind: "quick",
       confirmed: true,
       saved_at: "2026-02-01T10:00:00+00:00",
-      suggestions: [suggestion(2, "thesis_section", { section: 7, text: "- GDP below 2 %" })],
+      aspects: [],
+      suggestions: [],
+      total: null,
+      thesis_score: null,
+      structure_score: null,
     });
     const calls = setup({
-      "GET /api/reviews/20": () => json(saved),
-      "POST /api/reviews/20/suggestions/2/take-over": () =>
-        json({
-          review: {
-            ...saved,
-            suggestions: [{ ...saved.suggestions[0], state: "taken_over", previous: {} }],
-          },
-          draft: { ...draftVersion, label: "core-v3" },
-        }),
+      "GET /api/reviews/20": () => json(quick),
       "POST /api/policies/7/active/review": () =>
         json(review({ id: 40, state: "running", completed_at: null }), 202),
       "GET /api/reviews/40": () => json(review({ id: 40, state: "running", completed_at: null })),
     });
     renderApp("/policies/7");
     // The section around the pane, which is labelled the same
-    const [again] = await screen.findAllByRole("region", { name: "Review again" });
-    if (!again) throw new Error("no section");
+    const [section] = await screen.findAllByRole("region", { name: "Quick review" });
+    if (!section) throw new Error("no section");
     expect(
-      within(again).getByText(/Reviews the active core-v2 as it is, with today's news/),
+      within(section).getByText(/Checks the active core-v2 against today's news/),
     ).toBeInTheDocument();
-    // The latest saved review with its suggestions, which go into a draft (REV-07)
-    const card = await within(again).findByRole("listitem", { name: "Thesis · section 7" });
-    await userEvent.click(within(card).getByRole("button", { name: "Take over" }));
+    // The latest quick review: the verdict and its sources, nothing to take over
     expect(
-      await within(again).findByText("Taken over into the draft core-v3."),
+      await within(section).findByText(/Two warning signals are observed/),
     ).toBeInTheDocument();
-    expect(within(again).getByRole("link", { name: "Open the draft" })).toHaveAttribute(
-      "href",
-      "/policies/7/draft",
-    );
-    // No draft is saved first: there is no editor on the policy page
-    expect(calls.some((c) => c.method === "PUT")).toBe(false);
-    await userEvent.click(within(again).getByRole("button", { name: "Run review again" }));
+    expect(within(section).getByRole("link", { name: /ETF inflows rise/ })).toBeInTheDocument();
+    expect(within(section).queryByRole("button", { name: "Take over" })).toBeNull();
+    expect(within(section).queryByText("Suggestions")).toBeNull();
+    await userEvent.click(within(section).getByRole("button", { name: "Run quick review" }));
     await waitFor(() =>
       expect(calls.find((c) => c.path === "/api/policies/7/active/review")?.body).toEqual({
         ai_reviewer_id: 1,
         news_days: 90,
       }),
     );
+    // No draft is saved first: there is no editor on the policy page
+    expect(calls.some((c) => c.method === "PUT")).toBe(false);
   });
 
-  it("[POL-20] [REV-18] [REV-19] reviews the active version again manually", async () => {
+  it("[POL-20] [REV-18] [REV-19] gives the active version a quick review manually", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
     const calls = setup({
@@ -817,7 +811,7 @@ describe("reviews", () => {
     });
     renderApp("/policies/7");
     // The section around the pane, which is labelled the same
-    const [again] = await screen.findAllByRole("region", { name: "Review again" });
+    const [again] = await screen.findAllByRole("region", { name: "Quick review" });
     if (!again) throw new Error("no section");
     await userEvent.selectOptions(within(again).getByLabelText("Review method"), "manual");
     await userEvent.click(within(again).getByRole("button", { name: "Copy review prompt" }));

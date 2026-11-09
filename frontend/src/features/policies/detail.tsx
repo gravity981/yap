@@ -33,7 +33,7 @@ import {
   DraftReview,
   PolicyFacts,
   PolicyName,
-  ReviewAgain,
+  QuickReview,
   Sharing,
   SharingBadge,
 } from "./policy-parts";
@@ -188,11 +188,11 @@ export function PolicyPage({ policyId }: { policyId: number }) {
         {active && !archived && (
           <aside className="grid min-w-0 gap-4">
             {/* POL-22: a draft with changes has its own review; the active version is
-                reviewed again when there is none, or the draft is the same version */}
+                given a quick review when there is none, or the draft is the same version */}
             {p.draft?.changed ? (
               <DraftReview policy={p} />
             ) : (
-              <ReviewAgain policy={p} versionLabel={active.label} />
+              <QuickReview policy={p} versionLabel={active.label} />
             )}
             <Sharing policy={p} />
           </aside>

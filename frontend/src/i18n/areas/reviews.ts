@@ -8,6 +8,7 @@ export const en = {
     thesis: "Thesis review",
     policy: "Policy review",
     notReviewed: "Not reviewed.",
+    quick: "Quick review",
   },
   start: {
     data: "To run it, the title, the thesis text and the target structure (percentages, thresholds, exit flags, rationales) are sent to the provider of your AI reviewer, which searches the web for news. ",
@@ -16,6 +17,7 @@ export const en = {
     newsDays: "News of the last … days",
     button: "Start review",
     again: "Run review again",
+    quick: "Run quick review",
     usage: "{{used}} of {{limit}} reviews with {{name}} used this month",
   },
   result: {
@@ -117,10 +119,8 @@ export const en = {
     reviewOf: "Review of the draft",
   },
   again: {
-    title: "Review again",
-    note: "Reviews the active {{version}} as it is, with today's news. The result is added to the review log; no new version is created. The latest review sets the score and the semaphore.",
-    takenOver: "Taken over into the draft {{version}}.",
-    openDraft: "Open the draft",
+    title: "Quick review",
+    note: "Checks the active {{version}} against today's news: only the verdict and the sources, no scores and no suggestions. The score stays as it was when the version was reviewed; the result is added to the review log and gives the new semaphore. No new version is created.",
   },
   log: {
     title: "Review log",
@@ -130,7 +130,7 @@ export const en = {
     date: "Date",
     version: "Version",
     atActivation: "at activation",
-    again: "reviewed again",
+    again: "quick review",
     reviewer: "Reviewer",
     score: "Score",
     semaphore: "Semaphore",
@@ -206,6 +206,7 @@ export const de: Messages<typeof en> = {
     thesis: "Prüfung der Anlagethese",
     policy: "Prüfung der Anlagestrategie",
     notReviewed: "Nicht geprüft.",
+    quick: "Schnellprüfung",
   },
   start: {
     data: "Dafür werden der Titel, der Text der Anlagethese und die Zielstruktur (Anteile, Schwellen, Exit-Markierungen, Begründungen) an den Anbieter deines KI-Reviewers gesendet, der im Web nach Nachrichten sucht. ",
@@ -214,6 +215,7 @@ export const de: Messages<typeof en> = {
     newsDays: "Nachrichten der letzten … Tage",
     button: "Prüfung starten",
     again: "Prüfung erneut ausführen",
+    quick: "Schnellprüfung ausführen",
     usage: "{{used}} von {{limit}} Prüfungen mit {{name}} in diesem Monat verwendet",
   },
   result: {
@@ -313,10 +315,8 @@ export const de: Messages<typeof en> = {
     reviewOf: "Prüfung des Entwurfs",
   },
   again: {
-    title: "Erneut prüfen",
-    note: "Prüft die aktive {{version}} so, wie sie ist, mit den heutigen Nachrichten. Das Ergebnis kommt ins Prüfprotokoll; es entsteht keine neue Version. Die neueste Prüfung bestimmt Bewertung und Ampel.",
-    takenOver: "In den Entwurf {{version}} übernommen.",
-    openDraft: "Entwurf öffnen",
+    title: "Schnellprüfung",
+    note: "Prüft die aktive {{version}} gegen die heutigen Nachrichten: nur das Urteil und die Quellen, keine Bewertungen und keine Vorschläge. Die Bewertung bleibt, wie sie bei der Prüfung der Version war; das Ergebnis kommt ins Prüfprotokoll und bestimmt die neue Ampel. Es entsteht keine neue Version.",
   },
   log: {
     title: "Prüfprotokoll",
@@ -326,7 +326,7 @@ export const de: Messages<typeof en> = {
     date: "Datum",
     version: "Version",
     atActivation: "bei Aktivierung",
-    again: "erneut geprüft",
+    again: "Schnellprüfung",
     reviewer: "Prüfer",
     score: "Bewertung",
     semaphore: "Ampel",
