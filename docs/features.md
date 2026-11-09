@@ -64,12 +64,16 @@ pre-filled. Each snapshot keeps the prices it was taken with, so earlier compari
 rebalances never change. The history tab shows how the share of each position developed
 over the snapshots as a line chart (the four largest positions, the rest together as
 "other"), above the list of past snapshots.
+Positions you have sold completely (exited or no longer in the policy, value 0) are hidden;
+a button shows them again.
 
 When you add a ticker, the app looks it up at the price providers: one listing is used
 right away, with several (e.g. on SIX and in London) you choose. Your choices are in your
 settings, where you can switch to another listing or to manual prices at any time.
 
 ![Portfolio compared with its policy: table, bars with bands and pie by type](screenshots/portfolio.png)
+
+![The history tab: allocation course and past snapshots](screenshots/portfolio-history.png)
 
 ## Rebalancing
 

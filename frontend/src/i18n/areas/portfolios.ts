@@ -124,6 +124,8 @@ export const en = {
     deviation: "Deviation",
     status: "Status",
     exit: "exit",
+    showSold: "Show sold positions ({{count}})",
+    hideSold: "Hide sold positions",
   },
   bandStatus: {
     below_buy_threshold: "below buy threshold",
@@ -277,6 +279,8 @@ export const de: Messages<typeof en> = {
     deviation: "Abweichung",
     status: "Status",
     exit: "Exit",
+    showSold: "Verkaufte Positionen anzeigen ({{count}})",
+    hideSold: "Verkaufte Positionen ausblenden",
   },
   bandStatus: {
     below_buy_threshold: "unter Kaufschwelle",

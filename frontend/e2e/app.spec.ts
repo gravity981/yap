@@ -220,6 +220,73 @@ test("[TL-01] [TL-02] shows the decisions in the timeline", async ({ page }) => 
   });
 });
 
+test("[CMP-01] [CMP-06] [CMP-08] [CMP-11] [RB-02] [RB-27] sold positions, history, outdated values and the rebalance preview", async ({
+  page,
+}) => {
+  await asAlice(page);
+  const record = async (change: () => Promise<void>, correction = false) => {
+    await page.goto("/portfolios");
+    await page.getByRole("link", { name: "Main" }).click();
+    await page.getByRole("link", { name: "Enter values" }).click();
+    await change();
+    if (correction) {
+      await page.getByLabel("This corrects the last entry").check();
+    }
+    await page.getByRole("button", { name: "Save values" }).click();
+    await expect(page.getByRole("heading", { name: "Snapshot" })).toBeVisible();
+  };
+  await test.step("record a position that is not in the policy", async () => {
+    await record(async () => {
+      await page.getByRole("button", { name: "Add position not in the policy" }).click();
+      await page.getByLabel("New ticker").fill("OLD");
+      await page.getByLabel("Units of OLD").fill("10");
+      await page.getByLabel("Price of OLD").fill("10");
+    });
+    const old = page.getByRole("row").filter({ hasText: "OLD" });
+    await expect(old.getByText("not in policy")).toBeVisible();
+  });
+  await test.step("after selling it completely it is hidden, until you ask for it", async () => {
+    await record(async () => {
+      await page.getByLabel("Units of OLD").fill("0");
+    });
+    await expect(page.getByRole("row").filter({ hasText: "XUS" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: /OLD/ })).toHaveCount(0);
+    await page.getByRole("button", { name: "Show sold positions (1)" }).click();
+    await expect(page.getByRole("cell", { name: /OLD/ })).toBeVisible();
+    await page.getByRole("button", { name: "Hide sold positions" }).click();
+    await expect(page.getByRole("cell", { name: /OLD/ })).toHaveCount(0);
+  });
+  await test.step("a correction is a new snapshot; the history shows both and the course", async () => {
+    await record(async () => {
+      await page.getByLabel("Units of XUS").fill("70");
+    }, true);
+    await page.goto("/portfolios");
+    await page.getByRole("link", { name: "Main" }).click();
+    await page.getByRole("tab", { name: "History" }).click();
+    await expect(page.getByText(/ · correction/)).toHaveCount(1);
+    await expect(page.getByRole("figure", { name: "Allocation over the snapshots" })).toBeVisible();
+  });
+  await test.step("the rebalance preview shows the allocation before and after, value and payout", async () => {
+    await page.getByRole("link", { name: "Rebalance" }).click();
+    await expect(page.getByRole("heading", { name: "Rebalance Main" })).toBeVisible();
+    await expect(page.getByText(/Values outdated/)).toHaveCount(0);
+    await expect(
+      page.getByRole("figure", { name: "Allocation before and after the rebalance" }),
+    ).toBeVisible();
+    await expect(page.getByText("Value before")).toBeVisible();
+    await expect(page.getByText("− Payout (withdrawal)")).toBeVisible();
+    await expect(page.getByText("Value after", { exact: true })).toBeVisible();
+  });
+  await test.step("four days later the values are outdated; the warning links to entering them", async () => {
+    await page.clock.setFixedTime(new Date(Date.now() + 4 * 24 * 3600 * 1000));
+    await page.reload();
+    await expect(page.getByText(/Values outdated/)).toBeVisible();
+    await expect(page.getByRole("list", { name: "Sell", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Enter values" }).click();
+    await expect(page.getByRole("button", { name: "Save values" })).toBeVisible();
+  });
+});
+
 test("[IMP-01] [IMP-07] [IMP-10] imports a thesis as a new policy and exports it again", async ({
   page,
 }) => {

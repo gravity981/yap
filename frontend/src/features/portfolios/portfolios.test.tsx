@@ -276,6 +276,44 @@ describe("portfolios", () => {
     expect(screen.getByRole("figure", { name: "Allocation by type" })).toBeInTheDocument();
   });
 
+  it("[CMP-11] hides sold exited positions by default and shows them on request", async () => {
+    const base = snapshot();
+    const zero = { units: "0", price: "10", value: "0", allocation_pct: "0" };
+    const rows = [
+      ...base.rows,
+      { ...base.rows[2], ticker: "GONE", name: "Sold", status: "not_in_policy", ...zero },
+      {
+        ...base.rows[0],
+        ticker: "EXIT",
+        name: "Exited",
+        exit: true,
+        status: "below_buy_threshold",
+        ...zero,
+      },
+      // in the policy without exit flag: to be bought, stays visible
+      { ...base.rows[1], ticker: "NEW", name: "To buy", status: "below_buy_threshold", ...zero },
+    ];
+    setup({
+      "GET /api/portfolios/5": () => json(portfolio({ latest_snapshot: snapshot({ rows }) })),
+    });
+    renderApp("/portfolios/5");
+    expect(await screen.findByRole("cell", { name: /NEW/ })).toBeInTheDocument();
+    expect(screen.queryByRole("cell", { name: /GONE/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("cell", { name: /EXIT/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Show sold positions (2)" }));
+    expect(screen.getByRole("cell", { name: /GONE/ })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: /EXIT/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Hide sold positions" }));
+    expect(screen.queryByRole("cell", { name: /GONE/ })).not.toBeInTheDocument();
+  });
+
+  it("[CMP-11] offers no toggle without sold positions", async () => {
+    setup();
+    renderApp("/portfolios/5");
+    expect(await screen.findByText(/active core-v2/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /sold positions/i })).not.toBeInTheDocument();
+  });
+
   it("[CMP-08] lists past snapshots and assignments", async () => {
     setup();
     renderApp("/portfolios/5");

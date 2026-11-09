@@ -351,6 +351,13 @@ test("feature screenshots", async ({ page, browser }) => {
     await shot(page, "portfolio", 620);
   });
 
+  await test.step("portfolio history", async () => {
+    await page.goto(`/portfolios/${ids.portfolio}`);
+    await page.getByRole("tab", { name: M.portfolios.detail.history }).click();
+    await expect(page.getByRole("figure", { name: M.portfolios.course.label })).toBeVisible();
+    await shot(page, "portfolio-history", 620);
+  });
+
   await test.step("rebalance", async () => {
     await page.goto(`/portfolios/${ids.portfolio}/rebalance`);
     // A rebalance starts from the latest recorded values
