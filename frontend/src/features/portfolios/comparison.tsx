@@ -1,9 +1,11 @@
 import i18n from "i18next";
 import { AlertTriangle, CheckCircle2, CircleMinus, CircleSlash, TrendingDown } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AllocationBars, statusText, TypePie } from "@/components/charts";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -75,6 +77,11 @@ export function outsideBand(snapshot: Snapshot): number {
   ).length;
 }
 
+/** CMP-11: an exited position that is sold completely (exit flag or not in the policy, value 0). */
+export function isSoldPosition(r: Snapshot["rows"][number]): boolean {
+  return (r.exit || r.status === "not_in_policy") && Number(r.value) === 0;
+}
+
 /** CMP-02, CMP-05, CMP-07, CMP-10: a snapshot compared with its own policy version; units
  * and price are unknown for rows from before price tracking. */
 export function ComparisonView({
@@ -85,8 +92,11 @@ export function ComparisonView({
   precise?: boolean;
 }) {
   const { t } = useTranslation();
+  const [showSold, setShowSold] = useState(false);
+  const sold = snapshot.rows.filter(isSoldPosition);
+  const rows = showSold ? snapshot.rows : snapshot.rows.filter((r) => !isSoldPosition(r));
   const byType = new Map<string, number>();
-  for (const r of snapshot.rows) byType.set(r.type, (byType.get(r.type) ?? 0) + Number(r.value));
+  for (const r of rows) byType.set(r.type, (byType.get(r.type) ?? 0) + Number(r.value));
 
   return (
     <div className="grid gap-6">
@@ -99,6 +109,15 @@ export function ComparisonView({
         {snapshot.source !== "manual" &&
           t("portfolios.comparison.source", { source: sourceLabel(snapshot.source) })}
       </p>
+      {sold.length > 0 && (
+        <div>
+          <Button variant="outline" size="sm" onClick={() => setShowSold(!showSold)}>
+            {t(showSold ? "portfolios.comparison.hideSold" : "portfolios.comparison.showSold", {
+              count: sold.length,
+            })}
+          </Button>
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>
@@ -116,7 +135,7 @@ export function ComparisonView({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {snapshot.rows.map((r) => (
+          {rows.map((r) => (
             <TableRow key={r.ticker}>
               <TableCell>
                 <span className="font-medium">{r.ticker}</span>{" "}
@@ -167,7 +186,7 @@ export function ComparisonView({
       </Table>
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <AllocationBars
-          rows={snapshot.rows.map((r) => ({
+          rows={rows.map((r) => ({
             ticker: r.ticker,
             name: r.name,
             allocation: Number(r.allocation_pct),

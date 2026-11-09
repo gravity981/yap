@@ -110,6 +110,51 @@ def test_notes_refuse_other_tags(repo: Path) -> None:
     assert result.returncode == 1 and "neither a release" in result.stderr
 
 
+def commit(repo: Path, subject: str, author: str = "t") -> None:
+    git(
+        repo,
+        "-c",
+        f"user.name={author}",
+        "-c",
+        "user.email=t@t",
+        "commit",
+        "-q",
+        "--allow-empty",
+        "-m",
+        subject,
+    )
+
+
+@pytest.mark.req("NFR-09")
+def test_changelog_sorts_the_commits_since_the_previous_release(repo: Path) -> None:
+    commit(repo, "Old change")
+    tag(repo, "v1.0.0")
+    commit(repo, "feat(rebalance): Before/after chart")
+    commit(repo, "Add history chart")
+    commit(repo, "fix: Band status below target")
+    commit(repo, "step 2.1 - Drafts")
+    commit(repo, "docs: Screenshots")
+    commit(repo, "Bump actions/cache from 5 to 6", author="dependabot[bot]")
+    result = release(repo, "changelog", "v1.1.0", "owner/yap", "HEAD")
+    assert result.returncode == 0, result.stderr
+    out = result.stdout
+    assert "What's changed since v1.0.0" in out
+    assert out.index("### Added") < out.index("### Fixed") < out.index("### Changed")
+    assert out.index("### Changed") < out.index("### Dependencies")
+    assert "- Before/after chart (" in out and "- Add history chart (" in out
+    assert "- Band status below target (" in out
+    assert "- Drafts (" in out  # the step prefix is dropped
+    assert "Screenshots" not in out and "Old change" not in out
+    assert "owner/yap/compare/v1.0.0...v1.1.0" in out
+
+
+@pytest.mark.req("NFR-09")
+def test_changelog_of_the_first_release_lists_everything(repo: Path) -> None:
+    commit(repo, "Something")
+    out = release(repo, "changelog", "v0.1.0", "owner/yap", "HEAD").stdout
+    assert "- init (" in out and "- Something (" in out and "compare" not in out
+
+
 @pytest.mark.req("NFR-09", "IMP-09")
 def test_bundle_contains_the_server_files_and_schemas(tmp_path: Path) -> None:
     result = subprocess.run(

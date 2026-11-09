@@ -21,6 +21,8 @@ MAX_HALF_POINTS = 20  # score 10
 
 class ReviewKind(StrEnum):
     FULL = "full"  # thesis and target structure, since scoring version 3
+    # POL-20: the active version again; only the verdict and the news, no scores (REV-26)
+    QUICK = "quick"
     # Reviews from before stage 2, kept in the history of their versions
     THESIS = "thesis"
     POLICY = "policy"

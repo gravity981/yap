@@ -41,24 +41,21 @@ export function ReviewPane({
   brief: ReviewBrief | null | undefined;
   save: () => Promise<unknown>;
   /** REV-07: the draft after a suggestion was taken over, dismissed or undone */
-  onDraft: (draft: Version | null) => void;
-  /** POL-20: on the policy page, the active version is reviewed again */
+  onDraft: (draft: Version) => void;
+  /** POL-20, REV-26: on the policy page, the active version gets a quick review */
   target?: ReviewTarget;
 }) {
   const { t } = useTranslation();
   const review = useReview(brief?.id);
   const running = isRunning(review.data?.state ?? brief?.state);
-  // On the policy page the pane is part of the "Review again" section (POL-20)
+  // On the policy page the pane is part of the "Quick review" section (POL-20)
   const label = target === "draft" ? t("reviews.section.title") : undefined;
   return (
     <section className="grid content-start gap-4" aria-label={label}>
       {!brief ? (
         target === "draft" && <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
       ) : review.data ? (
-        <ReviewShort
-          review={review.data}
-          actions={{ save, onDraft, activeVersion: target === "active" }}
-        />
+        <ReviewShort review={review.data} actions={{ save, onDraft }} />
       ) : (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}
@@ -216,7 +213,11 @@ function AiReview({
           onClick={() => void submit()}
           disabled={saving || start.isPending || !!unavailable || !usage.data}
         >
-          {again ? t("reviews.start.again") : t("reviews.start.button")}
+          {target === "active"
+            ? t("reviews.start.quick")
+            : again
+              ? t("reviews.start.again")
+              : t("reviews.start.button")}
         </Button>
         {usage.data?.ai_reviewer_name && (
           <span className="text-sm text-muted-foreground">

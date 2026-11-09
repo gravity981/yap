@@ -1,4 +1,5 @@
 import i18n from "i18next";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { NotAdvice } from "@/components/disclaimer";
@@ -40,38 +41,14 @@ export function aspectName(aspect: { code: string; name: string }, version: stri
 export function reviewTitle(kind: string | undefined) {
   if (kind === "thesis") return i18n.t("reviews.section.thesis");
   if (kind === "policy") return i18n.t("reviews.section.policy");
+  if (kind === "quick") return i18n.t("reviews.section.quick");
   return i18n.t("reviews.section.title");
 }
 
-/** A review of a version, read-only: its progress (REV-08) and result. Reviews are
- * started in the draft editor (REV-01, features/reviews/pane.tsx). */
-export function ReviewSection({ brief }: { brief: ReviewBrief | null }) {
-  const { t } = useTranslation();
-  const review = useReview(brief?.id);
-  const title = reviewTitle(brief?.kind);
-  return (
-    <section className="grid gap-3" aria-label={title}>
-      <h2 className="text-lg font-semibold">{title}</h2>
-      {!brief ? (
-        <p className="text-sm text-muted-foreground">{t("reviews.section.notReviewed")}</p>
-      ) : !review.data ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : (
-        <ReviewResult review={review.data} />
-      )}
-    </section>
-  );
-}
-
-export function ReviewResult({
-  review,
-  actions,
-  suggestions = true,
-}: {
-  review: Review;
-  actions?: SuggestionActions;
-  suggestions?: boolean;
-}) {
+/** REV-24: the whole review: who made it and when, the verdict with its reason and the
+ * sources first, then the thesis and the target structure with every aspect. Suggestions
+ * are in the review pane, not here. */
+export function ReviewResult({ review }: { review: Review }) {
   const { t } = useTranslation();
 
   if (isRunning(review.state)) {
@@ -120,12 +97,11 @@ export function ReviewResult({
           </span>
         </div>
 
-        <Total review={review} />
-        <Verdict review={review} />
+        <VerdictLine review={review} />
+        <Sources review={review} />
+        <Total review={review} badge={false} />
         <Aspects review={review} />
         <LegacyModification review={review} />
-        <Sources review={review} />
-        {suggestions && <Suggestions review={review} actions={actions} />}
 
         <NotAdvice short={t("reviews.result.notAdvice")} />
       </CardContent>
@@ -146,6 +122,20 @@ export function ReviewShort({ review, actions }: { review: Review; actions?: Sug
       : null;
   const thesis = review.aspects.filter((a) => a.code.startsWith("T"));
   const structure = review.aspects.filter((a) => a.code.startsWith("P"));
+  // REV-26: a quick review is the verdict and the news, nothing to score or take over
+  if (review.kind === "quick") {
+    return (
+      <div className="grid gap-3">
+        <p className="text-sm text-muted-foreground">
+          {reviewerLabel(review)}
+          {review.completed_at && ` · ${formatDateTime(review.completed_at)}`}
+          {days !== null && ` · ${t("reviews.result.newsDays", { count: days })}`}
+        </p>
+        <VerdictLine review={review} />
+        <Sources review={review} />
+      </div>
+    );
+  }
   return (
     <div className="grid gap-4">
       <div className="grid gap-1">
@@ -233,8 +223,8 @@ function ShortGroup({
   );
 }
 
-/** REV-24: the whole review in a dialog: reviewer, date, news period and scoring version,
- * score and semaphore with the reason, every aspect with its reasoning, the sources. */
+/** REV-24: the whole review in a dialog: verdict and sources first, then the thesis and
+ * the target structure with every aspect and its reasoning. It is shown nowhere else. */
 export function FullReview({ review }: { review: Review }) {
   const { t } = useTranslation();
   return (
@@ -247,8 +237,33 @@ export function FullReview({ review }: { review: Review }) {
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogTitle>{t("reviews.full.title")}</DialogTitle>
         <DialogDescription className="sr-only">{t("reviews.full.description")}</DialogDescription>
-        <ReviewResult review={review} suggestions={false} />
-        <p className="text-sm text-muted-foreground">{t("reviews.full.suggestionsInPane")}</p>
+        <ReviewResult review={review} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** The full review of a saved review that is not loaded yet, e.g. a row of the review log:
+ * it is fetched when the dialog opens. */
+export function FullReviewOf({ reviewId, label }: { reviewId: number; label?: string }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const review = useReview(open ? reviewId : undefined);
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" variant="link" className="h-auto p-0" aria-label={label}>
+          {t("reviews.full.read")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogTitle>{t("reviews.full.title")}</DialogTitle>
+        <DialogDescription className="sr-only">{t("reviews.full.description")}</DialogDescription>
+        {review.data ? (
+          <ReviewResult review={review.data} />
+        ) : (
+          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -256,8 +271,9 @@ export function FullReview({ review }: { review: Review }) {
 
 /** REV-02: the score as stars, the semaphore, and the thesis and target-structure scores
  * of a review of the whole policy. */
-function Total({ review }: { review: Review }) {
+function Total({ review, badge = true }: { review: Review; badge?: boolean }) {
   const { t } = useTranslation();
+  // A quick review has a semaphore, but no scores (REV-26)
   if (review.total === null) return null;
   const parts = review.kind === "full";
   return (
@@ -267,7 +283,7 @@ function Total({ review }: { review: Review }) {
         <span className="text-lg font-semibold tabular-nums">
           {t("reviews.score.outOf", { score: formatScore(review.total) })}
         </span>
-        {review.semaphore && <SemaphoreBadge semaphore={review.semaphore} />}
+        {badge && review.semaphore && <SemaphoreBadge semaphore={review.semaphore} />}
       </div>
       {parts && (
         <p className="text-sm text-muted-foreground">
@@ -281,14 +297,19 @@ function Total({ review }: { review: Review }) {
   );
 }
 
-/** REV-03: the reason for the verdict, since scoring version 3. */
-function Verdict({ review }: { review: Review }) {
+/** REV-03: the verdict as a badge, with its reason (since scoring version 3). */
+function VerdictLine({ review }: { review: Review }) {
   const { t } = useTranslation();
-  if (!review.verdict_reason) return null;
+  if (!review.semaphore && !review.verdict_reason) return null;
   return (
-    <p className="text-sm">
-      <span className="font-medium">{t("reviews.score.verdict")}</span> {review.verdict_reason}
-    </p>
+    <div className="flex flex-wrap items-start gap-2 text-sm">
+      {review.semaphore && <SemaphoreBadge semaphore={review.semaphore} />}
+      {review.verdict_reason && (
+        <p>
+          <span className="font-medium">{t("reviews.score.verdict")}</span> {review.verdict_reason}
+        </p>
+      )}
+    </div>
   );
 }
 

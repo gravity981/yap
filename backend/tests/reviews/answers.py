@@ -53,6 +53,25 @@ def answer(
     )
 
 
+def quick_answer(verdict: str = "warning", prompt_id: str | None = None, **extra: Any) -> str:
+    """A quick review of the active version: the verdict and the news (REV-26)."""
+    return json.dumps(
+        {
+            **({"prompt_id": prompt_id} if prompt_id else {}),
+            "verdict": verdict,
+            "verdict_reason": "Warning signals are observed [1].",
+            "sources": [
+                {
+                    "title": "ETF inflows rise",
+                    "published_on": "2026-01-10",
+                    "url": "https://news.example/etf",
+                }
+            ],
+            **extra,
+        }
+    )
+
+
 def thesis_answer(**kwargs: Any) -> str:
     """An answer for a draft without positions: T1-T6 only."""
     return answer(structure=None, **kwargs)

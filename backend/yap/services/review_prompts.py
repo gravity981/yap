@@ -108,6 +108,15 @@ class ProposalAnswer(_Model):
     positions: list[PositionAnswer]
 
 
+class QuickAnswer(_Model):
+    """REV-26: the answer of a quick review: the verdict on the thesis and its news."""
+
+    prompt_id: str
+    verdict: Verdict
+    verdict_reason: str
+    sources: list[SourceAnswer]
+
+
 class Answer(_Model):
     prompt_id: str
     aspects: list[AspectAnswer]
@@ -118,7 +127,7 @@ class Answer(_Model):
     proposals: list[ProposalAnswer]
 
 
-def _schema(with_positions: bool, prompt_id: str) -> dict[str, Any]:
+def _schema(with_positions: bool, prompt_id: str, quick: bool = False) -> dict[str, Any]:
     """JSON Schema of the answer, in the subset all three providers accept in strict
     mode: every property required, no additional properties, no numeric bounds."""
 
@@ -131,6 +140,33 @@ def _schema(with_positions: bool, prompt_id: str) -> dict[str, Any]:
         }
 
     codes = [a.code for a in aspects(with_positions)]
+    sources: dict[str, Any] = {
+        "type": "array",
+        "items": obj(
+            {
+                "title": {"type": "string"},
+                "published_on": {
+                    "type": ["string", "null"],
+                    "description": "ISO date YYYY-MM-DD, null if unknown",
+                },
+                "url": {"type": "string"},
+            }
+        ),
+    }
+    verdict: dict[str, Any] = {"type": "string", "enum": [v.value for v in Verdict]}
+    verdict_reason: dict[str, Any] = {
+        "type": "string",
+        "description": "Why this verdict, in one to three sentences",
+    }
+    if quick:
+        return obj(
+            {
+                "prompt_id": {"type": "string", "enum": [prompt_id]},
+                "verdict": verdict,
+                "verdict_reason": verdict_reason,
+                "sources": sources,
+            }
+        )
     position: dict[str, Any] = {
         "name": {"type": "string"},
         "type": {"type": "string", "enum": ["ETF", "stock", "crypto", "cash_buffer"]},
@@ -153,24 +189,9 @@ def _schema(with_positions: bool, prompt_id: str) -> dict[str, Any]:
                     }
                 ),
             },
-            "verdict": {"type": "string", "enum": [v.value for v in Verdict]},
-            "verdict_reason": {
-                "type": "string",
-                "description": "Why this verdict, in one to three sentences",
-            },
-            "sources": {
-                "type": "array",
-                "items": obj(
-                    {
-                        "title": {"type": "string"},
-                        "published_on": {
-                            "type": ["string", "null"],
-                            "description": "ISO date YYYY-MM-DD, null if unknown",
-                        },
-                        "url": {"type": "string"},
-                    }
-                ),
-            },
+            "verdict": verdict,
+            "verdict_reason": verdict_reason,
+            "sources": sources,
             "suggestions": {
                 "type": "array",
                 "items": obj(
@@ -377,6 +398,7 @@ def check_answer(
     prompt_id: str,
     with_positions: bool,
     tickers: Collection[str] | None = None,
+    quick: bool = False,
 ) -> tuple[ParsedReview | None, list[Message]]:
     """The parsed answer, or every problem found in it, each saying where it is (REV-18).
     The answer must repeat the ID of its prompt (REV-19) and score P1-P6 exactly when the
@@ -387,6 +409,8 @@ def check_answer(
     if problem:
         return None, [problem]
     try:
+        if quick:
+            return _check_quick(QuickAnswer.model_validate(data), prompt_id)
         answer = Answer.model_validate(data)
     except ValidationError as e:
         return None, [
@@ -427,11 +451,22 @@ def check_answer(
     )
 
 
+def _check_quick(answer: QuickAnswer, prompt_id: str) -> tuple[ParsedReview | None, list[Message]]:
+    """REV-26: a quick review has the verdict and sources, no aspects and no suggestions."""
+    if answer.prompt_id.strip() != prompt_id:
+        return None, [msg("answer_prompt_id_wrong", prompt_id=prompt_id)]
+    return ParsedReview([], answer.verdict, answer.verdict_reason.strip(), answer.sources, []), []
+
+
 def parse_answer(
-    text: str, prompt_id: str, with_positions: bool, tickers: Collection[str] | None = None
+    text: str,
+    prompt_id: str,
+    with_positions: bool,
+    tickers: Collection[str] | None = None,
+    quick: bool = False,
 ) -> ParsedReview:
     """The answer of an AI reviewer; an invalid one fails the review (REV-08)."""
-    parsed, problems = check_answer(text, prompt_id, with_positions, tickers)
+    parsed, problems = check_answer(text, prompt_id, with_positions, tickers, quick)
     if parsed is None:
         raise LlmError(problems[0])
     return parsed
@@ -507,6 +542,7 @@ class ReviewPrompt:
     json_schema: dict[str, Any]
     with_positions: bool  # P1-P6 are scored (REV-02)
     tickers: tuple[str, ...] = ()  # the reviewed positions, which suggestions refer to
+    quick: bool = False  # REV-26: verdict and news only
 
     def llm_request(self) -> LlmRequest:
         return LlmRequest(
@@ -598,9 +634,67 @@ position of type cash_buffer. Use real, liquid tickers. Only the assets the thes
 for belong in a proposal."""
 
 
-def review_prompt(version: PolicyVersion, ref: PromptRef) -> ReviewPrompt:
+def _language_part(language: str | None, quick: bool = False) -> str:
+    """REV-25: the language of everything the reviewer writes, which is the investor's
+    language (USR-10); without a choice, the language of the thesis."""
+    if language == "de":
+        text = "in German (Swiss spelling: ss, never ß; address the investor with du)"
+    elif language == "en":
+        text = "in English"
+    else:
+        text = "in the language of the thesis"
+    what = (
+        "the verdict reason"
+        if quick
+        else "the reasoning, the verdict reason, the reasons and texts of the suggestions, "
+        "the rationales, and the names and descriptions of proposals"
+    )
+    return f"""Write every free text of the answer {text}: {what}. Keep the field names, the
+codes, the kinds, the types and the tickers exactly as specified."""
+
+
+def _quick_prompt(version: PolicyVersion, ref: PromptRef, language: str | None) -> ReviewPrompt:
+    """REV-26: does the thesis still hold? The verdict with current news, nothing else."""
+    instructions = f"""You check whether an investment thesis written by a private investor still
+holds. Today is {ref.news_to.isoformat()}.
+
+Search the web for news from {ref.news_from.isoformat()} to {ref.news_to.isoformat()} on the
+assets the thesis is about (take them from the thesis text), in particular on its value
+drivers, risks, break conditions and warning signals. If you cannot search the web, say so
+in the verdict reason, judge only on what you know, and leave the sources empty. Do not
+score the thesis or the target structure and make no suggestions: only the verdict.
+
+Verdict on the thesis, with a short reason:
+- broken: the news shows that a break condition of the thesis is met.
+- warning: warning signals are observed, or parts of the thesis are outdated.
+- good: neither of the above.
+
+List every news article you rely on under sources (title, publication date, link).
+Every statement based on news refers to its source as [n], the position in that list
+starting at 1. Do not invent sources.
+
+{_language_part(language, quick=True)}
+
+{_answer_format(ref.prompt_id)}"""
+    return ReviewPrompt(
+        prompt_id=ref.prompt_id,
+        instructions=instructions,
+        content=_content(version),
+        json_schema=_schema(bool(version.positions), ref.prompt_id, quick=True),
+        with_positions=bool(version.positions),
+        tickers=tuple(p.asset.ticker for p in version.positions),
+        quick=True,
+    )
+
+
+def review_prompt(
+    version: PolicyVersion, ref: PromptRef, language: str | None = None, quick: bool = False
+) -> ReviewPrompt:
     """REV-02 to REV-05, REV-19: one review of the whole policy: aspects T1-T6 and the
-    verdict with current news, and P1-P6 if it has positions."""
+    verdict with current news, and P1-P6 if it has positions. The review is written in the
+    investor's language (REV-25). With `quick`, only the verdict and the news (REV-26)."""
+    if quick:
+        return _quick_prompt(version, ref, language)
     news_from, news_to = ref.news_from, ref.news_to
     with_positions = bool(version.positions)
     instructions = f"""You review an investment policy written by a private investor: its
@@ -647,6 +741,8 @@ only the fields of its kind and leave the others null:
   sell_threshold_pct, exit and rationale.
 - position_remove: ticker of the position to remove.
 {_proposal_part(with_positions)}
+
+{_language_part(language)}
 
 {_answer_format(ref.prompt_id)}"""
     return ReviewPrompt(

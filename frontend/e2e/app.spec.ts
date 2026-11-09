@@ -150,16 +150,16 @@ test("[RB-01] [RB-02] [RB-03] [RB-16] [RB-19] [RB-22] [RB-24] rebalances, prints
   page,
 }) => {
   await asAlice(page);
-  await test.step("rebalance Main from a fresh snapshot with the current prices", async () => {
+  await test.step("record values first, then rebalance Main from them", async () => {
     await page.goto("/portfolios");
     await page.getByRole("link", { name: "Main" }).click();
-    await page.getByRole("link", { name: "Rebalance" }).click();
-    await expect(
-      page.getByRole("heading", { name: "Rebalance Main: current values" }),
-    ).toBeVisible();
+    await page.getByRole("link", { name: "Enter values" }).click();
     await expect(page.getByLabel("Units of XUS")).toHaveValue("70");
     await expect(page.getByLabel("Price of XUS")).toHaveValue("100");
-    await page.getByRole("button", { name: "Save and rebalance" }).click();
+    await page.getByRole("button", { name: "Save values" }).click();
+    await page.getByRole("link", { name: "Rebalance" }).click();
+    await expect(page.getByRole("heading", { name: "Rebalance Main" })).toBeVisible();
+    await expect(page.getByLabel("Units of XUS")).toHaveCount(0);
   });
   await test.step("instructions: sell 15 units XUS (1,500) down to the midband of 55 %", async () => {
     const sells = page.getByRole("list", { name: "Sell" });
@@ -175,7 +175,6 @@ test("[RB-01] [RB-02] [RB-03] [RB-16] [RB-19] [RB-22] [RB-24] rebalances, prints
     const withdrawal = page.getByRole("list", { name: "Sell for the withdrawal" });
     await expect(withdrawal).toContainText("ETH");
     await expect(withdrawal).toContainText("1,200");
-    await expect(page.getByLabel("Executed Sell (Withdrawal) ETH")).toHaveValue(/^1200/);
     await field.fill("");
     await page.getByRole("button", { name: "Recalculate" }).click();
     await expect(page.getByRole("list", { name: "Sell", exact: true })).toContainText("1,500");
@@ -191,15 +190,14 @@ test("[RB-01] [RB-02] [RB-03] [RB-16] [RB-19] [RB-22] [RB-24] rebalances, prints
     await page.emulateMedia({ media: "screen" });
     await page.goBack();
   });
-  await test.step("confirm with 14 units sold for 1,400 instead of 15 for 1,500", async () => {
-    await page.getByLabel("Executed units Sell XUS").fill("14");
-    await page.getByLabel("Executed Sell XUS").fill("1400");
-    await page.getByRole("button", { name: "Confirm rebalance" }).click();
+  await test.step("confirm: the trades are carried out as calculated, nothing to adjust", async () => {
+    await expect(page.getByLabel(/^Executed/)).toHaveCount(0);
+    await page.getByRole("button", { name: "Carry out as calculated" }).click();
     await expect(page.getByRole("heading", { name: /Rebalance of/ })).toBeVisible();
   });
-  await test.step("the values after the rebalance reflect the executed sell", async () => {
-    await page.getByRole("link", { name: "values after" }).click();
-    await expect(page.getByRole("row").filter({ hasText: "XUS" })).toContainText("5,600");
+  await test.step("confirming stores no values; the rebalance has no values after", async () => {
+    await expect(page.getByRole("link", { name: "values before" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "values after" })).toHaveCount(0);
   });
 });
 
@@ -212,13 +210,80 @@ test("[TL-01] [TL-02] shows the decisions in the timeline", async ({ page }) => 
       .click();
   });
   await test.step("the confirmed rebalance is listed and opens its details", async () => {
-    const rebalance = page.getByText(/Main: rebalanced, sold 1,400/);
+    const rebalance = page.getByText(/Main: rebalanced, sold 1,500/);
     await expect(rebalance).toBeVisible();
     await rebalance.click();
-    await expect(page.getByText(/XUS Sell: 1,400/)).toBeVisible();
+    await expect(page.getByText(/XUS Sell: 1,500/)).toBeVisible();
   });
   await test.step("the policy activation is listed", async () => {
     await expect(page.getByText("core-v1 activated (no portfolios)")).toBeVisible();
+  });
+});
+
+test("[CMP-01] [CMP-06] [CMP-08] [CMP-11] [RB-02] [RB-27] sold positions, history, outdated values and the rebalance preview", async ({
+  page,
+}) => {
+  await asAlice(page);
+  const record = async (change: () => Promise<void>, correction = false) => {
+    await page.goto("/portfolios");
+    await page.getByRole("link", { name: "Main" }).click();
+    await page.getByRole("link", { name: "Enter values" }).click();
+    await change();
+    if (correction) {
+      await page.getByLabel("This corrects the last entry").check();
+    }
+    await page.getByRole("button", { name: "Save values" }).click();
+    await expect(page.getByRole("heading", { name: "Snapshot" })).toBeVisible();
+  };
+  await test.step("record a position that is not in the policy", async () => {
+    await record(async () => {
+      await page.getByRole("button", { name: "Add position not in the policy" }).click();
+      await page.getByLabel("New ticker").fill("OLD");
+      await page.getByLabel("Units of OLD").fill("10");
+      await page.getByLabel("Price of OLD").fill("10");
+    });
+    const old = page.getByRole("row").filter({ hasText: "OLD" });
+    await expect(old.getByText("not in policy")).toBeVisible();
+  });
+  await test.step("after selling it completely it is hidden, until you ask for it", async () => {
+    await record(async () => {
+      await page.getByLabel("Units of OLD").fill("0");
+    });
+    await expect(page.getByRole("row").filter({ hasText: "XUS" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: /OLD/ })).toHaveCount(0);
+    await page.getByRole("button", { name: "Show sold positions (1)" }).click();
+    await expect(page.getByRole("cell", { name: /OLD/ })).toBeVisible();
+    await page.getByRole("button", { name: "Hide sold positions" }).click();
+    await expect(page.getByRole("cell", { name: /OLD/ })).toHaveCount(0);
+  });
+  await test.step("a correction is a new snapshot; the history shows both and the course", async () => {
+    await record(async () => {
+      await page.getByLabel("Units of XUS").fill("70");
+    }, true);
+    await page.goto("/portfolios");
+    await page.getByRole("link", { name: "Main" }).click();
+    await page.getByRole("tab", { name: "History" }).click();
+    await expect(page.getByText(/ · correction/)).toHaveCount(1);
+    await expect(page.getByRole("figure", { name: "Allocation over the snapshots" })).toBeVisible();
+  });
+  await test.step("the rebalance preview shows the allocation before and after, value and payout", async () => {
+    await page.getByRole("link", { name: "Rebalance" }).click();
+    await expect(page.getByRole("heading", { name: "Rebalance Main" })).toBeVisible();
+    await expect(page.getByText(/Values outdated/)).toHaveCount(0);
+    await expect(
+      page.getByRole("figure", { name: "Allocation before and after the rebalance" }),
+    ).toBeVisible();
+    await expect(page.getByText("Value before")).toBeVisible();
+    await expect(page.getByText("− Payout (withdrawal)")).toBeVisible();
+    await expect(page.getByText("Value after", { exact: true })).toBeVisible();
+  });
+  await test.step("four days later the values are outdated; the warning links to entering them", async () => {
+    await page.clock.setFixedTime(new Date(Date.now() + 4 * 24 * 3600 * 1000));
+    await page.reload();
+    await expect(page.getByText(/Values outdated/)).toBeVisible();
+    await expect(page.getByRole("list", { name: "Sell", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Enter values" }).click();
+    await expect(page.getByRole("button", { name: "Save values" })).toBeVisible();
   });
 });
 
@@ -342,6 +407,10 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
     await expect(card.getByText(/→ \+30\s%/)).toBeVisible();
     await card.getByRole("button", { name: "Undo" }).click();
     await expect(card.getByRole("button", { name: "Take over" })).toBeVisible();
+    // Dismissing deletes the other suggestion for good (REV-07)
+    const section = review.getByRole("listitem", { name: /section 7$/ });
+    await section.getByRole("button", { name: "Dismiss" }).click();
+    await expect(section).toHaveCount(0);
   });
   await test.step("finalizing and activating the draft confirms the review", async () => {
     await page.getByRole("button", { name: "Finalize →" }).click();
@@ -350,7 +419,17 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
     await page.getByLabel("Change note").fill("Reviewed");
     await page.getByRole("button", { name: "Activate", exact: true }).click();
     await expect(page.getByText("active: core-v2")).toBeVisible();
-    await expect(review.getByText("confirmed", { exact: true })).toBeVisible();
+    // THS-04: the semaphore of the active version is shown in a box with the verdict
+    await expect(page.getByText(/no break condition is met/).first()).toBeVisible();
+    // REV-24: the review is read in full only in its dialog, e.g. from the review log
+    await page.getByRole("tab", { name: "Reviews" }).click();
+    await page
+      .getByRole("button", { name: /^Read the full review of/ })
+      .first()
+      .click();
+    const confirmed = page.getByRole("dialog", { name: "The full review" });
+    await expect(confirmed.getByText("confirmed", { exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
   });
   await test.step("the confirmed review is in the timeline", async () => {
     await page
@@ -359,17 +438,17 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
       .click();
     await expect(page.getByText("Review of core-v2: good, 7 / 10")).toBeVisible();
   });
-  await test.step("review the active version again, without a new version", async () => {
+  await test.step("give the active version a quick review, without a new version", async () => {
     await page.goto("/policies");
     await page.getByRole("link", { name: "core", exact: true }).click();
     // POL-20: the section around the pane has the same name as the pane
-    const again = page.getByRole("region", { name: "Review again" }).first();
-    await again.getByRole("button", { name: "Run review again" }).click();
+    const again = page.getByRole("region", { name: "Quick review" }).first();
+    await again.getByRole("button", { name: "Run quick review" }).click();
     await expect(page.getByText("active: core-v2")).toBeVisible();
     // REV-23: the review log holds the review at activation and the new one
     await page.getByRole("tab", { name: "Reviews" }).click();
     const log = page.getByRole("region", { name: "Review log" });
-    await expect(log.getByText("core-v2 · reviewed again")).toBeVisible({ timeout: 15_000 });
+    await expect(log.getByText("core-v2 · quick review")).toBeVisible({ timeout: 15_000 });
     await expect(log.getByText("core-v2 · at activation")).toBeVisible();
     // The two are compared side by side
     await expect(
@@ -379,7 +458,7 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "Timeline" })
       .click();
-    await expect(page.getByText("Review of core-v2 (again): good, 7 / 10")).toBeVisible();
+    await expect(page.getByText("Quick review of core-v2: good")).toBeVisible();
   });
 });
 
@@ -428,7 +507,6 @@ test("[REV-03] [POL-17] [PTF-07] [RB-25] [TL-02] sells a portfolio whose thesis 
     await page.getByLabel("Price of XUS").fill("100");
     await page.getByRole("button", { name: "Save values" }).click();
     await page.getByRole("link", { name: "Rebalance" }).click();
-    await page.getByRole("button", { name: "Save and rebalance" }).click();
     await expect(page.getByText("The thesis of satellite is broken")).toBeVisible();
     await expect(page.getByText(/A break condition of the thesis is met/)).toBeVisible();
     await expect(page.getByRole("radio", { name: /Sell the whole portfolio/ })).toBeChecked();
@@ -444,7 +522,7 @@ test("[REV-03] [POL-17] [PTF-07] [RB-25] [TL-02] sells a portfolio whose thesis 
     await expect(page.getByRole("list", { name: "Sell", exact: true })).toContainText("1,000");
   });
   await test.step("confirm; the timeline names the sale", async () => {
-    await page.getByRole("button", { name: "Confirm rebalance" }).click();
+    await page.getByRole("button", { name: "Carry out as calculated" }).click();
     await expect(page.getByText("Sold completely, thesis broken")).toBeVisible();
     await page
       .getByRole("navigation", { name: "Main" })

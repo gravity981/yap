@@ -79,14 +79,12 @@ jobs:
         run: |
           git checkout --quiet "$CANDIDATE" # the bundle of exactly the promoted commit
           bundle="$(bash scripts/bundle.sh "v$VERSION" dist)"
-          previous="$(bash scripts/release.sh previous-release "v$VERSION")"
-          notes="$(printf '%s\n\n%s\n' \
+          notes="$(printf '%s\n\n%s\n\n%s\n' \
             "Promoted from $CANDIDATE (commit $COMMIT) without rebuilding: image \`$IMAGE:$VERSION\`." \
+            "$(bash scripts/release.sh changelog "v$VERSION" "$GITHUB_REPOSITORY" "$CANDIDATE")" \
             "$(bash scripts/release.sh notes "v$VERSION" "$GITHUB_REPOSITORY")")"
           gh release create "v$VERSION" "$bundle" \
             --latest \
             --title "v$VERSION" \
-            --notes "$notes" \
-            --generate-notes \
-            ${previous:+--notes-start-tag "$previous"}
+            --notes "$notes"
           echo "Release **v$VERSION** published" >> "$GITHUB_STEP_SUMMARY"

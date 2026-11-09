@@ -8,7 +8,7 @@ export const en = {
       "Your portfolios at a glance, warnings about the theses behind your policies, and your latest decisions.",
     portfolios: "Portfolios",
     warnings: "Warnings",
-    thesisMarked: ": the semaphore of its thesis is {{status}}.",
+    thesisMarked: ": the status of its thesis is {{status}}.",
     recentEvents: "Recent events",
     timeline: "Timeline",
   },
@@ -84,7 +84,7 @@ export const en = {
     title: "Snapshot",
     export: "Export values",
     portfolio: "Portfolio",
-    rebalance: "Rebalance with current values",
+    rebalance: "Rebalance",
   },
   values: {
     title: "Current values of {{name}}",
@@ -110,10 +110,6 @@ export const en = {
     add: "Add position not in the policy",
     correction: "This corrects the last entry (the last entry is kept in the history)",
     save: "Save values",
-    rebalanceTitle: "Rebalance {{name}}: current values",
-    rebalanceDescription:
-      "A rebalance starts from the current values. Check the units and prices and adjust them where needed; they are saved as a snapshot and the rebalance is calculated from it.",
-    saveAndRebalance: "Save and rebalance",
   },
   comparison: {
     taken: "Taken {{date}} · compared with {{version}} · total {{total}}",
@@ -128,13 +124,20 @@ export const en = {
     deviation: "Deviation",
     status: "Status",
     exit: "exit",
+    showSold: "Show sold positions ({{count}})",
+    hideSold: "Hide sold positions",
   },
   bandStatus: {
     below_buy_threshold: "below buy threshold",
-    below_target: "below target",
     within_band: "within band",
     above_sell_threshold: "above sell threshold",
     not_in_policy: "not in policy",
+  },
+  course: {
+    label: "Allocation over the snapshots",
+    caption: "Share of each position in the portfolio per snapshot",
+    other: "other",
+    hint: "The course of the allocation appears once there are at least two snapshots.",
   },
   charts: {
     ofPortfolio: "{{ticker}}: {{allocation}} of the portfolio",
@@ -158,7 +161,7 @@ export const de: Messages<typeof en> = {
       "Deine Portfolios auf einen Blick, Warnungen zu den Anlagethesen hinter deinen Anlagestrategien und deine letzten Entscheidungen.",
     portfolios: "Portfolios",
     warnings: "Warnungen",
-    thesisMarked: ": Die Ampel ihrer Anlagethese steht auf «{{status}}».",
+    thesisMarked: ": Der Status ihrer Anlagethese ist «{{status}}».",
     recentEvents: "Letzte Ereignisse",
     timeline: "Verlauf",
   },
@@ -235,7 +238,7 @@ export const de: Messages<typeof en> = {
     title: "Stand",
     export: "Werte exportieren",
     portfolio: "Portfolio",
-    rebalance: "Rebalancing mit aktuellen Werten",
+    rebalance: "Rebalancing",
   },
   values: {
     title: "Aktuelle Werte von {{name}}",
@@ -262,10 +265,6 @@ export const de: Messages<typeof en> = {
     correction:
       "Dies korrigiert die letzte Erfassung (die letzte Erfassung bleibt im Verlauf erhalten)",
     save: "Werte speichern",
-    rebalanceTitle: "Rebalancing von {{name}}: aktuelle Werte",
-    rebalanceDescription:
-      "Ein Rebalancing geht von den aktuellen Werten aus. Prüfe Anzahl und Preise und passe sie wo nötig an; sie werden als Stand gespeichert und das Rebalancing wird daraus berechnet.",
-    saveAndRebalance: "Speichern und Rebalancing berechnen",
   },
   comparison: {
     taken: "Erfasst {{date}} · verglichen mit {{version}} · Total {{total}}",
@@ -280,13 +279,20 @@ export const de: Messages<typeof en> = {
     deviation: "Abweichung",
     status: "Status",
     exit: "Exit",
+    showSold: "Verkaufte Positionen anzeigen ({{count}})",
+    hideSold: "Verkaufte Positionen ausblenden",
   },
   bandStatus: {
     below_buy_threshold: "unter Kaufschwelle",
-    below_target: "unter Ziel",
     within_band: "im Band",
     above_sell_threshold: "über Verkaufsschwelle",
     not_in_policy: "nicht in der Anlagestrategie",
+  },
+  course: {
+    label: "Anteile über die Stände",
+    caption: "Anteil jeder Position am Portfolio pro Stand",
+    other: "übrige",
+    hint: "Der Verlauf der Anteile erscheint, sobald es mindestens zwei Stände gibt.",
   },
   charts: {
     ofPortfolio: "{{ticker}}: {{allocation}} des Portfolios",

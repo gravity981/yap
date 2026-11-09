@@ -60,11 +60,6 @@ export const de = {
   rebalance_sell_all_not_broken:
     "Das ganze Portfolio zu verkaufen wird nur angeboten, wenn die Anlagethese gebrochen ist",
   rebalance_mode_invalid: "Der Modus muss normal oder sell_all sein",
-  rebalance_no_instruction: "Keine Anweisung {{phase}} für {{ticker}}",
-  rebalance_executed_negative: "Ausgeführte Beträge müssen 0 oder mehr sein",
-  rebalance_buffer_exceeded:
-    "Die Käufe aus der Liquiditätsreserve übersteigen zusammen die Reserve",
-  rebalance_sell_exceeds: "Der Verkauf von {{ticker}} übersteigt den Wert der Position",
   rebalance_not_found: "Rebalancing {{id}} nicht gefunden",
   rebalance_cycles_invalid: "Die Anzahl Zyklen muss zwischen 1 und {{max}} liegen",
 } satisfies Partial<Record<MessageCode, string>>;

@@ -1,5 +1,5 @@
 """Rebalance preview, confirmation, history and simulation (RB-01 to RB-03, RB-11 to
-RB-17, RB-20)."""
+RB-20)."""
 
 from datetime import datetime
 from decimal import Decimal
@@ -13,7 +13,7 @@ from yap.api.deps import AppClock, CurrentUser, DbSession
 from yap.db.models import Asset, Rebalance, RebalanceAction
 from yap.domain.rebalancing import PositionResult, RebalanceResult
 from yap.services import rebalances
-from yap.services.rebalances import Executed, Plan
+from yap.services.rebalances import Plan
 
 router = APIRouter(tags=["rebalances"])
 
@@ -178,20 +178,12 @@ class PlanOut(BaseModel):
         )
 
 
-class ExecutedIn(BaseModel):
-    phase: str
-    ticker: str
-    amount: PlainDecimal
-    units: PlainDecimal | None = None  # null: the calculated units (RB-16)
-
-
 class Confirmation(BaseModel):
     snapshot_id: int
     contribution: PlainDecimal
     withdrawal: PlainDecimal = Decimal(0)
     policy_version_id: int
     mode: str = "normal"  # RB-25
-    executed: list[ExecutedIn] = []
 
 
 class ActionOut(BaseModel):
@@ -201,9 +193,7 @@ class ActionOut(BaseModel):
     broker: str | None
     whole_units: bool | None
     calculated_units: PlainDecimal | None
-    executed_units: PlainDecimal | None
     calculated_amount: PlainDecimal
-    executed_amount: PlainDecimal
 
 
 class RebalanceOut(BaseModel):
@@ -253,9 +243,7 @@ def _rebalance(session: DbSession, record: Rebalance) -> RebalanceOut:
                 broker=a.broker,
                 whole_units=a.whole_units,
                 calculated_units=a.calculated_units,
-                executed_units=a.executed_units,
                 calculated_amount=a.calculated_amount,
-                executed_amount=a.executed_amount,
             )
             for a, ticker in actions
         ],
@@ -304,7 +292,6 @@ def confirm(
         contribution=body.contribution,
         withdrawal=body.withdrawal,
         policy_version_id=body.policy_version_id,
-        executed=[Executed(e.phase, e.ticker, e.amount, e.units) for e in body.executed],
         mode=rebalances.parse_mode(body.mode),
     )
     return _rebalance(session, record)

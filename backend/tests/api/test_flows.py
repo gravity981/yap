@@ -193,6 +193,11 @@ def test_portfolio_flow(alice: TestClient, accounts_api: Accounts) -> None:
         ("BBB", 30, "below_buy_threshold"),  # buy threshold 40 x 0.8 = 32 %
     ]
     assert ok(alice.get(f"/api/snapshots/{snapshot['id']}"))["policy_version_label"] == "core-v1"
+    listed = ok(alice.get(f"/api/portfolios/{pfid}/snapshots"))  # CMP-08: shares per position
+    assert [(a["ticker"], Decimal(a["allocation_pct"])) for a in listed[0]["allocations"]] == [
+        ("AAA", 70),
+        ("BBB", 30),
+    ]
 
     accounts_api.clock.advance(hours=1)  # within the session idle timeout
     moved = ok(alice.post(f"/api/portfolios/{pfid}/reassign", json={"policy_id": pids[1]}))
@@ -280,7 +285,7 @@ def test_import_flow(alice: TestClient) -> None:
     assert [a["ticker"] for a in ok(alice.get("/api/assets"))] == ["AAA"]
 
 
-@pytest.mark.req("RB-02", "RB-03", "RB-11", "RB-12", "RB-13", "RB-16", "RB-17", "RB-20", "RB-22")
+@pytest.mark.req("RB-02", "RB-03", "RB-11", "RB-12", "RB-13", "RB-16", "RB-20", "RB-22")
 def test_rebalance_flow(alice: TestClient) -> None:
     pid = ok(alice.post("/api/policies", json={"name": "core"}), 201)["id"]
     ok(
@@ -335,7 +340,6 @@ def test_rebalance_flow(alice: TestClient) -> None:
                 "snapshot_id": plan["snapshot_id"],
                 "contribution": "0",
                 "policy_version_id": plan["policy_version_id"],
-                "executed": [{"phase": "3", "ticker": "BBB", "amount": "141.50", "units": 14}],
             },
         ),
         201,
@@ -344,21 +348,26 @@ def test_rebalance_flow(alice: TestClient) -> None:
         (
             a["ticker"],
             Decimal(a["calculated_units"]),
-            Decimal(a["executed_units"]),
             Decimal(a["calculated_amount"]),
-            Decimal(a["executed_amount"]),
             a["whole_units"],
         )
         for a in record["actions"]
-    ] == [("AAA", 15, 15, 150, 150, True), ("BBB", 15, 14, 150, Decimal("141.50"), True)]
+    ] == [("AAA", 15, 150, True), ("BBB", 15, 150, True)]
+    assert record["result_snapshot_id"] is None  # the values are recorded afterwards
     assert ok(alice.get(f"/api/rebalances/{record['id']}")) == record
     assert [r["id"] for r in ok(alice.get(f"/api/portfolios/{pfid}/rebalances"))] == [record["id"]]
-    result = ok(alice.get(f"/api/snapshots/{record['result_snapshot_id']}"))
-    # RB-17: the executed units at the input snapshot's price
-    assert {r["ticker"]: (Decimal(r["units"]), Decimal(r["value"])) for r in result["rows"]} == {
-        "AAA": (55, 550),
-        "BBB": (44, 440),
-    }
+    ok(
+        alice.post(
+            f"/api/portfolios/{pfid}/snapshots",
+            json={
+                "values": [
+                    {"ticker": "AAA", "units": 55, "price": 10},
+                    {"ticker": "BBB", "units": 44, "price": 10},
+                ]
+            },
+        ),
+        201,
+    )
 
     # RB-22: from AAA 550 / BBB 440, F = 590; both are above target 295
     withdraw = ok(alice.get(f"/api/portfolios/{pfid}/rebalance?contribution=0&withdrawal=400"))

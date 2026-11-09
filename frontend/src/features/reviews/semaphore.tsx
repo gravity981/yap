@@ -53,36 +53,50 @@ export function SemaphoreBadge({ semaphore }: { semaphore: string | null | undef
   );
 }
 
-/** PTF-07: the semaphore of a portfolio's policy; `warning` in amber and `broken` in red,
- * with the reason of the latest review's verdict and a link to the policy. */
+const BOX: Record<Semaphore, string> = {
+  good: "border-green-300 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-200",
+  warning:
+    "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
+  broken:
+    "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+};
+
+/** PTF-07, THS-04: the semaphore of a policy's active version in a box of its colour, with
+ * the badge and the verdict text of the latest review (`reason`). On `card`s (dashboard,
+ * portfolio list) only `warning` and `broken` get a box, without the verdict text and with
+ * a link to the policy; on a `page` the box is always there. It says nothing about what to
+ * do: that is for the rebalance page (RB-25). */
 export function PolicySemaphore({
   policyId,
   semaphore,
   reason,
+  variant = "page",
+  showLink = true,
 }: {
   policyId: number;
   semaphore: string | null | undefined;
-  reason: string | null | undefined;
+  reason?: string | null;
+  variant?: "page" | "card";
+  showLink?: boolean;
 }) {
   const { t } = useTranslation();
-  if (!semaphore) return null;
-  const alarming = semaphore === "warning" || semaphore === "broken";
+  if (!semaphore || !isSemaphore(semaphore)) return null;
+  const card = variant === "card";
+  const boxed = !card || semaphore !== "good";
   return (
     <div
       className={
-        semaphore === "broken"
-          ? "grid gap-1 rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
-          : alarming
-            ? "grid gap-1 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
-            : "flex flex-wrap items-center gap-2 text-sm"
+        boxed
+          ? `grid gap-1 rounded-md border p-2 text-sm ${BOX[semaphore]}`
+          : "flex flex-wrap items-center gap-2 text-sm"
       }
     >
       <span className="flex flex-wrap items-center gap-2">
         <span>{t("reviews.semaphore.thesis")}</span>
         <SemaphoreBadge semaphore={semaphore} />
       </span>
-      {alarming && reason && <span>{reason}</span>}
-      {alarming && (
+      {!card && reason && <span>{reason}</span>}
+      {showLink && boxed && (
         <Link
           to="/policies/$policyId"
           params={{ policyId: String(policyId) }}

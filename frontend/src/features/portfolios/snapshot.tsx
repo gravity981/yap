@@ -30,12 +30,8 @@ export function SnapshotPage({ snapshotId }: { snapshotId: number }) {
             </Link>
           </Button>
           <Button asChild>
-            {/* RB-02: from a fresh snapshot with the current prices, not from this one */}
-            <Link
-              to="/portfolios/$portfolioId/values"
-              params={{ portfolioId: id }}
-              search={{ rebalance: true }}
-            >
+            {/* RB-02: from the latest snapshot, not necessarily from this one */}
+            <Link to="/portfolios/$portfolioId/rebalance" params={{ portfolioId: id }}>
               {t("portfolios.snapshot.rebalance")}
             </Link>
           </Button>

@@ -279,7 +279,6 @@ test("feature screenshots", async ({ page, browser }) => {
       contribution: 1500,
       policy_version_id: versionId,
       mode: "normal",
-      executed: [],
     });
     // The latest values: bitcoin ran above its band, the cash buffer below
     await call(request, "POST", `/portfolios/${portfolio.id}/snapshots`, {
@@ -326,6 +325,8 @@ test("feature screenshots", async ({ page, browser }) => {
   await test.step("policy", async () => {
     await page.goto(`/policies/${ids.policy}`);
     await expect(page.getByText("Long-term core").first()).toBeVisible();
+    // The quick review box has loaded its latest review
+    await expect(page.getByRole("button", { name: M.reviews.start.quick })).toBeVisible();
     await shot(page, "policy");
   });
 
@@ -350,10 +351,16 @@ test("feature screenshots", async ({ page, browser }) => {
     await shot(page, "portfolio", 620);
   });
 
+  await test.step("portfolio history", async () => {
+    await page.goto(`/portfolios/${ids.portfolio}`);
+    await page.getByRole("tab", { name: M.portfolios.detail.history }).click();
+    await expect(page.getByRole("figure", { name: M.portfolios.course.label })).toBeVisible();
+    await shot(page, "portfolio-history", 620);
+  });
+
   await test.step("rebalance", async () => {
     await page.goto(`/portfolios/${ids.portfolio}/rebalance`);
-    // A rebalance starts from a fresh snapshot with the current units and prices
-    await page.getByRole("button", { name: M.portfolios.values.saveAndRebalance }).click();
+    // A rebalance starts from the latest recorded values
     await expect(page.getByText(M.rebalance.cash.sellProceeds, { exact: true })).toBeVisible();
     // Up to the printable report; the confirmation form below is left out
     await shot(page, "rebalance", 670);
@@ -361,7 +368,6 @@ test("feature screenshots", async ({ page, browser }) => {
 
   await test.step("rebalance with a broken thesis", async () => {
     await page.goto(`/portfolios/${ids.small}/rebalance`);
-    await page.getByRole("button", { name: M.portfolios.values.saveAndRebalance }).click();
     await expect(
       page.getByText(
         M.rebalance.page.thesis.brokenTitle.replace("{{policy}}", "Bitcoin satellite"),

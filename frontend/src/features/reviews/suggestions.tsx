@@ -15,10 +15,8 @@ import { useSuggestionAction, type Review, type Suggestion, type SuggestionActio
  * `save` stores what is in the editor first, `onDraft` takes the changed draft back. */
 export interface SuggestionActions {
   save: () => Promise<unknown>;
-  /** The draft after the change; null for a dismissed suggestion of the active version */
-  onDraft: (draft: Version | null) => void;
-  /** POL-20: suggestions of the active version's saved review go into its draft */
-  activeVersion?: boolean;
+  /** The draft after the change */
+  onDraft: (draft: Version) => void;
 }
 
 type Row = Record<string, unknown>;
@@ -154,18 +152,11 @@ function StateLine({
   pending: boolean;
 }) {
   const { t } = useTranslation();
-  if (s.state === "open") return null;
+  // A dismissed suggestion is deleted (REV-07), so there is only open or taken over
+  if (s.state !== "taken_over") return null;
   return (
-    <p
-      className={
-        s.state === "taken_over"
-          ? "flex flex-wrap items-center gap-2 font-medium text-green-700 dark:text-green-400"
-          : "flex flex-wrap items-center gap-2 text-muted-foreground"
-      }
-    >
-      {s.state === "taken_over"
-        ? t("reviews.suggestions.takenOver")
-        : t("reviews.suggestions.dismissed")}
+    <p className="flex flex-wrap items-center gap-2 font-medium text-green-700 dark:text-green-400">
+      {t("reviews.suggestions.takenOver")}
       {canAct && (
         <Button
           type="button"
@@ -207,12 +198,12 @@ function OpenButtons({
 }
 
 /** REV-07: suggestions are never applied without a click; in the draft editor they can be
- * taken over, dismissed and undone, elsewhere they are read-only. */
+ * taken over (and undone) or dismissed, which deletes them. */
 export function Suggestions({ review, actions }: { review: Review; actions?: SuggestionActions }) {
   const { t } = useTranslation();
   const { act, mutation } = useAct(review, actions);
-  const editable =
-    !!actions && review.state === "done" && (!review.confirmed || !!actions.activeVersion);
+  // Only the suggestions of a draft's review can be worked on; activating removes them
+  const editable = !!actions && review.state === "done" && !review.confirmed;
   const suggestions = review.suggestions.filter((s) => s.kind !== "proposal");
   const proposals = review.suggestions.filter((s) => s.kind === "proposal");
   if (review.suggestions.length === 0) return null;

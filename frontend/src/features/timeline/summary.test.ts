@@ -132,10 +132,10 @@ const EXAMPLES: [TimelineEvent, string, string][] = [
     "Prüfung von core-v5: gut, 8 / 10",
   ],
   [
-    // REV-12, POL-20: a review of the active version saved later
-    event("review_saved", { version: "core-v5", verdict: "warning", total: 6.5, method: "ai" }),
-    "Review of core-v5 (again): warning, 6.5 / 10",
-    "Prüfung von core-v5 (erneut): Warnung, 6.5 / 10",
+    // REV-12, POL-20, REV-26: a quick review of the active version saved later has no score
+    event("review_saved", { version: "core-v5", verdict: "warning", total: null, method: "ai" }),
+    "Quick review of core-v5: warning",
+    "Schnellprüfung von core-v5: Warnung",
   ],
   [
     event("thesis_revised", { title: "Growth", revision: 3, version: "core-v1", used_revision: 2 }),

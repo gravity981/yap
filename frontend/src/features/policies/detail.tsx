@@ -6,16 +6,15 @@ import { Trans, useTranslation } from "react-i18next";
 import { FileImport } from "@/components/file-import";
 import { filePositions, ImportPriceSources } from "@/features/prices/import-price-sources";
 import { FormError } from "@/components/form";
-import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Markdown } from "@/components/markdown";
-import { ReviewBriefLine, ReviewSection, reviewTitle } from "@/features/reviews/review";
+import { FullReviewOf, ReviewBriefLine, reviewTitle } from "@/features/reviews/review";
 import { ReviewLog } from "@/features/reviews/review-log";
-import { SemaphoreBadge, semaphoreLabel } from "@/features/reviews/semaphore";
+import { PolicySemaphore, SemaphoreBadge } from "@/features/reviews/semaphore";
 import { formatDateTime } from "@/lib/format";
 
 import {
@@ -33,7 +32,7 @@ import {
   DraftReview,
   PolicyFacts,
   PolicyName,
-  ReviewAgain,
+  QuickReview,
   Sharing,
   SharingBadge,
 } from "./policy-parts";
@@ -128,12 +127,14 @@ export function PolicyPage({ policyId }: { policyId: number }) {
         )}
       </div>
 
-      {p.thesis_warning && (
-        <Alert variant="warning">
-          {t("policies.detail.thesisWarningBefore")}
-          <strong>{semaphoreLabel(p.semaphore)}</strong>
-          {t("policies.detail.thesisWarningAfter")}
-        </Alert>
+      {/* THS-04: the semaphore of the active version in its colour, with the verdict */}
+      {active && !archived && (
+        <PolicySemaphore
+          policyId={p.id}
+          semaphore={p.semaphore}
+          reason={p.semaphore_reason}
+          showLink={false}
+        />
       )}
       <FormError error={error} />
 
@@ -188,11 +189,11 @@ export function PolicyPage({ policyId }: { policyId: number }) {
         {active && !archived && (
           <aside className="grid min-w-0 gap-4">
             {/* POL-22: a draft with changes has its own review; the active version is
-                reviewed again when there is none, or the draft is the same version */}
+                given a quick review when there is none, or the draft is the same version */}
             {p.draft?.changed ? (
               <DraftReview policy={p} />
             ) : (
-              <ReviewAgain policy={p} versionLabel={active.label} />
+              <QuickReview policy={p} versionLabel={active.label} />
             )}
             <Sharing policy={p} />
           </aside>
@@ -332,10 +333,7 @@ function VersionView({
         ) : (
           <PositionsTable version={version.data} />
         ))}
-      {/* REV-02: one review of thesis and target structure; versions from before stage 2
-          may have a thesis and a policy review */}
-      {/* REV-21: the latest review of the version; all of them are in the review log */}
-      {summary && <ReviewSection key={summary.version_no} brief={summary.review} />}
+      {/* REV-24: the review is shown in full only in its dialog (review log, versions) */}
       {/* REV-01: reviews are made in the draft editor */}
       {summary?.is_draft && policy.archived_at === null && (
         <p className="text-sm text-muted-foreground">
@@ -386,6 +384,7 @@ function VersionList({ policy }: { policy: Policy }) {
               <span className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="text-muted-foreground">{reviewTitle(v.review.kind)}:</span>
                 <ReviewBriefLine brief={v.review} />
+                {v.review.state === "done" && <FullReviewOf reviewId={v.review.id} />}
               </span>
             )}
           </li>

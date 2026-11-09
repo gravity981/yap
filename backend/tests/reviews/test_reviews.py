@@ -475,3 +475,18 @@ def test_a_manual_review_names_no_model(session: Session, factory: Factory) -> N
     assert (review.news_to - review.news_from).days == 60  # type: ignore[operator]
     assert review.verdict_reason == "Warning signals are observed [1]."
     assert reviews.total(review) == 14
+
+
+@pytest.mark.req("REV-25")
+def test_the_review_is_written_in_the_language_of_the_investor(
+    session: Session, factory: Factory, run: Run, fake: FakeLlm
+) -> None:
+    _configure(session, factory)
+    owner = factory.investor()
+    owner.language = "de"
+    policy_id = _thesis_with_draft(factory, owner)
+    # The prompt to copy into an AI outside the app (REV-19) and the one of an AI reviewer
+    manual = reviews.review_prompt(session, owner, factory.clock, policy_id)
+    assert "in German" in manual.instructions
+    run(_start(session, factory, owner, policy_id))
+    assert "in German" in fake.requests[0].system

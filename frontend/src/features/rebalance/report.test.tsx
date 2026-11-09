@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -82,7 +82,7 @@ function setup() {
         portfolio_id: 5,
         confirmed_at: "2026-03-02T10:00:00+00:00",
         input_snapshot_id: 41,
-        result_snapshot_id: 42,
+        result_snapshot_id: null,
         policy_version_id: 202,
         contribution: "0",
         withdrawal: "0",
@@ -94,7 +94,6 @@ function setup() {
             action: "Sell",
             broker: "Southbank",
             calculated_amount: "150",
-            executed_amount: "140",
           },
         ],
       }),
@@ -126,14 +125,11 @@ describe("report", () => {
     ).toBe(true);
   });
 
-  it("[RB-19] [RB-23] prints a confirmed rebalance with calculated and executed amounts", async () => {
+  it("[RB-19] [RB-23] prints a confirmed rebalance with its calculated instructions", async () => {
     setup();
     renderApp("/rebalances/77/report");
     expect(await screen.findByRole("heading", { name: "Rebalance – Main" })).toBeInTheDocument();
-    const table = screen.getByRole("table", { name: "Calculated and executed" });
-    const row = within(table).getByRole("cell", { name: "AAA" }).closest("tr")!;
-    expect(within(row).getByText("150")).toBeInTheDocument();
-    expect(within(row).getByText("140")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Sell" })).toHaveTextContent("AAA");
     expect(screen.getByLabelText("Cash calculation")).toBeInTheDocument();
     expect(screen.getByText("How this was calculated").closest("details")).toHaveAttribute("open");
   });

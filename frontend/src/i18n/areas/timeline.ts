@@ -21,7 +21,7 @@ export const en = {
     thesis_review_confirmed: "Thesis review",
     policy_review_confirmed: "Policy review",
     review_confirmed: "Review",
-    review_saved: "Review again",
+    review_saved: "Quick review",
     thesis_revised: "Thesis revised",
   },
   noEvents: "No events.",
@@ -29,7 +29,6 @@ export const en = {
   firstVersion: "First version of the policy.",
   portfolio: "Portfolio",
   follows: " follows ",
-  calculated: "(calculated {{amount}})",
   openRebalance: "Open rebalance",
   revision: "revision {{no}} ({{status}})",
   // The entries, written from their stored values; the English ones are the backend's
@@ -49,7 +48,7 @@ export const en = {
     thesisReviewOfVersion: "Thesis review of {{version}}: {{result}}",
     policyReview: "Policy review of {{version}}: {{result}}",
     review: "Review of {{version}}: {{result}}",
-    reviewAgain: "Review of {{version}} (again): {{result}}",
+    reviewAgain: "Quick review of {{version}}: {{result}}",
     score: "{{total}} / 10",
     modified: "modified",
     thesisRevised:
@@ -78,7 +77,7 @@ export const de: Messages<typeof en> = {
     thesis_review_confirmed: "Prüfung der Anlagethese",
     policy_review_confirmed: "Prüfung der Anlagestrategie",
     review_confirmed: "Prüfung",
-    review_saved: "Erneute Prüfung",
+    review_saved: "Schnellprüfung",
     thesis_revised: "Anlagethese überarbeitet",
   },
   noEvents: "Keine Ereignisse.",
@@ -86,7 +85,6 @@ export const de: Messages<typeof en> = {
   firstVersion: "Erste Version der Anlagestrategie.",
   portfolio: "Portfolio",
   follows: " folgt ",
-  calculated: "(berechnet {{amount}})",
   openRebalance: "Rebalancing öffnen",
   revision: "Revision {{no}} ({{status}})",
   summary: {
@@ -107,7 +105,7 @@ export const de: Messages<typeof en> = {
     thesisReviewOfVersion: "Prüfung der Anlagethese von {{version}}: {{result}}",
     policyReview: "Prüfung der Anlagestrategie {{version}}: {{result}}",
     review: "Prüfung von {{version}}: {{result}}",
-    reviewAgain: "Prüfung von {{version}} (erneut): {{result}}",
+    reviewAgain: "Schnellprüfung von {{version}}: {{result}}",
     score: "{{total}} / 10",
     modified: "geändert",
     thesisRevised:

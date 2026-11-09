@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BeforeAfterBars } from "@/components/charts";
 import { usePortfolio } from "@/features/portfolios/api";
 import { formatAmount, formatDateTime, formatPct, formatUnits } from "@/lib/format";
 
@@ -52,8 +53,11 @@ export function actionLabel(action: string): string {
   return key ? i18n.t(`rebalance.action.${key}`) : action;
 }
 
-function isToday(utc: string): boolean {
-  return new Date(utc).toDateString() === new Date().toDateString();
+/** RB-02: values older than this are outdated; rebalancing warns, but stays possible. */
+export const OUTDATED_AFTER_DAYS = 3;
+
+function isOutdated(utc: string): boolean {
+  return Date.now() - new Date(utc).getTime() > OUTDATED_AFTER_DAYS * 24 * 60 * 60 * 1000;
 }
 
 /** RB-01 to RB-03, RB-11 to RB-16, RB-20, RB-22 */
@@ -87,11 +91,7 @@ export function RebalancePage({
         <h1 className="text-2xl font-semibold">{t("rebalance.page.title")}</h1>
         <Alert>{plan.error.message}</Alert>
         <Button asChild className="w-fit">
-          <Link
-            to="/portfolios/$portfolioId/values"
-            params={{ portfolioId: id }}
-            search={{ rebalance: true }}
-          >
+          <Link to="/portfolios/$portfolioId/values" params={{ portfolioId: id }}>
             {t("rebalance.page.enterValues")}
           </Link>
         </Button>
@@ -110,7 +110,7 @@ export function RebalancePage({
       <FormError error={plan.error} />
       {plan.data && (
         <>
-          {!isToday(plan.data.snapshot_taken_at) && (
+          {isOutdated(plan.data.snapshot_taken_at) && (
             <Alert variant="warning" className="flex flex-wrap items-center justify-between gap-2">
               <span>
                 {t("rebalance.page.oldValues", {
@@ -118,11 +118,7 @@ export function RebalancePage({
                 })}
               </span>
               <Button size="sm" variant="outline" asChild>
-                <Link
-                  to="/portfolios/$portfolioId/values"
-                  params={{ portfolioId: id }}
-                  search={{ rebalance: true }}
-                >
+                <Link to="/portfolios/$portfolioId/values" params={{ portfolioId: id }}>
                   {t("rebalance.page.enterValues")}
                 </Link>
               </Button>
@@ -260,6 +256,12 @@ export function PlanView({ plan, printable = false }: { plan: Plan; printable?: 
   return (
     <div className="grid gap-4">
       <InstructionCards instructions={plan.instructions} precise={plan.precise_amounts} />
+      <PreviewCard
+        result={plan.result}
+        precise={plan.precise_amounts}
+        contribution={plan.contribution}
+        withdrawal={plan.withdrawal}
+      />
       <CashCard
         contribution={plan.contribution}
         withdrawal={plan.withdrawal}
@@ -346,6 +348,62 @@ function withdrawalSellsByBroker(result: Result): [string, number][] {
     if (amount > 0) sums.set(p.broker ?? "", (sums.get(p.broker ?? "") ?? 0) + amount);
   }
   return [...sums];
+}
+
+/** RB-27: allocation before and after per position; portfolio value and payout apart. */
+export function PreviewCard({
+  result: r,
+  precise,
+  contribution,
+  withdrawal,
+}: {
+  result: Result;
+  precise: boolean;
+  contribution: string;
+  withdrawal: string;
+}) {
+  const { t } = useTranslation();
+  const notInvested = Number(r.unallocated_cash);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("rebalance.preview.title")}</CardTitle>
+        <CardDescription>{t("rebalance.preview.description")}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+        <BeforeAfterBars
+          rows={r.positions.map((p) => ({
+            ticker: p.ticker,
+            name: p.name,
+            before: Number(p.allocation_before_pct),
+            after: Number(p.allocation_after_pct),
+            target: p.target_pct === null ? null : Number(p.target_pct),
+          }))}
+        />
+        <dl
+          className="grid h-fit grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm"
+          aria-label={t("rebalance.preview.value")}
+        >
+          <dt>{t("rebalance.preview.valueBefore")}</dt>
+          <dd className="text-right tabular-nums">{formatAmount(r.total_value_before, precise)}</dd>
+          <dt>{t("rebalance.preview.contribution")}</dt>
+          <dd className="text-right tabular-nums">{formatAmount(contribution, precise)}</dd>
+          <dt>{t("rebalance.preview.payout")}</dt>
+          <dd className="text-right tabular-nums">{formatAmount(withdrawal, precise)}</dd>
+          {notInvested > 0.005 && (
+            <>
+              <dt>{t("rebalance.preview.notInvested")}</dt>
+              <dd className="text-right tabular-nums">{formatAmount(notInvested, precise)}</dd>
+            </>
+          )}
+          <dt className="border-t pt-1 font-medium">{t("rebalance.preview.valueAfter")}</dt>
+          <dd className="border-t pt-1 text-right font-medium tabular-nums">
+            {formatAmount(r.total_value_after, precise)}
+          </dd>
+        </dl>
+      </CardContent>
+    </Card>
+  );
 }
 
 /** RB-09, RB-13: cash calculation, and buys or withdrawal sells per broker. */
@@ -578,22 +636,11 @@ function DistanceIndicator({ diff }: { diff: number }) {
   );
 }
 
-/** RB-16: units and amounts as executed, pre-filled with the calculated ones. */
+/** RB-16: confirming commits to carrying the trades out as calculated; nothing is adjusted. */
 function ConfirmForm({ portfolioId, plan }: { portfolioId: number; plan: Plan }) {
   const { t } = useTranslation();
-  const confirm = useConfirm(portfolioId);
   const navigate = useNavigate();
-  const key = (phase: string, ticker: string) => `${phase}:${ticker}`;
-  const [executed, setExecuted] = useState<Record<string, string>>(() =>
-    Object.fromEntries(plan.instructions.map((i) => [key(i.phase, i.ticker), i.amount])),
-  );
-  const [executedUnits, setExecutedUnits] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      plan.instructions.flatMap((i) =>
-        i.units === null ? [] : [[key(i.phase, i.ticker), i.units]],
-      ),
-    ),
-  );
+  const confirm = useConfirm(portfolioId);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -604,12 +651,6 @@ function ConfirmForm({ portfolioId, plan }: { portfolioId: number; plan: Plan })
         withdrawal: plan.withdrawal,
         mode: plan.mode,
         policy_version_id: plan.policy_version_id,
-        executed: plan.instructions.map((i) => ({
-          phase: i.phase,
-          ticker: i.ticker,
-          amount: executed[key(i.phase, i.ticker)] || "0",
-          ...(i.units !== null && { units: executedUnits[key(i.phase, i.ticker)] || "0" }),
-        })),
       },
       {
         onSuccess: (r) =>
@@ -627,38 +668,6 @@ function ConfirmForm({ portfolioId, plan }: { portfolioId: number; plan: Plan })
       </CardHeader>
       <CardContent>
         <form className="grid gap-3" onSubmit={submit}>
-          <div className="grid gap-2 lg:grid-cols-2">
-            {plan.instructions.map((i) => {
-              const k = key(i.phase, i.ticker);
-              const names = { action: actionLabel(i.action), ticker: i.ticker };
-              return (
-                <div key={k} className="grid grid-cols-[1fr_6rem_8rem] items-center gap-2 text-sm">
-                  <span>
-                    {i.ticker}{" "}
-                    <span className="text-muted-foreground">{actionLabel(i.action)}</span>
-                  </span>
-                  {i.units === null ? (
-                    <span />
-                  ) : (
-                    <Input
-                      aria-label={t("rebalance.confirm.executedUnits", names)}
-                      placeholder={t("rebalance.confirm.units")}
-                      inputMode="decimal"
-                      value={executedUnits[k]}
-                      onChange={(e) => setExecutedUnits({ ...executedUnits, [k]: e.target.value })}
-                    />
-                  )}
-                  <Input
-                    aria-label={t("rebalance.confirm.executed", names)}
-                    placeholder={t("rebalance.confirm.amount")}
-                    inputMode="decimal"
-                    value={executed[k]}
-                    onChange={(e) => setExecuted({ ...executed, [k]: e.target.value })}
-                  />
-                </div>
-              );
-            })}
-          </div>
           <FormError error={confirm.error} />
           <div className="flex justify-end">
             <Button type="submit" disabled={confirm.isPending}>

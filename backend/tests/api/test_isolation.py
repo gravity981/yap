@@ -104,7 +104,6 @@ BODIES: dict[tuple[str, str], Any] = {
         "snapshot_id": "{snapshot_id}",
         "contribution": 0,
         "policy_version_id": "{active_version_id}",
-        "executed": [],
     },
     ("POST", "/api/portfolios/{portfolio_id}/simulate"): {"cycles": 2},
     ("POST", "/api/admin/accounts/{account_id}/reset-password"): {
@@ -176,7 +175,6 @@ def world(session: Session, factory: Factory, accounts_api: Accounts) -> dict[st
         snapshot_id=snapshot.id,
         contribution=Decimal(0),
         policy_version_id=policy.versions[0].id,
-        executed=[],
     )
     session.commit()
     return {

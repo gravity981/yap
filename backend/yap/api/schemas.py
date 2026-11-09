@@ -61,10 +61,14 @@ class ReviewBrief(BaseModel):
     saved_at: datetime | None  # REV-21: the date of the latest review
 
     @classmethod
-    def of(cls, version: PolicyVersion, review: Review) -> ReviewBrief:
+    def of(
+        cls, version: PolicyVersion, review: Review, score_from: Review | None = None
+    ) -> ReviewBrief:
+        """The review in short. The scores are its own, or those of `score_from`: a quick
+        review has none (REV-26), so the version keeps the scores of its latest full one."""
         from yap.services import reviews
 
-        scores = reviews.scores(review)
+        scores = reviews.scores(score_from or review)
         semaphore = reviews.review_semaphore(review)
         return cls(
             id=review.id,
@@ -89,7 +93,7 @@ class ReviewBrief(BaseModel):
         from yap.services import reviews
 
         review = reviews.current_review(version)
-        return cls.of(version, review) if review else None
+        return cls.of(version, review, reviews.scored_review(version)) if review else None
 
 
 def half(half_points: int | None) -> float | None:
@@ -390,6 +394,17 @@ class SnapshotSummary(BaseModel):
     total_value: PlainDecimal
 
 
+class AllocationShare(BaseModel):
+    ticker: str
+    allocation_pct: PlainDecimal
+
+
+class SnapshotListItem(SnapshotSummary):
+    """CMP-08: a past snapshot with the share of every position it held."""
+
+    allocations: list[AllocationShare]
+
+
 class SnapshotOut(SnapshotSummary):
     portfolio_id: int
     currency: str  # the portfolio's (PTF-03)
@@ -423,6 +438,17 @@ class SnapshotOut(SnapshotSummary):
                 for r in comparison.rows
             ],
         )
+
+
+def snapshot_list_item(comparison: Comparison) -> SnapshotListItem:
+    return SnapshotListItem(
+        **snapshot_summary(comparison).model_dump(),
+        allocations=[
+            AllocationShare(ticker=r.ticker, allocation_pct=r.allocation_pct)
+            for r in comparison.rows
+            if r.value > 0
+        ],
+    )
 
 
 def snapshot_summary(comparison: Comparison) -> SnapshotSummary:

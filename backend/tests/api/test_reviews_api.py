@@ -337,16 +337,18 @@ def test_suggestions_are_taken_over_dismissed_and_undone(
     assert result["draft"]["positions"][0]["sell_threshold_pct"] == "20"
     assert result["review"]["suggestions"][1]["state"] == "open"
 
+    # Dismissing deletes the suggestion for good: it cannot be taken over or undone any more
     result = ok(alice.post(f"{base}/{section['id']}/dismiss"))
-    assert result["review"]["suggestions"][0]["state"] == "dismissed"
+    assert [s["id"] for s in result["review"]["suggestions"]] == [change["id"]]
     assert "## 7." not in result["draft"]["thesis_md"]
-    conflict = alice.post(f"{base}/{section['id']}/take-over")
-    assert conflict.status_code == 409
-    assert conflict.json()["code"] == "suggestion_not_open"
+    assert alice.post(f"{base}/{section['id']}/take-over").status_code == 404
+    assert alice.post(f"{base}/{section['id']}/undo").status_code == 404
+    conflict = alice.post(f"{base}/{change['id']}/undo")  # open, not taken over
+    assert conflict.status_code == 409 and conflict.json()["code"] == "suggestion_is_open"
 
     accounts_api.create("bob")
     bob = accounts_api.client("bob")
-    assert bob.post(f"{base}/{section['id']}/undo").status_code == 404
+    assert bob.post(f"{base}/{change['id']}/undo").status_code == 404
 
 
 @pytest.mark.req("REV-22")

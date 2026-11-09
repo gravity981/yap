@@ -9,7 +9,6 @@ from yap.domain.types import HUNDRED
 
 class BandStatus(StrEnum):
     BELOW_BUY_THRESHOLD = "below_buy_threshold"
-    BELOW_TARGET = "below_target"
     WITHIN_BAND = "within_band"
     ABOVE_SELL_THRESHOLD = "above_sell_threshold"
     NOT_IN_POLICY = "not_in_policy"
@@ -41,8 +40,6 @@ class Band:
     def status(self, allocation_pct: Decimal) -> BandStatus:
         if allocation_pct < self.buy_abs:
             return BandStatus.BELOW_BUY_THRESHOLD
-        if allocation_pct < self.target_pct:
-            return BandStatus.BELOW_TARGET
         if allocation_pct > self.sell_abs:
             return BandStatus.ABOVE_SELL_THRESHOLD
         return BandStatus.WITHIN_BAND

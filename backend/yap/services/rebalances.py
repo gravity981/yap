@@ -1,9 +1,8 @@
 """Rebalancing a portfolio: preview, confirmation, simulation (RB-01 to RB-03, RB-16,
-RB-17, RB-20, RB-24). The calculation itself is in domain/rebalancing.py."""
+RB-20, RB-24). The calculation itself is in domain/rebalancing.py."""
 
 from dataclasses import dataclass, replace
-from decimal import Decimal, localcontext
-from typing import Any
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,11 +15,9 @@ from yap.db.models import (
     RebalanceAction,
     Review,
     Snapshot,
-    SnapshotValue,
 )
 from yap.domain.bands import Band
 from yap.domain.rebalancing import (
-    UNITS_PRECISION,
     AmountError,
     Mode,
     PositionInput,
@@ -31,7 +28,7 @@ from yap.domain.rebalancing import (
 )
 from yap.domain.reviews import Verdict
 from yap.domain.types import AssetType
-from yap.messages import Message, msg
+from yap.messages import msg
 from yap.services import reviews, snapshots
 from yap.services.assets import find_asset
 from yap.services.common import (
@@ -42,8 +39,6 @@ from yap.services.common import (
     get_owned,
 )
 from yap.services.portfolios import broker_for, whole_units_for
-from yap.services.price_update import AutoPrice
-from yap.services.snapshots import ValueSpec
 from yap.services.timeline import EventType, add_event
 from yap.services.versioning import active_version
 
@@ -197,14 +192,6 @@ def plan(
     return Plan(portfolio, snapshot, version, amount, out, result, mode, semaphore, reason)
 
 
-@dataclass(frozen=True)
-class Executed:
-    phase: str  # 1A | 1B | 3
-    ticker: str
-    amount: Decimal
-    units: Decimal | None = None  # None: the calculated units (RB-16)
-
-
 def confirm(
     session: Session,
     actor: Investor,
@@ -215,12 +202,12 @@ def confirm(
     contribution: Decimal,
     withdrawal: Decimal = Decimal(0),
     policy_version_id: int,
-    executed: list[Executed],
     mode: Mode = Mode.NORMAL,
 ) -> Rebalance:
-    """RB-16, RB-17: stores the rebalance with calculated and executed amounts, the
-    resulting snapshot and a timeline event. The plan is recalculated here, so the
-    stored instructions never come from the client."""
+    """RB-16: stores the rebalance with its calculated instructions and a timeline event;
+    the investor commits to carrying the trades out as calculated. The plan is recalculated
+    here, so the stored instructions never come from the client. The portfolio's values
+    change only when the investor records them."""
     p = plan(
         session,
         actor,
@@ -235,86 +222,9 @@ def confirm(
         raise ConflictError(msg("rebalance_policy_changed"))
 
     calculated = {(i.phase, i.ticker): i for i in p.actions}
-    amounts = {key: i.amount for key, i in calculated.items()}
-    units = {key: i.units for key, i in calculated.items()}
-    problems: list[tuple[str, Message]] = []
-    for n, e in enumerate(executed):
-        key = (e.phase, e.ticker.strip().upper())
-        if key not in calculated:
-            problems.append(
-                (f"executed[{n}]", msg("rebalance_no_instruction", phase=e.phase, ticker=key[1]))
-            )
-            continue
-        if e.amount < 0:
-            problems.append((f"executed[{n}].amount", msg("rebalance_executed_negative")))
-        else:
-            amounts[key] = e.amount
-        if e.units is not None and units[key] is not None:
-            if e.units < 0:
-                problems.append((f"executed[{n}].units", msg("rebalance_executed_negative")))
-            else:
-                units[key] = e.units
-    if problems:
-        raise ValidationError(problems)
-
-    def done(phase: str, ticker: str) -> Decimal:
-        return amounts.get((phase, ticker), Decimal(0))
-
-    def done_units(phase: str, ticker: str) -> Decimal:
-        return units.get((phase, ticker)) or Decimal(0)
-
     by_ticker = {r.position.ticker: r for r in p.result.positions}
-    buffer = next((r for r in p.result.positions if r.position.is_cash_buffer), None)
-    buffer_buys = sum((a for (phase, _), a in amounts.items() if phase == "1A"), Decimal(0))
-    if buffer is not None and buffer_buys > buffer.position.value:
-        problems.append(("executed", msg("rebalance_buffer_exceeded")))
-    # Phase 3 is a buy, or a withdrawal sell (RB-22), never both for one position
     withdrawn = {t for t, r in by_ticker.items() if r.withdrawal_sell > 0}
-    for phase, ticker in amounts:
-        if phase == "1B" or (phase == "3" and ticker in withdrawn):
-            position = by_ticker[ticker].position
-            available = position.value + done("1A", ticker)
-            units_held = (position.units or Decimal(0)) + done_units("1A", ticker)
-            if phase == "3":
-                available -= done("1B", ticker)
-                units_held -= done_units("1B", ticker)
-            too_many = position.has_units and done_units(phase, ticker) > units_held
-            if done(phase, ticker) > available or too_many:
-                problems.append(("executed", msg("rebalance_sell_exceeds", ticker=ticker)))
-    if problems:
-        raise ValidationError(problems)
-
-    # RB-17: the resulting positions. With units: the input units +/- the executed units at
-    # the input snapshot's price; otherwise the value +/- the executed amounts. Created
-    # first: the rebalance row is append-only and references it.
-    resulting: list[ValueSpec] = []
-    input_rows = {v.asset.ticker: v for v in p.snapshot.values}
-    for r in p.result.positions:
-        position, ticker = r.position, r.position.ticker
-        sign = -1 if ticker in withdrawn else 1
-        if position.has_units:
-            assert position.units is not None
-            with localcontext() as context:  # no decimal of crypto units is lost
-                context.prec = UNITS_PRECISION
-                held = (
-                    position.units
-                    + done_units("1A", ticker)
-                    - done_units("1B", ticker)
-                    + sign * done_units("3", ticker)
-                )
-            if position.in_policy or held > 0:
-                resulting.append(ValueSpec(ticker, units=held, **_same_price(input_rows, ticker)))
-            continue
-        value = position.value + done("1A", ticker) - done("1B", ticker) + sign * done("3", ticker)
-        if position.is_cash_buffer:
-            value -= buffer_buys
-            if mode is Mode.SELL_ALL:  # the cash stays in the portfolio (RB-25)
-                value += p.result.unallocated_cash
-        if position.in_policy or value > 0:
-            resulting.append(ValueSpec(ticker, value))
-    result_snapshot = snapshots.create_snapshot(
-        session, actor, clock, p.portfolio.id, resulting, source="rebalance"
-    )
+    amounts = {key: i.amount for key, i in calculated.items()}
 
     now = clock.now()
     record = Rebalance(
@@ -325,12 +235,11 @@ def confirm(
         withdrawal=p.withdrawal,
         mode=mode.value,
         precise_amounts=p.portfolio.precise_amounts,
-        result_snapshot_id=result_snapshot.id,
         confirmed_at=now,
     )
     session.add(record)
     session.flush()
-    for key, instruction in calculated.items():
+    for instruction in calculated.values():
         asset = find_asset(session, instruction.ticker)
         assert asset is not None
         session.add(
@@ -342,9 +251,7 @@ def confirm(
                 broker=instruction.broker,
                 whole_units=instruction.whole_units,
                 calculated_units=instruction.units,
-                executed_units=units[key],
                 calculated_amount=instruction.amount,
-                executed_amount=amounts[key],
             )
         )
 
@@ -378,17 +285,6 @@ def confirm(
     session.flush()
     session.refresh(record)
     return record
-
-
-def _same_price(rows: dict[str, SnapshotValue], ticker: str) -> dict[str, Any]:
-    """RB-17: the price of the input snapshot, an auto price with where it came from (CMP-10)."""
-    row = rows.get(ticker)
-    if row is not None and row.price_kind == "auto" and row.listing is not None:
-        assert row.listing_price is not None and row.fx_rate is not None
-        assert row.price is not None and row.price_date is not None
-        auto = AutoPrice(row.listing, row.listing_price, row.fx_rate, row.price, row.price_date)
-        return {"auto": auto}
-    return {"price": row.price if row is not None else None}
 
 
 def recalculate(session: Session, actor: Investor, rebalance_id: int) -> RebalanceResult:

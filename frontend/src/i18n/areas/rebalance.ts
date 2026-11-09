@@ -18,9 +18,9 @@ export const en = {
     title: "Rebalance",
     titleOf: "Rebalance {{name}}",
     intro:
-      "These are instructions only; nothing is stored until you confirm the executed trades below.",
+      "These are instructions only; nothing is stored until you confirm that the trades will be carried out as calculated.",
     enterValues: "Enter values",
-    oldValues: "The values are from {{date}}. Enter current values for up-to-date instructions.",
+    oldValues: "Values outdated (from {{date}}). Recommendation: update them first.",
     contribution: "Contribution",
     withdrawal: "Withdrawal",
     recalculate: "Recalculate",
@@ -69,6 +69,21 @@ export const en = {
     noBuys: "No buys.",
     noBroker: "no broker set",
   },
+  preview: {
+    title: "Before and after",
+    description: "Share of each position in the portfolio before and after the rebalance.",
+    chart: "Allocation before and after the rebalance",
+    before: "before",
+    after: "after",
+    of: "{{ticker}}: {{before}} before, {{after}} after",
+    value: "Portfolio value",
+    valueBefore: "Value before",
+    contribution: "+ Contribution",
+    payout: "− Payout (withdrawal)",
+    notInvested: "− Not invested (stays as cash)",
+    valueAfter: "Value after",
+    payoutNote: "The payout leaves the portfolio; it is not part of the value after.",
+  },
   table: {
     summary: "All positions in detail",
     position: "Position",
@@ -86,14 +101,10 @@ export const en = {
   },
   confirm: {
     nothing: "Nothing to rebalance: all positions are where the policy wants them.",
-    title: "Confirm after executing",
+    title: "Confirm the rebalance",
     description:
-      "Adjust the units and the amount of each action to what was actually executed (0 = not executed). Confirming stores the rebalance and the resulting values; it cannot be changed afterwards.",
-    executed: "Executed {{action}} {{ticker}}",
-    executedUnits: "Executed units {{action}} {{ticker}}",
-    units: "units",
-    amount: "amount",
-    submit: "Confirm rebalance",
+      "Confirming means the trades will be carried out as calculated above, not that they have been. Nothing can be adjusted and no values are stored; it cannot be changed afterwards. After trading, record the new values.",
+    submit: "Carry out as calculated",
   },
   simulation: {
     summary: "Simulate several cycles",
@@ -122,9 +133,7 @@ export const en = {
     action: "Action",
     broker: "Broker",
     calculated: "Calculated",
-    executed: "Executed",
     calculatedUnits: "Calculated units",
-    executedUnits: "Executed units",
   },
   report: {
     print: "Print / save as PDF",
@@ -135,7 +144,6 @@ export const en = {
     confirmedTitle: "Rebalance – {{name}}",
     confirmedFacts:
       "Confirmed {{date}} · contribution {{contribution}} · withdrawal {{withdrawal}}",
-    table: "Calculated and executed",
   },
   explanation: {
     title: "How this was calculated",
@@ -203,9 +211,9 @@ export const de: Messages<typeof en> = {
     title: "Rebalancing",
     titleOf: "Rebalancing {{name}}",
     intro:
-      "Das sind nur Anweisungen; gespeichert wird erst, wenn du unten die ausgeführten Trades bestätigst.",
+      "Das sind nur Anweisungen; gespeichert wird erst, wenn du bestätigst, dass die Trades wie berechnet ausgeführt werden.",
     enterValues: "Werte erfassen",
-    oldValues: "Die Werte sind vom {{date}}. Erfasse aktuelle Werte für aktuelle Anweisungen.",
+    oldValues: "Werte veraltet (vom {{date}}), Empfehlung: zuerst aktualisieren.",
     contribution: "Einzahlung",
     withdrawal: "Entnahme",
     recalculate: "Neu berechnen",
@@ -254,6 +262,21 @@ export const de: Messages<typeof en> = {
     noBuys: "Keine Käufe.",
     noBroker: "kein Broker festgelegt",
   },
+  preview: {
+    title: "Vorher und nachher",
+    description: "Anteil jeder Position am Portfolio vor und nach dem Rebalancing.",
+    chart: "Anteile vor und nach dem Rebalancing",
+    before: "vorher",
+    after: "nachher",
+    of: "{{ticker}}: {{before}} vorher, {{after}} nachher",
+    value: "Portfoliowert",
+    valueBefore: "Wert vorher",
+    contribution: "+ Einzahlung",
+    payout: "− Auszahlung (Entnahme)",
+    notInvested: "− Nicht investiert (bleibt Liquidität)",
+    valueAfter: "Wert nachher",
+    payoutNote: "Die Auszahlung verlässt das Portfolio; sie ist nicht im Wert nachher enthalten.",
+  },
   table: {
     summary: "Alle Positionen im Detail",
     position: "Position",
@@ -272,14 +295,10 @@ export const de: Messages<typeof en> = {
   confirm: {
     nothing:
       "Nichts zu rebalancieren: Alle Positionen liegen dort, wo die Anlagestrategie sie haben will.",
-    title: "Nach dem Ausführen bestätigen",
+    title: "Rebalancing bestätigen",
     description:
-      "Passe Anzahl und Betrag jeder Aktion an das an, was tatsächlich ausgeführt wurde (0 = nicht ausgeführt). Mit der Bestätigung werden das Rebalancing und die resultierenden Werte gespeichert; danach lässt es sich nicht mehr ändern.",
-    executed: "Ausgeführt {{action}} {{ticker}}",
-    executedUnits: "Ausgeführte Anzahl {{action}} {{ticker}}",
-    units: "Anzahl",
-    amount: "Betrag",
-    submit: "Rebalancing bestätigen",
+      "Die Bestätigung bedeutet, dass die Trades wie oben berechnet ausgeführt werden, nicht, dass sie schon ausgeführt wurden. Es lässt sich nichts anpassen und es werden keine Werte gespeichert; danach lässt es sich nicht mehr ändern. Erfasse nach dem Handeln die neuen Werte.",
+    submit: "Wie berechnet ausführen",
   },
   simulation: {
     summary: "Mehrere Zyklen simulieren",
@@ -308,9 +327,7 @@ export const de: Messages<typeof en> = {
     action: "Aktion",
     broker: "Broker",
     calculated: "Berechnet",
-    executed: "Ausgeführt",
     calculatedUnits: "Berechnete Anzahl",
-    executedUnits: "Ausgeführte Anzahl",
   },
   report: {
     print: "Drucken / als PDF speichern",
@@ -320,7 +337,6 @@ export const de: Messages<typeof en> = {
       "Einzahlung {{contribution}} · Entnahme {{withdrawal}} · nicht bestätigt · erstellt {{date}}",
     confirmedTitle: "Rebalancing – {{name}}",
     confirmedFacts: "Bestätigt {{date}} · Einzahlung {{contribution}} · Entnahme {{withdrawal}}",
-    table: "Berechnet und ausgeführt",
   },
   explanation: {
     title: "So wurde gerechnet",

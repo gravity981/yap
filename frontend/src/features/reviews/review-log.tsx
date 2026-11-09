@@ -14,7 +14,7 @@ import {
 import { formatDate } from "@/lib/format";
 
 import { useReview, useReviewLog, type Review, type ReviewLogEntry } from "./api";
-import { FullReview, aspectName, reviewerLabel } from "./review";
+import { FullReview, FullReviewOf, aspectName, reviewerLabel } from "./review";
 import { ScoreCourse } from "./score-course";
 import { SemaphoreBadge } from "./semaphore";
 
@@ -62,6 +62,9 @@ export function ReviewLog({ policyId }: { policyId: number }) {
                 <TableHead>{t("reviews.log.reviewer")}</TableHead>
                 <TableHead>{t("reviews.log.score")}</TableHead>
                 <TableHead>{t("reviews.log.semaphore")}</TableHead>
+                <TableHead>
+                  <span className="sr-only">{t("reviews.log.full")}</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -89,6 +92,15 @@ export function ReviewLog({ policyId }: { policyId: number }) {
                   </TableCell>
                   <TableCell>
                     <SemaphoreBadge semaphore={e.semaphore} />
+                  </TableCell>
+                  <TableCell>
+                    <FullReviewOf
+                      reviewId={e.id}
+                      label={t("reviews.log.readOf", {
+                        date: formatDate(e.saved_at),
+                        version: e.version_label,
+                      })}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

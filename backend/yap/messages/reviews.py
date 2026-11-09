@@ -49,8 +49,8 @@ MESSAGES: dict[str, str] = {
     "suggestion_not_found": "Suggestion {id} not found",
     "suggestion_review_confirmed": "The review is confirmed; its suggestions cannot change",
     "suggestion_without_change": "This suggestion is from an older review and cannot be taken over",
-    "suggestion_not_open": "This suggestion was already taken over or dismissed",
-    "suggestion_is_open": "This suggestion is neither taken over nor dismissed",
+    "suggestion_not_open": "This suggestion was already taken over",
+    "suggestion_is_open": "This suggestion has not been taken over",
     "suggestion_position_missing": "The draft has no position {ticker} any more",
     "suggestion_position_exists": "The draft already has a position {ticker}",
     "suggestion_no_draft": "The draft this suggestion was taken over into no longer exists",
@@ -64,10 +64,6 @@ MESSAGES: dict[str, str] = {
         "Selling the whole portfolio is only offered when the thesis is broken"
     ),
     "rebalance_mode_invalid": "The mode must be normal or sell_all",
-    "rebalance_no_instruction": "No {phase} instruction for {ticker}",
-    "rebalance_executed_negative": "Executed amounts must be 0 or more",
-    "rebalance_buffer_exceeded": "Buffer buys together exceed the cash buffer",
-    "rebalance_sell_exceeds": "Sell of {ticker} exceeds the position's value",
     "rebalance_not_found": "Rebalance {id} not found",
     "rebalance_cycles_invalid": "Cycles must be between 1 and {max}",
 }

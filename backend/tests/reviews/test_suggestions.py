@@ -197,20 +197,39 @@ def test_a_proposal_fills_the_target_structure_and_undo_empties_it(
 
 
 @pytest.mark.req("REV-07")
-def test_a_dismissed_suggestion_changes_nothing_and_can_be_reopened(
+def test_a_dismissed_suggestion_is_deleted_and_changes_nothing(
     session: Session, factory: Factory
 ) -> None:
     owner, draft, review = _setup(session, factory)
     thesis = draft.thesis_md
-    s = factory.suggestion(review)
-    draft = suggestions.dismiss(session, owner, factory.clock, review.id, s.id)
-    assert (s.state, draft.thesis_md) == ("dismissed", thesis)
-    assert not reviews.outdated(review, draft)
-    with pytest.raises(ConflictError) as error:
-        _take_over(session, factory, owner, s)
-    assert error.value.message == msg("suggestion_not_open")
-    draft = _undo(session, factory, owner, s)
-    assert (s.state, draft.thesis_md) == ("open", thesis)
+    gone = factory.suggestion(review).id
+    other = factory.suggestion(review)
+    draft = suggestions.dismiss(session, owner, factory.clock, review.id, gone)
+    session.refresh(review)
+    assert draft.thesis_md == thesis and not reviews.outdated(review, draft)
+    assert [x.id for x in review.suggestions] == [other.id]
+    with pytest.raises(NotFoundError):
+        suggestions.take_over(session, owner, factory.clock, review.id, gone)
+    with pytest.raises(NotFoundError):
+        suggestions.undo(session, owner, factory.clock, review.id, gone)
+
+
+@pytest.mark.req("REV-07")
+def test_activating_the_draft_removes_the_suggestions_that_are_left(
+    session: Session, factory: Factory
+) -> None:
+    owner, draft, review = _setup(session, factory)
+    taken = factory.suggestion(review)
+    taken_id = taken.id
+    factory.suggestion(review)
+    _take_over(session, factory, owner, taken)
+    factory.clock.advance(minutes=1)
+    policies.activate_draft(session, owner, factory.clock, draft.policy_id, "v2")
+    session.refresh(review)
+    # The review is confirmed with the version, without any of its suggestions
+    assert review.saved_at is not None and list(review.suggestions) == []
+    with pytest.raises(NotFoundError):
+        suggestions.take_over(session, owner, factory.clock, review.id, taken_id)
 
 
 @pytest.mark.req("REV-07")

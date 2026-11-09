@@ -43,7 +43,6 @@ export function useConfirm(portfolioId: number) {
       withdrawal: string;
       mode: string;
       policy_version_id: number;
-      executed: { phase: string; ticker: string; amount: string }[];
     }) =>
       unwrap(
         api.POST("/api/portfolios/{portfolio_id}/rebalances", {

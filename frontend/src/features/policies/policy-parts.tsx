@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 
 import { FormError } from "@/components/form";
 import { Stars, formatScore } from "@/components/stars";
-import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SemaphoreBadge } from "@/features/reviews/semaphore";
@@ -13,13 +12,7 @@ import { formatDate } from "@/lib/format";
 
 import { Input } from "@/components/ui/input";
 
-import {
-  usePolicySharing,
-  useRenamePolicy,
-  type Policy,
-  type PolicySummary,
-  type Version,
-} from "./api";
+import { usePolicySharing, useRenamePolicy, type Policy, type PolicySummary } from "./api";
 
 const LEVELS = ["private", "text", "all"] as const;
 
@@ -59,36 +52,23 @@ export function PolicyFacts({ policy }: { policy: Policy | PolicySummary }) {
   );
 }
 
-/** POL-20: reviews the active version again, without a new version. The result goes into
- * the review log and sets the score and the semaphore; its suggestions are taken over into
- * the draft, which is created if there is none (REV-07). */
-export function ReviewAgain({ policy, versionLabel }: { policy: Policy; versionLabel: string }) {
+/** POL-20, REV-26: the quick review of the active version, without a new version: the
+ * verdict and the news. The result goes into the review log and gives the semaphore; the
+ * score stays as it was. */
+export function QuickReview({ policy, versionLabel }: { policy: Policy; versionLabel: string }) {
   const { t } = useTranslation();
-  const [draft, setDraft] = useState<Version | null>(null);
   return (
     <section className="grid gap-3 rounded-lg border p-4" aria-label={t("reviews.again.title")}>
       <h2 className="font-semibold">{t("reviews.again.title")}</h2>
       <p className="text-sm text-muted-foreground">
         {t("reviews.again.note", { version: versionLabel })}
       </p>
-      {draft && (
-        <Alert role="status">
-          {t("reviews.again.takenOver", { version: draft.label })}{" "}
-          <Link
-            to="/policies/$policyId/draft"
-            params={{ policyId: String(policy.id) }}
-            className="underline"
-          >
-            {t("reviews.again.openDraft")}
-          </Link>
-        </Alert>
-      )}
       <ReviewPane
         policyId={policy.id}
         target="active"
         brief={policy.pending_review ?? policy.latest_review}
         save={() => Promise.resolve()}
-        onDraft={(d) => d && setDraft(d)}
+        onDraft={() => undefined}
       />
     </section>
   );
@@ -177,7 +157,8 @@ export function DraftReview({ policy }: { policy: Policy }) {
 export function Sharing({ policy }: { policy: Policy }) {
   const { t } = useTranslation();
   const sharing = usePolicySharing(policy.id);
-  const reviewed = policy.latest_review !== null;
+  // Sharing needs a review with scores; a quick review has none (REV-20, REV-26)
+  const reviewed = policy.latest_review?.total != null;
   return (
     <fieldset className="grid gap-2 rounded-lg border p-4">
       <legend className="px-1 font-semibold">{t("policies.sharing.title")}</legend>

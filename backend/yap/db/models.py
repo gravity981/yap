@@ -411,9 +411,7 @@ class RebalanceAction(Base):
     # Copied at confirmation, like the broker; null for positions without units (RB-24)
     whole_units: Mapped[bool | None] = mapped_column(Boolean)
     calculated_units: Mapped[Decimal | None]
-    executed_units: Mapped[Decimal | None]
     calculated_amount: Mapped[Decimal]
-    executed_amount: Mapped[Decimal]
 
 
 class Review(Base):
@@ -508,7 +506,9 @@ class ReviewSuggestion(Base):
     change: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     # What Take over replaced, so it can be undone
     previous: Mapped[dict[str, Any] | None] = mapped_column(JSON)
-    state: Mapped[str] = mapped_column(String(20), default="open")  # | taken_over | dismissed
+    state: Mapped[str] = mapped_column(
+        String(20), default="open"
+    )  # | taken_over; dismissed ones are deleted (REV-07)
 
 
 class ReviewRun(Base):

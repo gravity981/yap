@@ -26,7 +26,7 @@ The screenshots show fictional demo data. They are generated with `npm run scree
 
 ## Dashboard
 
-All portfolios at a glance: how many positions are outside their band, the semaphore of
+All portfolios at a glance: how many positions are outside their band, the thesis status of
 the policy behind each of them (good, warning, broken) and your latest decisions.
 
 ![Dashboard with one portfolio and the recent events](screenshots/dashboard.png)
@@ -50,7 +50,7 @@ buffers, ETFs, stocks and crypto are supported.
 
 ![The draft editor: thesis and target structure on the left, the review beside it](screenshots/policy-editor.png)
 
-![Policies with their latest review: stars, semaphore, draft and portfolios](screenshots/policies.png)
+![Policies with their latest review: stars, thesis status, draft and portfolios](screenshots/policies.png)
 
 ![A policy with its target structure](screenshots/policy.png)
 
@@ -61,7 +61,11 @@ position is from its target, whether it is within its band, and how the portfoli
 by asset type. Prices come from price providers where your assets are listed, converted into
 the portfolio's currency; for anything else you enter the price, and the one last entered is
 pre-filled. Each snapshot keeps the prices it was taken with, so earlier comparisons and
-rebalances never change.
+rebalances never change. The history tab shows how the share of each position developed
+over the snapshots as a line chart (the four largest positions, the rest together as
+"other"), above the list of past snapshots.
+Positions you have sold completely (exited or no longer in the policy, value 0) are hidden;
+a button shows them again.
 
 When you add a ticker, the app looks it up at the price providers: one listing is used
 right away, with several (e.g. on SIX and in London) you choose. Your choices are in your
@@ -69,24 +73,35 @@ settings, where you can switch to another listing or to manual prices at any tim
 
 ![Portfolio compared with its policy: table, bars with bands and pie by type](screenshots/portfolio.png)
 
+![The history tab: allocation course and past snapshots](screenshots/portfolio-history.png)
+
 ## Rebalancing
 
-A rebalance starts from the current values: you check the units and prices first. From
-them, an optional contribution or withdrawal and the policy's rules, the app calculates what
+Recording values and rebalancing are separate: values are entered only on the "Enter
+values" screen. A rebalance starts from the latest recorded values; if they are older than
+3 days it warns "values outdated, recommendation: update first" with a link to the values
+screen, but you can still go on. To update values you leave the rebalance and record them.
+From the values, an optional contribution or withdrawal and the policy's rules, the app calculates what
 to do: buy dips from the cash buffer, sell what is above its band, buy what is below target,
 with the units and amounts per broker. Positions traded in whole units are rounded (buys
 down, sells up); what that leaves over is shown, not invested. A withdrawal is paid from the sells first;
-anything missing is sold from the positions furthest above target. The instructions can be printed or saved as PDF. After
-trading, you confirm what was actually executed; the rebalance and the resulting values are
-stored. A simulation shows how several rebalancing cycles would play out.
+anything missing is sold from the positions furthest above target. The instructions can be printed or saved as PDF. When
+you decide to go ahead, you confirm the rebalance: that means the trades will be carried out
+as calculated, not that they were. Nothing is adjusted at confirmation and no values are
+stored; after trading, you record the new values. A simulation shows how several rebalancing cycles would play out.
 
-The thesis semaphore informs you; it never trades for you. With a **warning**, the page shows
+The thesis status informs you; it never trades for you. With a **warning**, the page shows
 an amber hint with the reason of the latest review and a link to the policy; the calculation
 stays as usual. With a **broken** thesis, the page shows the reason in red and asks how you
 want to rebalance: **sell the whole portfolio** (preselected: every position is sold
 completely, nothing is bought, the cash stays in the portfolio unless you enter a
 withdrawal) or rebalance as usual. The choice is stored with the confirmed rebalance and
 named in the timeline.
+
+Above the cash summary, a chart shows each position's share of the portfolio before and
+after the rebalance, with its target marked. Beside it, the portfolio value before, your
+contribution, the payout (withdrawal) and the portfolio value after are listed separately;
+the payout leaves the portfolio and is not part of the value after.
 
 ![Rebalancing instructions with the cash summary](screenshots/rebalance.png)
 
@@ -99,17 +114,21 @@ the whole policy at once: six aspects of the thesis (belief, fit and implementat
 opportunity, downside, invalidation, warnings and monitoring, current evidence from a web
 search for recent news, with sources) and six of the target structure (coverage, weighting,
 bands, exits, concentration, rationales). Each is scored from 0 to 10 in half points, with
-its reasoning. The review gives a score and the thesis a **semaphore**: *good*, *warning* or
+its reasoning. The review gives a score and the thesis a **status**: *good*, *warning* or
 *broken*, with a reason.
 
 - **Suggestions** change a thesis section or a position (change, add, remove) and are never
-  applied automatically: take them over with a click, dismiss them, or undo.
+  applied automatically: take them over with a click (and undo it), or dismiss them, which
+  deletes them. Activating the draft removes the ones that are left.
 - **Proposals:** when a policy has no positions yet, the review proposes target structures.
 - A review **warns, never blocks**: you can activate a draft without a review or with a
   review that no longer matches; the version is marked, and you confirm.
-- **Review again** any time for the active version, without a new version. The results are
-  kept in a review log that you can compare, and the latest review sets the score and
-  semaphore shown on the policy and on its portfolios.
+- A **quick review** can be run on the active version any time, without a new version: it
+  only checks the verdict against current news. The score stays as the last full review set
+  it, and there are no suggestions. Only a draft gets a review of the whole policy; the
+  Finalize page strongly recommends completing it before you activate. All results are kept
+  in a review log that you can compare, and the latest one sets the thesis status shown on the
+  policy and on its portfolios.
 
 ![The review log with the score course and the comparison of two reviews](screenshots/policy-reviews.png)
 

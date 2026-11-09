@@ -66,7 +66,9 @@ def _state(session: DbSession, policy: Policy, active: PolicyVersion | None) -> 
         "sharing": policy.sharing,
         "active_version_no": active.version_no if active else None,
         "active_from": active.activated_at if active else None,
-        "latest_review": ReviewBrief.of(active, latest) if active and latest else None,
+        "latest_review": ReviewBrief.of(active, latest, reviews.scored_review(active))
+        if active and latest
+        else None,
         "pending_review": ReviewBrief.of(active, pending) if active and pending else None,
         "draft": DraftBrief(
             version_no=draft.version_no,

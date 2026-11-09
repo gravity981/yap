@@ -89,21 +89,6 @@
             ],
             "title": "Calculated Units"
           },
-          "executed_amount": {
-            "title": "Executed Amount",
-            "type": "string"
-          },
-          "executed_units": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Executed Units"
-          },
           "phase": {
             "title": "Phase",
             "type": "string"
@@ -131,9 +116,7 @@
           "broker",
           "whole_units",
           "calculated_units",
-          "executed_units",
-          "calculated_amount",
-          "executed_amount"
+          "calculated_amount"
         ],
         "title": "ActionOut",
         "type": "object"
@@ -365,6 +348,24 @@
           "updated_at"
         ],
         "title": "AiReviewerSettings",
+        "type": "object"
+      },
+      "AllocationShare": {
+        "properties": {
+          "allocation_pct": {
+            "title": "Allocation Pct",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "allocation_pct"
+        ],
+        "title": "AllocationShare",
         "type": "object"
       },
       "AspectOut": {
@@ -701,14 +702,6 @@
             ],
             "title": "Contribution"
           },
-          "executed": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/ExecutedIn"
-            },
-            "title": "Executed",
-            "type": "array"
-          },
           "mode": {
             "default": "normal",
             "title": "Mode",
@@ -1022,50 +1015,6 @@
         ],
         "title": "EventType",
         "type": "string"
-      },
-      "ExecutedIn": {
-        "properties": {
-          "amount": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              }
-            ],
-            "title": "Amount"
-          },
-          "phase": {
-            "title": "Phase",
-            "type": "string"
-          },
-          "ticker": {
-            "title": "Ticker",
-            "type": "string"
-          },
-          "units": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Units"
-          }
-        },
-        "required": [
-          "phase",
-          "ticker",
-          "amount"
-        ],
-        "title": "ExecutedIn",
-        "type": "object"
       },
       "HTTPValidationError": {
         "properties": {
@@ -4194,6 +4143,66 @@
         "title": "SimulationIn",
         "type": "object"
       },
+      "SnapshotListItem": {
+        "description": "CMP-08: a past snapshot with the share of every position it held.",
+        "properties": {
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationShare"
+            },
+            "title": "Allocations",
+            "type": "array"
+          },
+          "corrects_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrects Snapshot Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "policy_version_id": {
+            "title": "Policy Version Id",
+            "type": "integer"
+          },
+          "policy_version_label": {
+            "title": "Policy Version Label",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "taken_at": {
+            "format": "date-time",
+            "title": "Taken At",
+            "type": "string"
+          },
+          "total_value": {
+            "title": "Total Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "taken_at",
+          "source",
+          "corrects_snapshot_id",
+          "policy_version_id",
+          "policy_version_label",
+          "total_value",
+          "allocations"
+        ],
+        "title": "SnapshotListItem",
+        "type": "object"
+      },
       "SnapshotOut": {
         "properties": {
           "corrects_snapshot_id": {
@@ -4261,57 +4270,6 @@
           "rows"
         ],
         "title": "SnapshotOut",
-        "type": "object"
-      },
-      "SnapshotSummary": {
-        "properties": {
-          "corrects_snapshot_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Corrects Snapshot Id"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "policy_version_id": {
-            "title": "Policy Version Id",
-            "type": "integer"
-          },
-          "policy_version_label": {
-            "title": "Policy Version Label",
-            "type": "string"
-          },
-          "source": {
-            "title": "Source",
-            "type": "string"
-          },
-          "taken_at": {
-            "format": "date-time",
-            "title": "Taken At",
-            "type": "string"
-          },
-          "total_value": {
-            "title": "Total Value",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "taken_at",
-          "source",
-          "corrects_snapshot_id",
-          "policy_version_id",
-          "policy_version_label",
-          "total_value"
-        ],
-        "title": "SnapshotSummary",
         "type": "object"
       },
       "SourceOut": {
@@ -4425,14 +4383,7 @@
         "description": "The review with the suggestion's new state, and the draft as it is now.",
         "properties": {
           "draft": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/VersionOut"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/VersionOut"
           },
           "review": {
             "$ref": "#/components/schemas/ReviewOut"
@@ -9643,7 +9594,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/SnapshotSummary"
+                    "$ref": "#/components/schemas/SnapshotListItem"
                   },
                   "title": "Response List Snapshots Api Portfolios  Portfolio Id  Snapshots Get",
                   "type": "array"
@@ -10160,7 +10111,7 @@
     },
     "/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss": {
       "post": {
-        "description": "REV-07: marks the suggestion as dismissed; the draft stays as it is.",
+        "description": "REV-07: deletes the suggestion; the draft stays as it is.",
         "operationId": "dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post",
         "parameters": [
           {
@@ -10296,7 +10247,7 @@
     },
     "/api/reviews/{review_id}/suggestions/{suggestion_id}/undo": {
       "post": {
-        "description": "REV-07: reverts a taken over suggestion in the draft, or reopens a dismissed one.",
+        "description": "REV-07: reverts a taken over suggestion in the draft; it is open again.",
         "operationId": "undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post",
         "parameters": [
           {

@@ -21,7 +21,7 @@ export const en = {
     noneYet: "none yet",
     draftBadge: "draft",
     legend:
-      "Stars: score of the latest review of the active version. Semaphore: that review's verdict on the thesis, good · warning · broken. Discarding a draft returns the policy to its active version; a policy that was never activated is then removed.",
+      "Stars: score of the latest review of the whole policy. Thesis status: the verdict of the latest review, also a quick one, good · warning · broken. Discarding a draft returns the policy to its active version; a policy that was never activated is then removed.",
     activeBadge: "active v{{no}}",
     draftBadgeNo: "draft v{{no}}",
     notActiveYet: "Not active yet",
@@ -73,9 +73,6 @@ export const en = {
     editDraft: "Edit draft",
     finalize: "Finalize draft",
     newDraft: "New draft",
-    thesisWarningBefore: "The review of the active version rates its thesis ",
-    thesisWarningAfter:
-      ". Rebalancing is not affected; adapt the thesis, or set exit flags in a new version to leave positions.",
     tabThesis: "Thesis",
     tabStructure: "Target structure",
     tabVersions: "Versions",
@@ -185,6 +182,13 @@ export const en = {
     noReview:
       "Not reviewed. You can activate the draft anyway; the version is marked as not reviewed.",
     running: "The review is still running; wait for it before activating.",
+    recommend: {
+      title: "Complete the review before you activate",
+      none: "The draft has no review. Activating it anyway marks the version as not reviewed, and a quick review of an active version cannot give it a score later.",
+      outdated:
+        "The thesis or target structure was edited after the review, which no longer matches. Activating it anyway marks the version as reviewed with a review that did not match.",
+      toEditor: "Review the draft in the editor",
+    },
     matches: "matches the draft",
     doesNotMatch: "no longer matches the draft",
     broken:
@@ -229,7 +233,7 @@ export const de: Messages<typeof en> = {
     noneYet: "noch keine",
     draftBadge: "Entwurf",
     legend:
-      "Sterne: Bewertung der neuesten Prüfung der aktiven Version. Ampel: das Urteil dieser Prüfung über die Anlagethese, gut · Warnung · gebrochen. Verwirfst du einen Entwurf, kehrt die Anlagestrategie zu ihrer aktiven Version zurück; eine nie aktivierte wird dann entfernt.",
+      "Sterne: Bewertung der neuesten Prüfung der ganzen Anlagestrategie. Status der Anlagethese: das Urteil der neuesten Prüfung, auch einer Schnellprüfung, gut · Warnung · gebrochen. Verwirfst du einen Entwurf, kehrt die Anlagestrategie zu ihrer aktiven Version zurück; eine nie aktivierte wird dann entfernt.",
     activeBadge: "aktiv v{{no}}",
     draftBadgeNo: "Entwurf v{{no}}",
     notActiveYet: "Noch nicht aktiv",
@@ -281,9 +285,6 @@ export const de: Messages<typeof en> = {
     editDraft: "Entwurf bearbeiten",
     finalize: "Entwurf abschliessen",
     newDraft: "Neuer Entwurf",
-    thesisWarningBefore: "Die Prüfung der aktiven Version bewertet ihre Anlagethese als ",
-    thesisWarningAfter:
-      ". Das Rebalancing ist davon nicht betroffen; passe die Anlagethese an oder setze in einer neuen Version Exit-Markierungen, um Positionen aufzulösen.",
     tabThesis: "Anlagethese",
     tabStructure: "Zielstruktur",
     tabVersions: "Versionen",
@@ -395,6 +396,13 @@ export const de: Messages<typeof en> = {
     noReview:
       "Nicht geprüft. Du kannst den Entwurf trotzdem aktivieren; die Version wird als nicht geprüft markiert.",
     running: "Die Prüfung läuft noch; warte vor dem Aktivieren auf sie.",
+    recommend: {
+      title: "Schliesse die Prüfung ab, bevor du aktivierst",
+      none: "Der Entwurf hat keine Prüfung. Aktivierst du ihn trotzdem, wird die Version als nicht geprüft markiert, und eine Schnellprüfung einer aktiven Version kann ihr später keine Bewertung geben.",
+      outdated:
+        "Die Anlagethese oder die Zielstruktur wurde nach der Prüfung geändert, die deshalb nicht mehr passt. Aktivierst du trotzdem, wird die Version mit einer nicht passenden Prüfung markiert.",
+      toEditor: "Entwurf im Editor prüfen",
+    },
     matches: "passt zum Entwurf",
     doesNotMatch: "passt nicht mehr zum Entwurf",
     broken:

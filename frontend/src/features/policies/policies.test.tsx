@@ -252,6 +252,7 @@ describe("policies", () => {
           policy({
             thesis_warning: true,
             semaphore: "broken",
+            semaphore_reason: "A break condition is met.",
             versions: [
               version(1, { active_until: "2026-02-01T10:00:00+00:00" }),
               version(2, { review: broken, reviews: [broken] }),
@@ -261,9 +262,11 @@ describe("policies", () => {
         ),
     });
     renderApp("/policies/3");
-    expect(
-      await screen.findByText(/The review of the active version rates its thesis/),
-    ).toHaveTextContent("broken");
+    // THS-04: the semaphore in a box of its colour, with the verdict, and nothing about what to do
+    const box = (await screen.findByText("A break condition is met.")).closest("div")!;
+    expect(box).toHaveTextContent("broken");
+    expect(box).toHaveClass("bg-red-50");
+    expect(box).not.toHaveTextContent(/rebalanc|exit/i);
     const heading = await screen.findByRole("heading", { name: "Core thesis" });
     expect(within(heading.parentElement!).getByText("broken")).toBeInTheDocument();
   });
@@ -327,12 +330,20 @@ describe("policies", () => {
     expect(screen.getByRole("img", { name: "Score: 7.0 of 10" })).toBeInTheDocument();
     expect(screen.getByText("good")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Activate" })).toBeEnabled();
+    // A matching review needs no recommendation
+    expect(screen.queryByText("Complete the review before you activate")).toBeNull();
     first.unmount();
 
     withReview(reviewBrief({ outdated: true, semaphore: "broken" }));
     renderApp("/policies/3/draft/summary");
     expect(await screen.findByText("no longer matches the draft")).toBeInTheDocument();
     expect(screen.getByText(/changed after its review/)).toBeInTheDocument();
+    // POL-17: a review that does not match is strongly recommended to be repeated
+    expect(screen.getByText("Complete the review before you activate")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Review the draft in the editor" })).toHaveAttribute(
+      "href",
+      "/policies/3/draft",
+    );
     // A broken thesis is recorded as broken and sells nothing (POL-17, RB-25)
     expect(
       screen.getByText(/Activating records it as broken and sells nothing/),
@@ -353,6 +364,8 @@ describe("policies", () => {
     expect(await screen.findByText("Total of the targets: 40.00 %")).toBeInTheDocument();
     expect(screen.getByText(/must sum to 100 %/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Activate anyway" })).toBeDisabled();
+    // No review at all: the same strong recommendation (POL-17)
+    expect(screen.getByText(/The draft has no review\. Activating it anyway/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("link", { name: "Back to the editor" }));
     expect(await screen.findByRole("group", { name: "Position 1" })).toBeInTheDocument();
   });
@@ -761,6 +774,7 @@ describe("policies", () => {
         json(
           policy({
             semaphore: "warning",
+            semaphore_reason: "Growth slows down.",
             thesis_warning: true,
             latest_review: reviewBrief({ total: 6.5, semaphore: "warning" }),
           }),
@@ -773,9 +787,7 @@ describe("policies", () => {
     );
     expect(screen.getByRole("img", { name: "Score: 6.5 of 10" })).toBeInTheDocument();
     expect(screen.getByText(/active since .*· last reviewed .*· used by Main/)).toBeInTheDocument();
-    expect(
-      screen.getByText(/The review of the active version rates its thesis/),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Growth slows down.").closest("div")).toHaveClass("bg-amber-50");
   });
 
   it("[POL-18] shares a reviewed policy; an unreviewed one stays private", async () => {
@@ -849,14 +861,14 @@ describe("policies", () => {
     expect(await screen.findByText("A policy named taken already exists")).toBeInTheDocument();
   });
 
-  it("[POL-22] reviews the active version again while the draft has no changes", async () => {
+  it("[POL-22] gives the active version a quick review while the draft has no changes", async () => {
     setup();
     renderApp("/policies/3");
-    expect(await screen.findByRole("region", { name: "Review again" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Quick review" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Review the draft in the editor" })).toBeNull();
   });
 
-  it("[POL-22] [REV-09] offers the draft's own review, not a review again, once it has changes", async () => {
+  it("[POL-22] [REV-09] offers the draft's own review, not a quick review, once it has changes", async () => {
     setup({
       "GET /api/policies/3": () =>
         json(
@@ -877,6 +889,6 @@ describe("policies", () => {
     expect(
       within(box).getByRole("link", { name: "Review the draft in the editor" }),
     ).toHaveAttribute("href", "/policies/3/draft");
-    expect(screen.queryByRole("region", { name: "Review again" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Quick review" })).toBeNull();
   });
 });

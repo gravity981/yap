@@ -100,7 +100,14 @@ function setup(handlers: Record<string, Handler> = {}) {
     "GET /api/portfolios/5": () => json(portfolio()),
     "GET /api/portfolios/5/snapshots": () =>
       json([
-        { ...snapshot(), rows: undefined },
+        {
+          ...snapshot(),
+          rows: undefined,
+          allocations: [
+            { ticker: "XUS", allocation_pct: "60" },
+            { ticker: "BTC", allocation_pct: "40" },
+          ],
+        },
         {
           ...snapshot({
             id: 40,
@@ -108,6 +115,10 @@ function setup(handlers: Record<string, Handler> = {}) {
             policy_version_label: "core-v1",
           }),
           rows: undefined,
+          allocations: [
+            { ticker: "XUS", allocation_pct: "70" },
+            { ticker: "BTC", allocation_pct: "30" },
+          ],
         },
       ]),
     "GET /api/portfolios/5/prefill": () =>
@@ -202,10 +213,11 @@ describe("portfolios", () => {
     });
     renderApp("/portfolios");
     const main = (await screen.findByRole("link", { name: "Main" })).closest("div.rounded-lg")!;
-    // warning in amber with the reason and a link to the policy
+    // warning in amber with a link to the policy, without the verdict text
     expect(within(main as HTMLElement).getByText("warning")).toBeInTheDocument();
+    expect(within(main as HTMLElement).queryByText("Two warning signals are observed.")).toBeNull();
     expect(
-      within(main as HTMLElement).getByText("Two warning signals are observed."),
+      within(main as HTMLElement).getByRole("link", { name: "Open the policy" }),
     ).toBeInTheDocument();
     const extra = screen.getByRole("link", { name: "Extra" }).closest("div.rounded-lg")!;
     // good: the semaphore only, no reason and no link
@@ -264,12 +276,66 @@ describe("portfolios", () => {
     expect(screen.getByRole("figure", { name: "Allocation by type" })).toBeInTheDocument();
   });
 
+  it("[CMP-11] hides sold exited positions by default and shows them on request", async () => {
+    const base = snapshot();
+    const zero = { units: "0", price: "10", value: "0", allocation_pct: "0" };
+    const rows = [
+      ...base.rows,
+      { ...base.rows[2], ticker: "GONE", name: "Sold", status: "not_in_policy", ...zero },
+      {
+        ...base.rows[0],
+        ticker: "EXIT",
+        name: "Exited",
+        exit: true,
+        status: "below_buy_threshold",
+        ...zero,
+      },
+      // in the policy without exit flag: to be bought, stays visible
+      { ...base.rows[1], ticker: "NEW", name: "To buy", status: "below_buy_threshold", ...zero },
+    ];
+    setup({
+      "GET /api/portfolios/5": () => json(portfolio({ latest_snapshot: snapshot({ rows }) })),
+    });
+    renderApp("/portfolios/5");
+    expect(await screen.findByRole("cell", { name: /NEW/ })).toBeInTheDocument();
+    expect(screen.queryByRole("cell", { name: /GONE/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("cell", { name: /EXIT/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Show sold positions (2)" }));
+    expect(screen.getByRole("cell", { name: /GONE/ })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: /EXIT/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Hide sold positions" }));
+    expect(screen.queryByRole("cell", { name: /GONE/ })).not.toBeInTheDocument();
+  });
+
+  it("[CMP-11] offers no toggle without sold positions", async () => {
+    setup();
+    renderApp("/portfolios/5");
+    expect(await screen.findByText(/active core-v2/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /sold positions/i })).not.toBeInTheDocument();
+  });
+
   it("[CMP-08] lists past snapshots and assignments", async () => {
     setup();
     renderApp("/portfolios/5");
     await userEvent.click(await screen.findByRole("tab", { name: "History" }));
     expect(await screen.findByText(/core-v1 · manual/)).toBeInTheDocument();
     expect(screen.getByText(/from 1 Jan 2026|from Jan 1, 2026/)).toBeInTheDocument();
+  });
+
+  it("[CMP-08] shows the allocation over the snapshots as a line chart", async () => {
+    setup();
+    renderApp("/portfolios/5");
+    await userEvent.click(await screen.findByRole("tab", { name: "History" }));
+    const figure = await screen.findByRole("figure", { name: "Allocation over the snapshots" });
+    expect(
+      within(figure)
+        .getAllByRole("img")
+        .map((e) => e.getAttribute("aria-label")),
+    ).toEqual([
+      expect.stringMatching(/XUS 70\.0\s?%, BTC 30\.0\s?%/),
+      expect.stringMatching(/XUS 60\.0\s?%, BTC 40\.0\s?%/),
+    ]);
+    expect(within(figure).getByText("BTC")).toBeVisible();
   });
 
   it("[PTF-03] [PTF-04] saves settings, positions and a new policy", async () => {
@@ -410,10 +476,10 @@ describe("portfolios", () => {
     setup();
     renderApp("/snapshots/41");
     expect(await screen.findByText(/compared with core-v2/)).toBeInTheDocument();
-    // RB-02: a rebalance starts from a fresh snapshot, not from this one
-    expect(screen.getByRole("link", { name: "Rebalance with current values" })).toHaveAttribute(
+    // RB-02: a rebalance starts from the latest snapshot, not necessarily from this one
+    expect(screen.getByRole("link", { name: "Rebalance" })).toHaveAttribute(
       "href",
-      "/portfolios/5/values?rebalance=true",
+      "/portfolios/5/rebalance",
     );
   });
 });

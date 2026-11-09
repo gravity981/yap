@@ -115,15 +115,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           bundle="$(bash scripts/bundle.sh "$TAG" dist)"
-          previous="$(bash scripts/release.sh previous-release "$TAG")"
-          notes="$(printf '%s\n\n%s\n\n%s\n' \
+          notes="$(printf '%s\n\n%s\n\n%s\n\n%s\n' \
             "Image \`$IMAGE:${TAG#v}\` (version $VERSION, commit $GITHUB_SHA)." \
+            "$(bash scripts/release.sh changelog "$TAG" "$GITHUB_REPOSITORY")" \
             "$(bash scripts/release.sh notes "$TAG" "$GITHUB_REPOSITORY")" \
             "Verify staging with the checklist in spec/test-strategy.md §9, then run the Promote workflow.")"
           gh release create "$TAG" "$bundle" \
             --prerelease \
             --title "$TAG" \
-            --notes "$notes" \
-            --generate-notes \
-            ${previous:+--notes-start-tag "$previous"}
+            --notes "$notes"
           echo "Pre-release **$TAG** published" >> "$GITHUB_STEP_SUMMARY"

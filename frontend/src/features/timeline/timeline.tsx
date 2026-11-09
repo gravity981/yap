@@ -275,15 +275,8 @@ function RebalanceDetails({ rebalanceId }: { rebalanceId: number }) {
       <ul className="grid gap-0.5">
         {r.actions.map((a) => (
           <li key={`${a.phase}${a.ticker}`}>
-            {a.ticker} {actionLabel(a.action)}: {formatAmount(a.executed_amount, r.precise_amounts)}
-            {a.executed_amount !== a.calculated_amount && (
-              <span className="text-muted-foreground">
-                {" "}
-                {t("timeline.calculated", {
-                  amount: formatAmount(a.calculated_amount, r.precise_amounts),
-                })}
-              </span>
-            )}
+            {a.ticker} {actionLabel(a.action)}:{" "}
+            {formatAmount(a.calculated_amount, r.precise_amounts)}
           </li>
         ))}
       </ul>

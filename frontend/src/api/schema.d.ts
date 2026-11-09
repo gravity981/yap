@@ -1357,7 +1357,7 @@ export interface paths {
         put?: never;
         /**
          * Dismiss Suggestion
-         * @description REV-07: marks the suggestion as dismissed; the draft stays as it is.
+         * @description REV-07: deletes the suggestion; the draft stays as it is.
          */
         post: operations["dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post"];
         delete?: never;
@@ -1397,7 +1397,7 @@ export interface paths {
         put?: never;
         /**
          * Undo Suggestion
-         * @description REV-07: reverts a taken over suggestion in the draft, or reopens a dismissed one.
+         * @description REV-07: reverts a taken over suggestion in the draft; it is open again.
          */
         post: operations["undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post"];
         delete?: never;
@@ -1530,10 +1530,6 @@ export interface components {
             calculated_amount: string;
             /** Calculated Units */
             calculated_units: string | null;
-            /** Executed Amount */
-            executed_amount: string;
-            /** Executed Units */
-            executed_units: string | null;
             /** Phase */
             phase: string;
             /** Ticker */
@@ -1628,6 +1624,13 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** AllocationShare */
+        AllocationShare: {
+            /** Allocation Pct */
+            allocation_pct: string;
+            /** Ticker */
+            ticker: string;
         };
         /** AspectOut */
         AspectOut: {
@@ -1744,11 +1747,6 @@ export interface components {
             /** Contribution */
             contribution: number | string;
             /**
-             * Executed
-             * @default []
-             */
-            executed?: components["schemas"]["ExecutedIn"][];
-            /**
              * Mode
              * @default normal
              */
@@ -1851,17 +1849,6 @@ export interface components {
          * @enum {string}
          */
         EventType: "policy_activated" | "portfolio_assigned" | "rebalance_confirmed" | "thesis_review_confirmed" | "policy_review_confirmed" | "review_confirmed" | "review_saved" | "thesis_revised";
-        /** ExecutedIn */
-        ExecutedIn: {
-            /** Amount */
-            amount: number | string;
-            /** Phase */
-            phase: string;
-            /** Ticker */
-            ticker: string;
-            /** Units */
-            units?: number | string | null;
-        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -2803,6 +2790,31 @@ export interface components {
             /** Withdrawal */
             withdrawal?: number | string | null;
         };
+        /**
+         * SnapshotListItem
+         * @description CMP-08: a past snapshot with the share of every position it held.
+         */
+        SnapshotListItem: {
+            /** Allocations */
+            allocations: components["schemas"]["AllocationShare"][];
+            /** Corrects Snapshot Id */
+            corrects_snapshot_id: number | null;
+            /** Id */
+            id: number;
+            /** Policy Version Id */
+            policy_version_id: number;
+            /** Policy Version Label */
+            policy_version_label: string;
+            /** Source */
+            source: string;
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
+            /** Total Value */
+            total_value: string;
+        };
         /** SnapshotOut */
         SnapshotOut: {
             /** Corrects Snapshot Id */
@@ -2819,26 +2831,6 @@ export interface components {
             portfolio_id: number;
             /** Rows */
             rows: components["schemas"]["ComparisonRowOut"][];
-            /** Source */
-            source: string;
-            /**
-             * Taken At
-             * Format: date-time
-             */
-            taken_at: string;
-            /** Total Value */
-            total_value: string;
-        };
-        /** SnapshotSummary */
-        SnapshotSummary: {
-            /** Corrects Snapshot Id */
-            corrects_snapshot_id: number | null;
-            /** Id */
-            id: number;
-            /** Policy Version Id */
-            policy_version_id: number;
-            /** Policy Version Label */
-            policy_version_label: string;
             /** Source */
             source: string;
             /**
@@ -2896,7 +2888,7 @@ export interface components {
          * @description The review with the suggestion's new state, and the draft as it is now.
          */
         SuggestionResult: {
-            draft: components["schemas"]["VersionOut"] | null;
+            draft: components["schemas"]["VersionOut"];
             review: components["schemas"]["ReviewOut"];
         };
         /**
@@ -5620,7 +5612,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SnapshotSummary"][];
+                    "application/json": components["schemas"]["SnapshotListItem"][];
                 };
             };
             /** @description Validation Error */
