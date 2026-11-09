@@ -1357,7 +1357,7 @@ export interface paths {
         put?: never;
         /**
          * Dismiss Suggestion
-         * @description REV-07: marks the suggestion as dismissed; the draft stays as it is.
+         * @description REV-07: deletes the suggestion; the draft stays as it is.
          */
         post: operations["dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post"];
         delete?: never;
@@ -1397,7 +1397,7 @@ export interface paths {
         put?: never;
         /**
          * Undo Suggestion
-         * @description REV-07: reverts a taken over suggestion in the draft, or reopens a dismissed one.
+         * @description REV-07: reverts a taken over suggestion in the draft; it is open again.
          */
         post: operations["undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post"];
         delete?: never;
@@ -2896,7 +2896,7 @@ export interface components {
          * @description The review with the suggestion's new state, and the draft as it is now.
          */
         SuggestionResult: {
-            draft: components["schemas"]["VersionOut"] | null;
+            draft: components["schemas"]["VersionOut"];
             review: components["schemas"]["ReviewOut"];
         };
         /**

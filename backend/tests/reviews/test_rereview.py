@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from tests.fixtures import TEST_SECRET, Factory, FakeLlm
 from tests.reviews.answers import quick_answer
 from yap.db.engine import make_engine, make_session_factory
-from yap.db.models import AiReviewer, Investor, Policy, Review, ReviewRun
+from yap.db.models import AiReviewer, Investor, Policy, Review, ReviewRun, ReviewSuggestion
 from yap.domain.reviews import Verdict
 from yap.messages import msg
 from yap.services import policies, reviews
@@ -214,27 +214,26 @@ def test_the_review_log_has_the_saved_reviews_newest_first(
     assert reviews.pending_review(draft) is None
 
 
-@pytest.mark.req("REV-12", "REV-11", "POL-20")
-def test_a_saved_review_is_immutable_but_its_suggestions_may_change_state(
+@pytest.mark.req("REV-12", "REV-11", "REV-07")
+def test_a_saved_review_is_immutable_and_has_no_suggestions_left(
     session: Session, factory: Factory
 ) -> None:
     owner = _owner(session, factory)
     policy = factory.active_policy(owner)
     draft = policies.create_draft(session, owner, factory.clock, policy.id)
     review = factory.review(owner, draft)
-    s = factory.suggestion(review)
+    sid = factory.suggestion(review).id
     factory.clock.advance(minutes=1)
     policies.activate_draft(session, owner, factory.clock, policy.id, "v2")
     assert review.saved_at is not None
+    # Activating removed the suggestions (REV-07)
+    session.refresh(review)
+    assert list(review.suggestions) == [] and session.get(ReviewSuggestion, sid) is None
     session.commit()
-    session.connection().execute(
-        text("UPDATE review_suggestion SET state = 'dismissed' WHERE id = :id"), {"id": s.id}
-    )
     for statement in (
         "UPDATE review SET verdict = 'broken' WHERE id = :id",
         "DELETE FROM review WHERE id = :id",
         "UPDATE review_aspect SET half_points = 0 WHERE review_id = :id",
-        "UPDATE review_suggestion SET content_md = 'x' WHERE review_id = :id",
         "INSERT INTO review_source (review_id, title, url) VALUES (:id, 't', 'u')",
     ):
         nested = session.begin_nested()

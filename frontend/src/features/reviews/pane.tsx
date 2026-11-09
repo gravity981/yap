@@ -41,7 +41,7 @@ export function ReviewPane({
   brief: ReviewBrief | null | undefined;
   save: () => Promise<unknown>;
   /** REV-07: the draft after a suggestion was taken over, dismissed or undone */
-  onDraft: (draft: Version | null) => void;
+  onDraft: (draft: Version) => void;
   /** POL-20, REV-26: on the policy page, the active version gets a quick review */
   target?: ReviewTarget;
 }) {
@@ -55,10 +55,7 @@ export function ReviewPane({
       {!brief ? (
         target === "draft" && <Alert variant="warning">{t("reviews.pane.noReview")}</Alert>
       ) : review.data ? (
-        <ReviewShort
-          review={review.data}
-          actions={{ save, onDraft, activeVersion: target === "active" }}
-        />
+        <ReviewShort review={review.data} actions={{ save, onDraft }} />
       ) : (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       )}

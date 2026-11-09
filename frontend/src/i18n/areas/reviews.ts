@@ -165,7 +165,6 @@ export const en = {
     dismiss: "Dismiss",
     undo: "Undo",
     takenOver: "Taken over",
-    dismissed: "Dismissed",
     proposals: "Proposed target structures",
     proposalsNote:
       "Derived from your thesis. Taking one over fills the target structure; you can change it afterwards and review again.",
@@ -361,7 +360,6 @@ export const de: Messages<typeof en> = {
     dismiss: "Verwerfen",
     undo: "Rückgängig",
     takenOver: "Übernommen",
-    dismissed: "Verworfen",
     proposals: "Vorgeschlagene Zielstrukturen",
     proposalsNote:
       "Aus deiner Anlagethese abgeleitet. Übernimmst du eine, füllt sie die Zielstruktur; du kannst sie danach ändern und erneut prüfen lassen.",

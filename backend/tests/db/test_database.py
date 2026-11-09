@@ -574,23 +574,18 @@ def test_suggestions_get_a_change_and_a_state_and_lose_them_again(
             connection.execute(text(sql))
     upgrade(db_url)
     assert _triggers(engine) == at_head
+    # 0024 (REV-07): the suggestions of a confirmed review are gone, the review stays
     with engine.connect() as connection:
-        row = connection.execute(
-            text("SELECT kind, change, previous, state FROM review_suggestion WHERE id = 1")
-        ).one()
-        assert tuple(row) == ("thesis_text", None, None, "open")
-    # The content of a suggestion of a confirmed review stays as it is (REV-11); since 0022
-    # its state may change (REV-07, POL-20)
+        assert connection.execute(text("SELECT COUNT(*) FROM review_suggestion")).scalar() == 0
+        assert connection.execute(text("SELECT COUNT(*) FROM review")).scalar() == 1
+    # What is left of a confirmed review stays as it is (REV-11)
     with pytest.raises(IntegrityError), engine.begin() as connection:
-        connection.execute(text("UPDATE review_suggestion SET content_md = 'Changed.'"))
+        connection.execute(text("UPDATE review SET verdict = 'broken'"))
 
     command.downgrade(_alembic(db_url), "0019")
     with engine.connect() as connection:
         columns = {r[1] for r in connection.execute(text("PRAGMA table_info(review_suggestion)"))}
         assert not columns & {"change", "previous", "state"}
-        assert connection.execute(text("SELECT content_md FROM review_suggestion")).scalar() == (
-            "Add a horizon."
-        )
     upgrade(db_url)
     assert _triggers(engine) == at_head
 

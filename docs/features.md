@@ -103,7 +103,8 @@ its reasoning. The review gives a score and the thesis a **semaphore**: *good*, 
 *broken*, with a reason.
 
 - **Suggestions** change a thesis section or a position (change, add, remove) and are never
-  applied automatically: take them over with a click, dismiss them, or undo.
+  applied automatically: take them over with a click (and undo it), or dismiss them, which
+  deletes them. Activating the draft removes the ones that are left.
 - **Proposals:** when a policy has no positions yet, the review proposes target structures.
 - A review **warns, never blocks**: you can activate a draft without a review or with a
   review that no longer matches; the version is marked, and you confirm.

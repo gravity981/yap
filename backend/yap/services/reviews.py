@@ -650,6 +650,10 @@ def prepare_activation(session: Session, draft: PolicyVersion, now: datetime) ->
     session.flush()
     mark = activation_mark(session, draft)
     for review in draft_reviews(session, draft):
+        # REV-07: the suggestions are for working on the draft; none stays with the version
+        for suggestion in list(review.suggestions):
+            session.delete(suggestion)
+        session.flush()
         review.saved_at = now
     session.flush()
     return mark

@@ -508,7 +508,9 @@ class ReviewSuggestion(Base):
     change: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     # What Take over replaced, so it can be undone
     previous: Mapped[dict[str, Any] | None] = mapped_column(JSON)
-    state: Mapped[str] = mapped_column(String(20), default="open")  # | taken_over | dismissed
+    state: Mapped[str] = mapped_column(
+        String(20), default="open"
+    )  # | taken_over; dismissed ones are deleted (REV-07)
 
 
 class ReviewRun(Base):

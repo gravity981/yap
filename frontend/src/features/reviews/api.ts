@@ -137,8 +137,8 @@ export function useSubmitManualReview(policyId: number, target: ReviewTarget = "
 export type Suggestion = Review["suggestions"][number];
 export type SuggestionAction = "take-over" | "dismiss" | "undo";
 
-/** REV-07, REV-22: takes over, dismisses or undoes a suggestion; returns the review and
- * the draft as they are now. */
+/** REV-07, REV-22: takes over, dismisses (deletes) or undoes a suggestion; returns the review
+ * and the draft as they are now. */
 export function useSuggestionAction(reviewId: number) {
   const client = useQueryClient();
   const invalidate = useInvalidateOwners();

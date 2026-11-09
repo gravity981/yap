@@ -342,6 +342,10 @@ test("[REV-13] [REV-14] [USR-08] [REV-01] [REV-02] [REV-07] [REV-09] [REV-11] [R
     await expect(card.getByText(/→ \+30\s%/)).toBeVisible();
     await card.getByRole("button", { name: "Undo" }).click();
     await expect(card.getByRole("button", { name: "Take over" })).toBeVisible();
+    // Dismissing deletes the other suggestion for good (REV-07)
+    const section = review.getByRole("listitem", { name: /section 7$/ });
+    await section.getByRole("button", { name: "Dismiss" }).click();
+    await expect(section).toHaveCount(0);
   });
   await test.step("finalizing and activating the draft confirms the review", async () => {
     await page.getByRole("button", { name: "Finalize →" }).click();

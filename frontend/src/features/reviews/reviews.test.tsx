@@ -872,7 +872,11 @@ describe("reviews", () => {
           text: null,
         }),
         "POST /api/reviews/30/suggestions/2/undo": act("open"),
-        "POST /api/reviews/30/suggestions/5/dismiss": act("dismissed"),
+        // REV-07: a dismissed suggestion is deleted
+        "POST /api/reviews/30/suggestions/5/dismiss": () => {
+          current = { ...current, suggestions: current.suggestions.filter((s) => s.id !== 5) };
+          return json({ review: current, draft: changed });
+        },
       },
       brief(30, 7),
     );
@@ -923,7 +927,11 @@ describe("reviews", () => {
     // Dismiss
     const removeCard = screen.getByRole("listitem", { name: "Remove XUS" });
     await userEvent.click(within(removeCard).getByRole("button", { name: "Dismiss" }));
-    expect(await within(removeCard).findByText("Dismissed")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("listitem", { name: "Remove XUS" })).not.toBeInTheDocument(),
+    );
+    // The change taken over has no button; the section and the added position are still open
+    expect(screen.getAllByRole("button", { name: "Take over" })).toHaveLength(2);
   });
 
   it("[REV-07] shows suggestions of a confirmed review read-only", async () => {

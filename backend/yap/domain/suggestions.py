@@ -55,7 +55,6 @@ class SuggestionKind(StrEnum):
 class SuggestionState(StrEnum):
     OPEN = "open"
     TAKEN_OVER = "taken_over"
-    DISMISSED = "dismissed"
 
 
 def _decimal(value: Any) -> Decimal | None:

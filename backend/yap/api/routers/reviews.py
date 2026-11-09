@@ -38,7 +38,7 @@ class SuggestionOut(BaseModel):
     content_md: str
     change: dict[str, Any] | None
     previous: dict[str, Any] | None
-    state: str  # open | taken_over | dismissed
+    state: str  # open | taken_over
 
 
 class LegacyModificationOut(BaseModel):
@@ -259,17 +259,17 @@ class SuggestionResult(BaseModel):
     """The review with the suggestion's new state, and the draft as it is now."""
 
     review: ReviewOut
-    draft: VersionOut | None  # null: a suggestion of the active version's review, no draft
+    draft: VersionOut
 
 
 def _result(
-    session: DbSession, review_id: int, draft: PolicyVersion | None, user: Investor
+    session: DbSession, review_id: int, draft: PolicyVersion, user: Investor
 ) -> SuggestionResult:
     review = reviews.get_review(session, user, review_id)
     session.refresh(review)
     return SuggestionResult(
         review=_out(session, review),
-        draft=VersionOut.of(draft, None, None) if draft is not None else None,
+        draft=VersionOut.of(draft, None, None),
     )
 
 
@@ -286,7 +286,7 @@ def take_over_suggestion(
 def dismiss_suggestion(
     review_id: int, suggestion_id: int, session: DbSession, clock: AppClock, user: CurrentUser
 ) -> SuggestionResult:
-    """REV-07: marks the suggestion as dismissed; the draft stays as it is."""
+    """REV-07: deletes the suggestion; the draft stays as it is."""
     draft = suggestions.dismiss(session, user, clock, review_id, suggestion_id)
     return _result(session, review_id, draft, user)
 
@@ -295,7 +295,7 @@ def dismiss_suggestion(
 def undo_suggestion(
     review_id: int, suggestion_id: int, session: DbSession, clock: AppClock, user: CurrentUser
 ) -> SuggestionResult:
-    """REV-07: reverts a taken over suggestion in the draft, or reopens a dismissed one."""
+    """REV-07: reverts a taken over suggestion in the draft; it is open again."""
     draft = suggestions.undo(session, user, clock, review_id, suggestion_id)
     return _result(session, review_id, draft, user)
 
