@@ -226,3 +226,20 @@ def test_every_problem_of_an_answer_is_listed() -> None:
     }
     assert review_prompts.answer_prompt_id(f"Here:\n```json\n{answer(prompt_id=' a ')}```") == "a"
     assert review_prompts.answer_prompt_id("[1, 2]") is None
+
+
+@pytest.mark.req("REV-25")
+def test_the_review_is_requested_in_the_language_of_the_investor(
+    session: Session, factory: Factory
+) -> None:
+    draft = factory.policy_draft(factory.investor()).versions[0]
+    ref = review_prompts.PromptRef(draft.id, _at(2026, 1, 15), 14)
+
+    def instructions(language: str | None) -> str:
+        return review_prompts.review_prompt(draft, ref, language).instructions
+
+    assert "free text of the answer in German (Swiss spelling" in instructions("de")
+    assert "free text of the answer in English:" in instructions("en")
+    assert "free text of the answer in the language of the thesis:" in instructions(None)
+    # What the parser relies on stays as it is
+    assert "Keep the field names, the codes" in instructions("de")

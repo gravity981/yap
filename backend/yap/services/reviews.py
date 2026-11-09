@@ -313,7 +313,7 @@ def review_prompt(
     _check_news_days(news_days)
     draft = _target(session, actor, clock, policy_id, active)
     ref = review_prompts.PromptRef(draft.id, clock.now(), news_days, draft_fingerprint(draft))
-    return review_prompts.review_prompt(draft, ref)
+    return review_prompts.review_prompt(draft, ref, actor.language)
 
 
 # --- Manual review (REV-18) ------------------------------------------------------------
@@ -445,7 +445,8 @@ def _prompt(session: Session, review: Review) -> review_prompts.ReviewPrompt:
     ref = review_prompts.PromptRef(
         version.id, review.started_at, (review.news_to - review.news_from).days
     )
-    return review_prompts.review_prompt(version, ref)
+    owner = session.get(Investor, review.started_by)
+    return review_prompts.review_prompt(version, ref, owner.language if owner else None)
 
 
 def _fail(review: Review, clock: Clock, error: str) -> None:

@@ -598,9 +598,27 @@ position of type cash_buffer. Use real, liquid tickers. Only the assets the thes
 for belong in a proposal."""
 
 
-def review_prompt(version: PolicyVersion, ref: PromptRef) -> ReviewPrompt:
+def _language_part(language: str | None) -> str:
+    """REV-25: the language of everything the reviewer writes, which is the investor's
+    language (USR-10); without a choice, the language of the thesis."""
+    if language == "de":
+        text = "in German (Swiss spelling: ss, never ß; address the investor with du)"
+    elif language == "en":
+        text = "in English"
+    else:
+        text = "in the language of the thesis"
+    return f"""Write every free text of the answer {text}: the reasoning, the verdict reason,
+the reasons and texts of the suggestions, the rationales, and the names and descriptions of
+proposals. Keep the field names, the codes (T1, P1, ...), the kinds, the types and the
+tickers exactly as specified."""
+
+
+def review_prompt(
+    version: PolicyVersion, ref: PromptRef, language: str | None = None
+) -> ReviewPrompt:
     """REV-02 to REV-05, REV-19: one review of the whole policy: aspects T1-T6 and the
-    verdict with current news, and P1-P6 if it has positions."""
+    verdict with current news, and P1-P6 if it has positions. The review is written in the
+    investor's language (REV-25)."""
     news_from, news_to = ref.news_from, ref.news_to
     with_positions = bool(version.positions)
     instructions = f"""You review an investment policy written by a private investor: its
@@ -647,6 +665,8 @@ only the fields of its kind and leave the others null:
   sell_threshold_pct, exit and rationale.
 - position_remove: ticker of the position to remove.
 {_proposal_part(with_positions)}
+
+{_language_part(language)}
 
 {_answer_format(ref.prompt_id)}"""
     return ReviewPrompt(
