@@ -32,6 +32,14 @@ short, from `backend`: `ruff check .`, `ruff format --check .`, `mypy yap`,
 - **Dependencies:** only releases that are at least two weeks old; Dependabot proposes
   updates monthly.
 
+## Commit messages and release notes
+
+The release notes list the commit messages since the previous release, so write each
+first line for the people who use the app. Start with `feat:` (or `Add`) for something
+new and `fix:` (or `Fix`) for a fix; other commits are listed as changes.
+Housekeeping that users don't care about starts with `chore:`, `docs:`, `test:`, `ci:`
+or `build:` and is left out. Dependabot's commits are listed separately.
+
 ## Pull requests
 
 - Branch from `main`, one topic per pull request, with a description of what and why.

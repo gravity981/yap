@@ -8,6 +8,9 @@
 #                                     promoted (latest candidate, not released yet) and
 #                                     prints the release version, e.g. 1.2.0
 #   release.sh previous-release <tag> the release tag before <tag>, for release notes
+#   release.sh changelog <tag> <owner/repo> [ref] what was added, fixed and changed since the
+#                                     previous release, from the commit messages, for
+#                                     release notes
 #   release.sh notes <tag> <owner/repo> the commands to install or update an environment
 #                                     with the bundle of <tag>, for release notes: prod for
 #                                     a release, staging for a candidate
@@ -65,6 +68,47 @@ case "${1:-}" in
             fi
         done | tail -n 1
         ;;
+    changelog)
+        tag="${2:?usage: release.sh changelog <tag> <owner/repo>}"
+        repo="${3:?usage: release.sh changelog <tag> <owner/repo>}"
+        previous="$(bash "$0" previous-release "$tag")"
+        range="${previous:+$previous..}${4:-$tag}" # the ref of a release that is not tagged yet: its candidate
+        # One line per commit (merge commits are skipped, so pull requests and direct
+        # commits to main count the same), sorted by the start of its message:
+        # "feat:"/"Add" is Added, "fix:"/"Fix" is Fixed, Dependabot is Dependencies, the
+        # rest is Changed; "chore:", "docs:", "test:", "ci:" and "build:" are left out.
+        # An optional "feat(scope): " prefix and a "step 1.2 - " prefix are dropped.
+        added="" fixed="" changed="" deps=""
+        while IFS=$'\x1f' read -r sha author subject; do
+            [[ -n "$sha" ]] || continue
+            shopt -s nocasematch
+            [[ "$subject" =~ ^step\ [0-9.]+\ -\ (.+)$ ]] && subject="${BASH_REMATCH[1]}" # the stage steps
+            if [[ "$subject" =~ ^(chore|test|tests|ci|docs|build)(\([^\)]*\))?:\  ]]; then
+                :  # housekeeping: not part of the notes
+            elif [[ "$author" == *"[bot]" || "$subject" =~ ^bump\  ]]; then
+                deps+="- $subject (\`$sha\`)"$'\n'
+            elif [[ "$subject" =~ ^(feat|feature|add|added)(\([^\)]*\))?(:\ |\ ) ]]; then
+                text="$subject"
+                [[ "$subject" =~ ^(feat|feature)(\([^\)]*\))?:\ (.*)$ ]] && text="${BASH_REMATCH[3]}"
+                added+="- ${text^} (\`$sha\`)"$'\n'
+            elif [[ "$subject" =~ ^(fix|fixed|bugfix)(\([^\)]*\))?(:\ |\ ) ]]; then
+                text="$subject"
+                [[ "$subject" =~ ^(fix|bugfix)(\([^\)]*\))?:\ (.*)$ ]] && text="${BASH_REMATCH[3]}"
+                fixed+="- ${text^} (\`$sha\`)"$'\n'
+            else
+                changed+="- $subject (\`$sha\`)"$'\n'
+            fi
+            shopt -u nocasematch
+        done < <(git log --no-merges --format='%h%x1f%an%x1f%s' "$range")
+        echo "## What's changed${previous:+ since $previous}"
+        [[ -z "$added" ]] || printf '\n### Added\n\n%s' "$added"
+        [[ -z "$fixed" ]] || printf '\n### Fixed\n\n%s' "$fixed"
+        [[ -z "$changed" ]] || printf '\n### Changed\n\n%s' "$changed"
+        [[ -z "$deps" ]] || printf '\n### Dependencies\n\n%s' "$deps"
+        if [[ -n "$previous" ]]; then
+            printf '\n**Full changelog:** https://github.com/%s/compare/%s...%s\n' "$repo" "$previous" "$tag"
+        fi
+        ;;
     notes)
         tag="${2:?usage: release.sh notes <tag> <owner/repo>}"
         repo="${3:?usage: release.sh notes <tag> <owner/repo>}"
@@ -103,5 +147,5 @@ cd $env_name && ./deploy.sh $env_name ${tag#v}
 \`\`\`
 EOF
         ;;
-    *) die "usage: release.sh candidate <version> | promote <candidate> | previous-release <tag> | notes <tag> <owner/repo>" ;;
+    *) die "usage: release.sh candidate <version> | promote <candidate> | previous-release <tag> | changelog <tag> <owner/repo> [ref] | notes <tag> <owner/repo>" ;;
 esac

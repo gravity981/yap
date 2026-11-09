@@ -977,14 +977,16 @@ flowchart LR
 3. Runs the full test suite, including the end-to-end tests (it calls `ci.yml`).
 4. Builds the image with version `<version>` baked in (5.7) — without the `-rc.M` suffix — runs the smoke test, and pushes it with image tag `<version>-rc.M`.
 5. Creates and pushes the tag `v<version>-rc.M` on the commit.
-6. Creates a GitHub **pre-release** for the tag (`gh release create --prerelease`, the GitHub CLI on the runner) with notes generated since the last release, and attaches the deployment bundle (5.6).
+6. Creates a GitHub **pre-release** for the tag (`gh release create --prerelease`, the GitHub CLI on the runner) with notes since the last release (`release.sh changelog`: the commit messages sorted into Added, Fixed, Changed and Dependencies, 5.4 rules), and attaches the deployment bundle (5.6).
 
 **Workflow `promote.yml`** – started manually with input `candidate` (e.g. `v1.2.0-rc.2`):
 
 1. Checks that the candidate tag and its image exist, that `v1.2.0` does not exist yet, and that there is no newer candidate for the same version (only the latest candidate can be promoted).
 2. Creates and pushes the tag `v1.2.0` on the candidate's commit.
 3. Adds the image tags `1.2.0`, `1.2` and `1` to the candidate's image without rebuilding it (`docker buildx imagetools create`). The image already contains version `1.2.0`.
-4. Creates a GitHub **release** (`prerelease: false`, marked as latest) with notes generated since the previous release, the promoted candidate (`v1.2.0-rc.2`, commit), and the deployment bundle.
+4. Creates a GitHub **release** (`prerelease: false`, marked as latest) with notes since the previous release (as for the candidate), the promoted candidate (`v1.2.0-rc.2`, commit), and the deployment bundle.
+
+**Release notes** are built from the commit messages since the previous release, not from pull request titles or labels, so direct commits to `main` count too. Merge commits are skipped. A message starting with `feat:` or `Add` is listed as Added, `fix:` or `Fix` as Fixed, commits of Dependabot as Dependencies, everything else as Changed; `chore:`, `docs:`, `test:`, `ci:` and `build:` are left out; a `(scope)` after the prefix and a `step 1.2 - ` prefix are dropped.
 
 **Rules**
 
