@@ -1,6 +1,7 @@
 import type { Messages } from "../messages";
 
-// Labels of domain values used in several places: semaphore (review verdict), asset type.
+// Labels of domain values used in several places: thesis status (the review verdict, called
+// semaphore in the code and the spec), asset type.
 export const en = {
   semaphore: {
     good: "good",

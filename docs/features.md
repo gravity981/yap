@@ -26,7 +26,7 @@ The screenshots show fictional demo data. They are generated with `npm run scree
 
 ## Dashboard
 
-All portfolios at a glance: how many positions are outside their band, the semaphore of
+All portfolios at a glance: how many positions are outside their band, the thesis status of
 the policy behind each of them (good, warning, broken) and your latest decisions.
 
 ![Dashboard with one portfolio and the recent events](screenshots/dashboard.png)
@@ -50,7 +50,7 @@ buffers, ETFs, stocks and crypto are supported.
 
 ![The draft editor: thesis and target structure on the left, the review beside it](screenshots/policy-editor.png)
 
-![Policies with their latest review: stars, semaphore, draft and portfolios](screenshots/policies.png)
+![Policies with their latest review: stars, thesis status, draft and portfolios](screenshots/policies.png)
 
 ![A policy with its target structure](screenshots/policy.png)
 
@@ -80,7 +80,7 @@ anything missing is sold from the positions furthest above target. The instructi
 trading, you confirm what was actually executed; the rebalance and the resulting values are
 stored. A simulation shows how several rebalancing cycles would play out.
 
-The thesis semaphore informs you; it never trades for you. With a **warning**, the page shows
+The thesis status informs you; it never trades for you. With a **warning**, the page shows
 an amber hint with the reason of the latest review and a link to the policy; the calculation
 stays as usual. With a **broken** thesis, the page shows the reason in red and asks how you
 want to rebalance: **sell the whole portfolio** (preselected: every position is sold
@@ -99,7 +99,7 @@ the whole policy at once: six aspects of the thesis (belief, fit and implementat
 opportunity, downside, invalidation, warnings and monitoring, current evidence from a web
 search for recent news, with sources) and six of the target structure (coverage, weighting,
 bands, exits, concentration, rationales). Each is scored from 0 to 10 in half points, with
-its reasoning. The review gives a score and the thesis a **semaphore**: *good*, *warning* or
+its reasoning. The review gives a score and the thesis a **status**: *good*, *warning* or
 *broken*, with a reason.
 
 - **Suggestions** change a thesis section or a position (change, add, remove) and are never
@@ -112,7 +112,7 @@ its reasoning. The review gives a score and the thesis a **semaphore**: *good*, 
   only checks the verdict against current news. The score stays as the last full review set
   it, and there are no suggestions. Only a draft gets a review of the whole policy; the
   Finalize page strongly recommends completing it before you activate. All results are kept
-  in a review log that you can compare, and the latest one sets the semaphore shown on the
+  in a review log that you can compare, and the latest one sets the thesis status shown on the
   policy and on its portfolios.
 
 ![The review log with the score course and the comparison of two reviews](screenshots/policy-reviews.png)

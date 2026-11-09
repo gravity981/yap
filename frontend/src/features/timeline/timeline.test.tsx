@@ -271,7 +271,7 @@ describe("timeline", () => {
     );
     const alerts = await screen.findAllByRole("alert");
     expect(alerts.map((a) => a.textContent)).toEqual([
-      "growth: the semaphore of its thesis is warning.",
+      "growth: the status of its thesis is warning.",
     ]);
     const recent = screen.getByRole("heading", { name: "Recent events" }).closest("section")!;
     expect(within(recent).getAllByRole("listitem")).toHaveLength(4);

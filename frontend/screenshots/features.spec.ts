@@ -326,6 +326,8 @@ test("feature screenshots", async ({ page, browser }) => {
   await test.step("policy", async () => {
     await page.goto(`/policies/${ids.policy}`);
     await expect(page.getByText("Long-term core").first()).toBeVisible();
+    // The quick review box has loaded its latest review
+    await expect(page.getByRole("button", { name: M.reviews.start.quick })).toBeVisible();
     await shot(page, "policy");
   });
 

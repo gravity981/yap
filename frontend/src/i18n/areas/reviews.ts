@@ -109,7 +109,7 @@ export const en = {
     read: "Read",
   },
   semaphore: {
-    thesis: "Thesis:",
+    thesis: "Thesis status:",
     toPolicy: "Open the policy",
   },
   draftBox: {
@@ -121,7 +121,7 @@ export const en = {
   },
   again: {
     title: "Quick review",
-    note: "Checks the active {{version}} against today's news: only the verdict and the sources, no scores and no suggestions. The score stays as it was when the version was reviewed; the result is added to the review log and gives the new semaphore. No new version is created.",
+    note: "Checks the active {{version}} against today's news: only the verdict and the sources, no scores and no suggestions. The score stays as it was when the version was reviewed; the result is added to the review log and gives the new thesis status. No new version is created.",
   },
   log: {
     title: "Review log",
@@ -136,7 +136,7 @@ export const en = {
     again: "quick review",
     reviewer: "Reviewer",
     score: "Score",
-    semaphore: "Semaphore",
+    semaphore: "Thesis status",
     comparison: "{{from}} → {{to}}",
     aspect: "Aspect",
     change: "Change",
@@ -307,7 +307,7 @@ export const de: Messages<typeof en> = {
     read: "Lesen",
   },
   semaphore: {
-    thesis: "Anlagethese:",
+    thesis: "Status der Anlagethese:",
     toPolicy: "Anlagestrategie öffnen",
   },
   draftBox: {
@@ -319,7 +319,7 @@ export const de: Messages<typeof en> = {
   },
   again: {
     title: "Schnellprüfung",
-    note: "Prüft die aktive {{version}} gegen die heutigen Nachrichten: nur das Urteil und die Quellen, keine Bewertungen und keine Vorschläge. Die Bewertung bleibt, wie sie bei der Prüfung der Version war; das Ergebnis kommt ins Prüfprotokoll und bestimmt die neue Ampel. Es entsteht keine neue Version.",
+    note: "Prüft die aktive {{version}} gegen die heutigen Nachrichten: nur das Urteil und die Quellen, keine Bewertungen und keine Vorschläge. Die Bewertung bleibt, wie sie bei der Prüfung der Version war; das Ergebnis kommt ins Prüfprotokoll und bestimmt den neuen Status der Anlagethese. Es entsteht keine neue Version.",
   },
   log: {
     title: "Prüfprotokoll",
@@ -334,7 +334,7 @@ export const de: Messages<typeof en> = {
     again: "Schnellprüfung",
     reviewer: "Prüfer",
     score: "Bewertung",
-    semaphore: "Ampel",
+    semaphore: "Status der Anlagethese",
     comparison: "{{from}} → {{to}}",
     aspect: "Aspekt",
     change: "Änderung",

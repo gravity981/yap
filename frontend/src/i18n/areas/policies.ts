@@ -21,7 +21,7 @@ export const en = {
     noneYet: "none yet",
     draftBadge: "draft",
     legend:
-      "Stars: score of the latest review of the active version. Semaphore: that review's verdict on the thesis, good · warning · broken. Discarding a draft returns the policy to its active version; a policy that was never activated is then removed.",
+      "Stars: score of the latest review of the whole policy. Thesis status: the verdict of the latest review, also a quick one, good · warning · broken. Discarding a draft returns the policy to its active version; a policy that was never activated is then removed.",
     activeBadge: "active v{{no}}",
     draftBadgeNo: "draft v{{no}}",
     notActiveYet: "Not active yet",
@@ -233,7 +233,7 @@ export const de: Messages<typeof en> = {
     noneYet: "noch keine",
     draftBadge: "Entwurf",
     legend:
-      "Sterne: Bewertung der neuesten Prüfung der aktiven Version. Ampel: das Urteil dieser Prüfung über die Anlagethese, gut · Warnung · gebrochen. Verwirfst du einen Entwurf, kehrt die Anlagestrategie zu ihrer aktiven Version zurück; eine nie aktivierte wird dann entfernt.",
+      "Sterne: Bewertung der neuesten Prüfung der ganzen Anlagestrategie. Status der Anlagethese: das Urteil der neuesten Prüfung, auch einer Schnellprüfung, gut · Warnung · gebrochen. Verwirfst du einen Entwurf, kehrt die Anlagestrategie zu ihrer aktiven Version zurück; eine nie aktivierte wird dann entfernt.",
     activeBadge: "aktiv v{{no}}",
     draftBadgeNo: "Entwurf v{{no}}",
     notActiveYet: "Noch nicht aktiv",

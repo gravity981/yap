@@ -13,7 +13,7 @@ you can always see what you decided, when and why.
 
 <p align="center">
   <img src="docs/screenshots/policy-editor.png" width="600"
-       alt="The policy editor: thesis and target structure with the AI review beside it: scores, semaphore and suggestions">
+       alt="The policy editor: thesis and target structure with the AI review beside it: scores, thesis status and suggestions">
 </p>
 
 > **Not financial advice.** YAP applies the rules you define and records your decisions;

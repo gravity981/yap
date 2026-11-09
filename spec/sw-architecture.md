@@ -207,7 +207,7 @@ Priorities: **M** = must, **S** = should, **C** = could.
 | Cash buffer | A position of type `cash buffer`; its value is used for dip buying |
 | Rebalance | A calculation of buy and sell instructions for a portfolio from a snapshot and the active version of its policy. Stored only when the investor confirms it |
 | Review | An assessment of a draft or of the active version, by an AI reviewer or manually: a score per aspect of the thesis (T1–T6) and of the target structure (P1–P6), a score, the verdict on the thesis (the semaphore), suggestions that can be taken over and, without positions, proposed target structures (section 3.9) |
-| Semaphore | The verdict of a review on the thesis: `good`, `warning` or `broken`, shown green, amber or red. The latest review of the active version sets it; it is the only state a thesis has (THS-04) |
+| Thesis status (semaphore) | The verdict of a review on the thesis: `good`, `warning` or `broken`, shown green, amber or red. The UI calls it "thesis status" (German: "Status der Anlagethese"); this document, the code and the API keep the technical term "semaphore". The latest review of the active version, quick reviews included, sets it; it is the only state a thesis has (THS-04). It is derived from reviews, never set by the investor |
 | Matching review | A review of a draft whose fingerprint equals that of the draft's current title, thesis and target structure (REV-09) |
 | Take over | Applying a suggestion or a proposed target structure of a review to the draft with one click (REV-07, REV-22) |
 | Review log | All reviews of a policy's versions with their dates: those confirmed at activation and those saved later on the active version (REV-23) |
