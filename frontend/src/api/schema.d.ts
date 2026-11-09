@@ -4,6168 +4,6158 @@
  */
 
 export interface paths {
-  "/api/admin/accounts": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Accounts */
-    get: operations["list_accounts_api_admin_accounts_get"];
-    put?: never;
-    /** Create Account */
-    post: operations["create_account_api_admin_accounts_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/accounts/{account_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Delete Account */
-    delete: operations["delete_account_api_admin_accounts__account_id__delete"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/accounts/{account_id}/base-currency": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /** Set Base Currency */
-    put: operations["set_base_currency_api_admin_accounts__account_id__base_currency_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/accounts/{account_id}/deactivate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Deactivate */
-    post: operations["deactivate_api_admin_accounts__account_id__deactivate_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/accounts/{account_id}/reactivate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Reactivate */
-    post: operations["reactivate_api_admin_accounts__account_id__reactivate_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/accounts/{account_id}/reset-password": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Reset Password */
-    post: operations["reset_password_api_admin_accounts__account_id__reset_password_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/accounts/{account_id}/roles": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Set Roles
-     * @description USR-09
-     */
-    put: operations["set_roles_api_admin_accounts__account_id__roles_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/ai-reviewers": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Reviewers */
-    get: operations["list_reviewers_api_admin_ai_reviewers_get"];
-    put?: never;
-    /** Create Reviewer */
-    post: operations["create_reviewer_api_admin_ai_reviewers_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/ai-reviewers/{reviewer_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /** Update Reviewer */
-    put: operations["update_reviewer_api_admin_ai_reviewers__reviewer_id__put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/ai-reviewers/{reviewer_id}/archive": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Archive Reviewer
-     * @description REV-13: archived instead of deleted
-     */
-    post: operations["archive_reviewer_api_admin_ai_reviewers__reviewer_id__archive_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/ai-reviewers/{reviewer_id}/test": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Test Connection
-     * @description REV-14: one request to the provider with the reviewer's settings.
-     */
-    post: operations["test_connection_api_admin_ai_reviewers__reviewer_id__test_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/price-providers": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Providers */
-    get: operations["list_providers_api_admin_price_providers_get"];
-    put?: never;
-    /** Create Provider */
-    post: operations["create_provider_api_admin_price_providers_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/price-providers/{provider_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /** Update Provider */
-    put: operations["update_provider_api_admin_price_providers__provider_id__put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/price-providers/{provider_id}/archive": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Archive Provider
-     * @description PRC-01: archived instead of deleted
-     */
-    post: operations["archive_provider_api_admin_price_providers__provider_id__archive_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/price-providers/{provider_id}/test": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Test Connection
-     * @description PRC-01: one request to the provider with its settings.
-     */
-    post: operations["test_connection_api_admin_price_providers__provider_id__test_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/admin/price-update": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Update */
-    get: operations["get_update_api_admin_price_update_get"];
-    /**
-     * Set Update
-     * @description PRC-07: the time of day is read in the given time zone (USR-11, NFR-14).
-     */
-    put: operations["set_update_api_admin_price_update_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ai-reviewers": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Options */
-    get: operations["list_options_api_ai_reviewers_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ai-reviewers/choice": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /** Choose */
-    put: operations["choose_api_ai_reviewers_choice_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/assets": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Assets */
-    get: operations["list_assets_api_assets_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/language": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Set Language
-     * @description USR-10: also for admin-only accounts and before a temporary password is changed.
-     */
-    put: operations["set_language_api_auth_language_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/login": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Login */
-    post: operations["login_api_auth_login_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/logout": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Logout */
-    post: operations["logout_api_auth_logout_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/me": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Me */
-    get: operations["me_api_auth_me_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/password": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Change Password */
-    post: operations["change_password_api_auth_password_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/time-zone": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Set Time Zone
-     * @description USR-11: like the language, for every account.
-     */
-    put: operations["set_time_zone_api_auth_time_zone_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/health": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Health */
-    get: operations["health_api_health_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Policies */
-    get: operations["list_policies_api_policies_get"];
-    put?: never;
-    /** Create Policy */
-    post: operations["create_policy_api_policies_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/import-thesis": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Import Thesis As Policy
-     * @description IMP-01: a new policy whose draft v1 holds the thesis of the file.
-     */
-    post: operations["import_thesis_as_policy_api_policies_import_thesis_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/import-thesis/preview": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Preview Thesis As Policy */
-    post: operations["preview_thesis_as_policy_api_policies_import_thesis_preview_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Policy */
-    get: operations["get_policy_api_policies__policy_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/active/review": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Start Active Review
-     * @description POL-20: reviews the active version again; saved in its review log when done.
-     */
-    post: operations["start_active_review_api_policies__policy_id__active_review_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/active/review-prompt": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Active Review Prompt
-     * @description POL-20, REV-19: the prompt of the active version; changes nothing.
-     */
-    get: operations["get_active_review_prompt_api_policies__policy_id__active_review_prompt_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/active/review/manual": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Submit Manual Active Review
-     * @description POL-20, REV-18: saves the pasted answer in the review log of the active version.
-     */
-    post: operations["submit_manual_active_review_api_policies__policy_id__active_review_manual_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/archive": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Archive Policy */
-    post: operations["archive_policy_api_policies__policy_id__archive_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/compare": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Compare Versions
-     * @description POL-09.
-     */
-    get: operations["compare_versions_api_policies__policy_id__compare_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/draft": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /** Update Draft */
-    put: operations["update_draft_api_policies__policy_id__draft_put"];
-    /** Create Draft */
-    post: operations["create_draft_api_policies__policy_id__draft_post"];
-    /**
-     * Delete Draft
-     * @description POL-16: discards the draft and its review.
-     */
-    delete: operations["delete_draft_api_policies__policy_id__draft_delete"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/draft/activate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Activate Draft */
-    post: operations["activate_draft_api_policies__policy_id__draft_activate_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/draft/change-note": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Update Change Note
-     * @description POL-14, POL-17: saves the change note of the draft.
-     */
-    put: operations["update_change_note_api_policies__policy_id__draft_change_note_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/draft/review": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Start Review
-     * @description REV-01, REV-04: starts a review of the policy draft; it runs in the background.
-     */
-    post: operations["start_review_api_policies__policy_id__draft_review_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/draft/review-prompt": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Review Prompt
-     * @description REV-19: the prompt of the policy draft as it is saved now; changes nothing.
-     */
-    get: operations["get_review_prompt_api_policies__policy_id__draft_review_prompt_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/draft/review/manual": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Submit Manual Review
-     * @description REV-18: stores the pasted answer as the review of the policy draft.
-     */
-    post: operations["submit_manual_review_api_policies__policy_id__draft_review_manual_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/import": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Import Target Structure */
-    post: operations["import_target_structure_api_policies__policy_id__import_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/import-thesis": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Import Thesis
-     * @description IMP-01: replaces the thesis of the policy's draft (created if there is none).
-     */
-    post: operations["import_thesis_api_policies__policy_id__import_thesis_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/import-thesis/preview": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Preview Thesis */
-    post: operations["preview_thesis_api_policies__policy_id__import_thesis_preview_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/import/preview": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Preview Target Structure */
-    post: operations["preview_target_structure_api_policies__policy_id__import_preview_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/name": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Rename Policy
-     * @description POL-21: renames the policy; its versions are labelled with the new name.
-     */
-    put: operations["rename_policy_api_policies__policy_id__name_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/reviews": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Review Log
-     * @description REV-23: all saved reviews of the policy's versions, newest first.
-     */
-    get: operations["get_review_log_api_policies__policy_id__reviews_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/sharing": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Set Sharing
-     * @description POL-18: the sharing level; only a reviewed active version can be shared.
-     */
-    put: operations["set_sharing_api_policies__policy_id__sharing_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/versions/{version_no}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Version */
-    get: operations["get_version_api_policies__policy_id__versions__version_no__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/versions/{version_no}/export": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Export Target Structure */
-    get: operations["export_target_structure_api_policies__policy_id__versions__version_no__export_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/versions/{version_no}/review": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Version Review
-     * @description The review that gives a version its score and semaphore: confirmed (REV-12) or of
-     *     the draft.
-     */
-    get: operations["get_version_review_api_policies__policy_id__versions__version_no__review_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policies/{policy_id}/versions/{version_no}/thesis/export": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Export Thesis
-     * @description IMP-10: the thesis of a policy version.
-     */
-    get: operations["export_thesis_api_policies__policy_id__versions__version_no__thesis_export_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/policy-versions/{version_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Version By Id */
-    get: operations["get_version_by_id_api_policy_versions__version_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List Portfolios
-     * @description CMP-09: overview of all portfolios.
-     */
-    get: operations["list_portfolios_api_portfolios_get"];
-    put?: never;
-    /** Create Portfolio */
-    post: operations["create_portfolio_api_portfolios_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Portfolio */
-    get: operations["get_portfolio_api_portfolios__portfolio_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/archive": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Archive */
-    post: operations["archive_api_portfolios__portfolio_id__archive_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/import": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Import Current Structure */
-    post: operations["import_current_structure_api_portfolios__portfolio_id__import_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/import/preview": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Preview Current Structure */
-    post: operations["preview_current_structure_api_portfolios__portfolio_id__import_preview_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/positions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /**
-     * Set Positions
-     * @description PTF-03: broker and whole units per position, by ticker.
-     */
-    put: operations["set_positions_api_portfolios__portfolio_id__positions_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/prefill": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Prefill */
-    get: operations["prefill_api_portfolios__portfolio_id__prefill_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/reassign": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Reassign */
-    post: operations["reassign_api_portfolios__portfolio_id__reassign_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/rebalance": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Preview */
-    get: operations["preview_api_portfolios__portfolio_id__rebalance_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/rebalances": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Rebalances */
-    get: operations["list_rebalances_api_portfolios__portfolio_id__rebalances_get"];
-    put?: never;
-    /** Confirm */
-    post: operations["confirm_api_portfolios__portfolio_id__rebalances_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/settings": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /** Update Settings */
-    put: operations["update_settings_api_portfolios__portfolio_id__settings_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/simulate": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Simulate */
-    post: operations["simulate_api_portfolios__portfolio_id__simulate_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/portfolios/{portfolio_id}/snapshots": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List Snapshots */
-    get: operations["list_snapshots_api_portfolios__portfolio_id__snapshots_get"];
-    put?: never;
-    /** Create Snapshot */
-    post: operations["create_snapshot_api_portfolios__portfolio_id__snapshots_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/price-sources": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List Sources
-     * @description PRC-05: every asset the investor uses, with its price source.
-     */
-    get: operations["list_sources_api_price_sources_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/price-sources/lookup": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Lookup
-     * @description PRC-02 to PRC-04, PRC-06: never blocks; problems are reported, not raised.
-     */
-    post: operations["lookup_api_price_sources_lookup_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/price-sources/{ticker}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /** Set Source */
-    put: operations["set_source_api_price_sources__ticker__put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rebalances/{rebalance_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Rebalance */
-    get: operations["get_rebalance_api_rebalances__rebalance_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/rebalances/{rebalance_id}/result": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Rebalance Result
-     * @description RB-19: all phase tables of a confirmed rebalance, for its report.
-     */
-    get: operations["get_rebalance_result_api_rebalances__rebalance_id__result_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/reviews/usage": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Usage
-     * @description For the given AI reviewer, or the investor's default (USR-08).
-     */
-    get: operations["get_usage_api_reviews_usage_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/reviews/{review_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Review */
-    get: operations["get_review_api_reviews__review_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Dismiss Suggestion
-     * @description REV-07: deletes the suggestion; the draft stays as it is.
-     */
-    post: operations["dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Take Over Suggestion
-     * @description REV-07, REV-22: applies the suggestion or proposal to the draft.
-     */
-    post: operations["take_over_suggestion_api_reviews__review_id__suggestions__suggestion_id__take_over_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/reviews/{review_id}/suggestions/{suggestion_id}/undo": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Undo Suggestion
-     * @description REV-07: reverts a taken over suggestion in the draft; it is open again.
-     */
-    post: operations["undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/schemas/{import_type}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get Schema
-     * @description IMP-09: the JSON Schema of an import type, for download.
-     */
-    get: operations["get_schema_api_schemas__import_type__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/snapshots/{snapshot_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get Snapshot */
-    get: operations["get_snapshot_api_snapshots__snapshot_id__get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/snapshots/{snapshot_id}/export": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Export Current Structure */
-    get: operations["export_current_structure_api_snapshots__snapshot_id__export_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/timeline": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Timeline */
-    get: operations["timeline_api_timeline_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/version": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Version */
-    get: operations["version_api_version_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
+    "/api/admin/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Accounts */
+        get: operations["list_accounts_api_admin_accounts_get"];
+        put?: never;
+        /** Create Account */
+        post: operations["create_account_api_admin_accounts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Account */
+        delete: operations["delete_account_api_admin_accounts__account_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/base-currency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Base Currency */
+        put: operations["set_base_currency_api_admin_accounts__account_id__base_currency_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivate */
+        post: operations["deactivate_api_admin_accounts__account_id__deactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivate */
+        post: operations["reactivate_api_admin_accounts__account_id__reactivate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Password */
+        post: operations["reset_password_api_admin_accounts__account_id__reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Roles
+         * @description USR-09
+         */
+        put: operations["set_roles_api_admin_accounts__account_id__roles_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai-reviewers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reviewers */
+        get: operations["list_reviewers_api_admin_ai_reviewers_get"];
+        put?: never;
+        /** Create Reviewer */
+        post: operations["create_reviewer_api_admin_ai_reviewers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai-reviewers/{reviewer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Reviewer */
+        put: operations["update_reviewer_api_admin_ai_reviewers__reviewer_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai-reviewers/{reviewer_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive Reviewer
+         * @description REV-13: archived instead of deleted
+         */
+        post: operations["archive_reviewer_api_admin_ai_reviewers__reviewer_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai-reviewers/{reviewer_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Connection
+         * @description REV-14: one request to the provider with the reviewer's settings.
+         */
+        post: operations["test_connection_api_admin_ai_reviewers__reviewer_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/price-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Providers */
+        get: operations["list_providers_api_admin_price_providers_get"];
+        put?: never;
+        /** Create Provider */
+        post: operations["create_provider_api_admin_price_providers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/price-providers/{provider_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Provider */
+        put: operations["update_provider_api_admin_price_providers__provider_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/price-providers/{provider_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive Provider
+         * @description PRC-01: archived instead of deleted
+         */
+        post: operations["archive_provider_api_admin_price_providers__provider_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/price-providers/{provider_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Connection
+         * @description PRC-01: one request to the provider with its settings.
+         */
+        post: operations["test_connection_api_admin_price_providers__provider_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/price-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Update */
+        get: operations["get_update_api_admin_price_update_get"];
+        /**
+         * Set Update
+         * @description PRC-07: the time of day is read in the given time zone (USR-11, NFR-14).
+         */
+        put: operations["set_update_api_admin_price_update_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai-reviewers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Options */
+        get: operations["list_options_api_ai_reviewers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai-reviewers/choice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Choose */
+        put: operations["choose_api_ai_reviewers_choice_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Assets */
+        get: operations["list_assets_api_assets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Language
+         * @description USR-10: also for admin-only accounts and before a temporary password is changed.
+         */
+        put: operations["set_language_api_auth_language_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Password */
+        post: operations["change_password_api_auth_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/time-zone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Time Zone
+         * @description USR-11: like the language, for every account.
+         */
+        put: operations["set_time_zone_api_auth_time_zone_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health_api_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Policies */
+        get: operations["list_policies_api_policies_get"];
+        put?: never;
+        /** Create Policy */
+        post: operations["create_policy_api_policies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/import-thesis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Thesis As Policy
+         * @description IMP-01: a new policy whose draft v1 holds the thesis of the file.
+         */
+        post: operations["import_thesis_as_policy_api_policies_import_thesis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/import-thesis/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Thesis As Policy */
+        post: operations["preview_thesis_as_policy_api_policies_import_thesis_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Policy */
+        get: operations["get_policy_api_policies__policy_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/active/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Active Review
+         * @description POL-20: reviews the active version again; saved in its review log when done.
+         */
+        post: operations["start_active_review_api_policies__policy_id__active_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/active/review-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Review Prompt
+         * @description POL-20, REV-19: the prompt of the active version; changes nothing.
+         */
+        get: operations["get_active_review_prompt_api_policies__policy_id__active_review_prompt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/active/review/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Manual Active Review
+         * @description POL-20, REV-18: saves the pasted answer in the review log of the active version.
+         */
+        post: operations["submit_manual_active_review_api_policies__policy_id__active_review_manual_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Policy */
+        post: operations["archive_policy_api_policies__policy_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compare Versions
+         * @description POL-09.
+         */
+        get: operations["compare_versions_api_policies__policy_id__compare_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Draft */
+        put: operations["update_draft_api_policies__policy_id__draft_put"];
+        /** Create Draft */
+        post: operations["create_draft_api_policies__policy_id__draft_post"];
+        /**
+         * Delete Draft
+         * @description POL-16: discards the draft and its review.
+         */
+        delete: operations["delete_draft_api_policies__policy_id__draft_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate Draft */
+        post: operations["activate_draft_api_policies__policy_id__draft_activate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/change-note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Change Note
+         * @description POL-14, POL-17: saves the change note of the draft.
+         */
+        put: operations["update_change_note_api_policies__policy_id__draft_change_note_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Review
+         * @description REV-01, REV-04: starts a review of the policy draft; it runs in the background.
+         */
+        post: operations["start_review_api_policies__policy_id__draft_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/review-prompt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Review Prompt
+         * @description REV-19: the prompt of the policy draft as it is saved now; changes nothing.
+         */
+        get: operations["get_review_prompt_api_policies__policy_id__draft_review_prompt_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/draft/review/manual": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Manual Review
+         * @description REV-18: stores the pasted answer as the review of the policy draft.
+         */
+        post: operations["submit_manual_review_api_policies__policy_id__draft_review_manual_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Target Structure */
+        post: operations["import_target_structure_api_policies__policy_id__import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/import-thesis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Thesis
+         * @description IMP-01: replaces the thesis of the policy's draft (created if there is none).
+         */
+        post: operations["import_thesis_api_policies__policy_id__import_thesis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/import-thesis/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Thesis */
+        post: operations["preview_thesis_api_policies__policy_id__import_thesis_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Target Structure */
+        post: operations["preview_target_structure_api_policies__policy_id__import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rename Policy
+         * @description POL-21: renames the policy; its versions are labelled with the new name.
+         */
+        put: operations["rename_policy_api_policies__policy_id__name_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Review Log
+         * @description REV-23: all saved reviews of the policy's versions, newest first.
+         */
+        get: operations["get_review_log_api_policies__policy_id__reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/sharing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Sharing
+         * @description POL-18: the sharing level; only a reviewed active version can be shared.
+         */
+        put: operations["set_sharing_api_policies__policy_id__sharing_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/versions/{version_no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Version */
+        get: operations["get_version_api_policies__policy_id__versions__version_no__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/versions/{version_no}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Target Structure */
+        get: operations["export_target_structure_api_policies__policy_id__versions__version_no__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/versions/{version_no}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Version Review
+         * @description The review that gives a version its score and semaphore: confirmed (REV-12) or of
+         *     the draft.
+         */
+        get: operations["get_version_review_api_policies__policy_id__versions__version_no__review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policies/{policy_id}/versions/{version_no}/thesis/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Thesis
+         * @description IMP-10: the thesis of a policy version.
+         */
+        get: operations["export_thesis_api_policies__policy_id__versions__version_no__thesis_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/policy-versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Version By Id */
+        get: operations["get_version_by_id_api_policy_versions__version_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Portfolios
+         * @description CMP-09: overview of all portfolios.
+         */
+        get: operations["list_portfolios_api_portfolios_get"];
+        put?: never;
+        /** Create Portfolio */
+        post: operations["create_portfolio_api_portfolios_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Portfolio */
+        get: operations["get_portfolio_api_portfolios__portfolio_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive */
+        post: operations["archive_api_portfolios__portfolio_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import Current Structure */
+        post: operations["import_current_structure_api_portfolios__portfolio_id__import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/import/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Current Structure */
+        post: operations["preview_current_structure_api_portfolios__portfolio_id__import_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Positions
+         * @description PTF-03: broker and whole units per position, by ticker.
+         */
+        put: operations["set_positions_api_portfolios__portfolio_id__positions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/prefill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prefill */
+        get: operations["prefill_api_portfolios__portfolio_id__prefill_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/reassign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reassign */
+        post: operations["reassign_api_portfolios__portfolio_id__reassign_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/rebalance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview */
+        get: operations["preview_api_portfolios__portfolio_id__rebalance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/rebalances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Rebalances */
+        get: operations["list_rebalances_api_portfolios__portfolio_id__rebalances_get"];
+        put?: never;
+        /** Confirm */
+        post: operations["confirm_api_portfolios__portfolio_id__rebalances_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Settings */
+        put: operations["update_settings_api_portfolios__portfolio_id__settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Simulate */
+        post: operations["simulate_api_portfolios__portfolio_id__simulate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/portfolios/{portfolio_id}/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Snapshots */
+        get: operations["list_snapshots_api_portfolios__portfolio_id__snapshots_get"];
+        put?: never;
+        /** Create Snapshot */
+        post: operations["create_snapshot_api_portfolios__portfolio_id__snapshots_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/price-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sources
+         * @description PRC-05: every asset the investor uses, with its price source.
+         */
+        get: operations["list_sources_api_price_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/price-sources/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lookup
+         * @description PRC-02 to PRC-04, PRC-06: never blocks; problems are reported, not raised.
+         */
+        post: operations["lookup_api_price_sources_lookup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/price-sources/{ticker}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Source */
+        put: operations["set_source_api_price_sources__ticker__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rebalances/{rebalance_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rebalance */
+        get: operations["get_rebalance_api_rebalances__rebalance_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rebalances/{rebalance_id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Rebalance Result
+         * @description RB-19: all phase tables of a confirmed rebalance, for its report.
+         */
+        get: operations["get_rebalance_result_api_rebalances__rebalance_id__result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Usage
+         * @description For the given AI reviewer, or the investor's default (USR-08).
+         */
+        get: operations["get_usage_api_reviews_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/{review_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Review */
+        get: operations["get_review_api_reviews__review_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dismiss Suggestion
+         * @description REV-07: deletes the suggestion; the draft stays as it is.
+         */
+        post: operations["dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Take Over Suggestion
+         * @description REV-07, REV-22: applies the suggestion or proposal to the draft.
+         */
+        post: operations["take_over_suggestion_api_reviews__review_id__suggestions__suggestion_id__take_over_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reviews/{review_id}/suggestions/{suggestion_id}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo Suggestion
+         * @description REV-07: reverts a taken over suggestion in the draft; it is open again.
+         */
+        post: operations["undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/schemas/{import_type}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Schema
+         * @description IMP-09: the JSON Schema of an import type, for download.
+         */
+        get: operations["get_schema_api_schemas__import_type__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/snapshots/{snapshot_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Snapshot */
+        get: operations["get_snapshot_api_snapshots__snapshot_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/snapshots/{snapshot_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Current Structure */
+        get: operations["export_current_structure_api_snapshots__snapshot_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Timeline */
+        get: operations["timeline_api_timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Version */
+        get: operations["version_api_version_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /** Account */
-    Account: {
-      /** Active */
-      active: boolean;
-      /** Base Currency */
-      base_currency: string | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Id */
-      id: number;
-      /** Is Admin */
-      is_admin: boolean;
-      /** Is Investor */
-      is_investor: boolean;
-      /** Must Change Password */
-      must_change_password: boolean;
-      /** Username */
-      username: string;
-    };
-    /** ActionOut */
-    ActionOut: {
-      /** Action */
-      action: string;
-      /** Broker */
-      broker: string | null;
-      /** Calculated Amount */
-      calculated_amount: string;
-      /** Calculated Units */
-      calculated_units: string | null;
-      /** Executed Amount */
-      executed_amount: string;
-      /** Executed Units */
-      executed_units: string | null;
-      /** Phase */
-      phase: string;
-      /** Ticker */
-      ticker: string;
-      /** Whole Units */
-      whole_units: boolean | null;
-    };
-    /** Activation */
-    Activation: {
-      /** Change Note */
-      change_note?: string | null;
-    };
-    /** AddableProvider */
-    AddableProvider: {
-      /** Key Possible */
-      key_possible: boolean;
-      /** Key Required */
-      key_required: boolean;
-      /** Name */
-      name: string;
-      /** Provider */
-      provider: string;
-    };
-    /** AiReviewerIn */
-    AiReviewerIn: {
-      /** Api Key */
-      api_key?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Enabled
-       * @default true
-       */
-      enabled?: boolean;
-      /** Model */
-      model: string;
-      /** Monthly Review Limit */
-      monthly_review_limit: number;
-      /** Name */
-      name: string;
-      /** Provider */
-      provider: string;
-    };
-    /** AiReviewerList */
-    AiReviewerList: {
-      /** Keys Available */
-      keys_available: boolean;
-      /** Reviewers */
-      reviewers: components["schemas"]["AiReviewerSettings"][];
-    };
-    /**
-     * AiReviewerOption
-     * @description What an investor sees of a reviewer: never its key.
-     */
-    AiReviewerOption: {
-      /** Description */
-      description: string | null;
-      /** Id */
-      id: number;
-      /** Model */
-      model: string;
-      /** Monthly Review Limit */
-      monthly_review_limit: number;
-      /** Name */
-      name: string;
-      /** Provider */
-      provider: string;
-    };
-    /**
-     * AiReviewerSettings
-     * @description The stored key itself is never returned (REV-15).
-     */
-    AiReviewerSettings: {
-      /** Api Key Last4 */
-      api_key_last4: string;
-      /** Description */
-      description: string | null;
-      /** Enabled */
-      enabled: boolean;
-      /** Id */
-      id: number;
-      /** Model */
-      model: string;
-      /** Monthly Review Limit */
-      monthly_review_limit: number;
-      /** Name */
-      name: string;
-      /** Provider */
-      provider: string;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
-    };
-    /** AspectOut */
-    AspectOut: {
-      /** Code */
-      code: string;
-      /** Name */
-      name: string;
-      /** Reasoning Md */
-      reasoning_md: string;
-      /** Score */
-      score: number;
-    };
-    /** AssetOut */
-    AssetOut: {
-      /** Name */
-      name: string;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type: string;
-    };
-    /** AssignmentOut */
-    AssignmentOut: {
-      /** Policy Id */
-      policy_id: number;
-      /** Policy Name */
-      policy_name: string;
-      /**
-       * Valid From
-       * Format: date-time
-       */
-      valid_from: string;
-    };
-    /**
-     * AutoPriceOut
-     * @description CMP-01, CMP-10: an auto price with the listing, its own price and currency, the
-     *     exchange rate and the provider's date.
-     */
-    AutoPriceOut: {
-      /** Exchange */
-      exchange: string;
-      /** Fx Rate */
-      fx_rate: string;
-      /** Listing Currency */
-      listing_currency: string;
-      /** Listing Id */
-      listing_id: number;
-      /** Listing Price */
-      listing_price: string;
-      /** Price Date */
-      price_date: string;
-      /** Provider Name */
-      provider_name: string;
-      /** Symbol */
-      symbol: string;
-    };
-    /** BaseCurrency */
-    BaseCurrency: {
-      /** Base Currency */
-      base_currency: string;
-    };
-    /** ChangeNote */
-    ChangeNote: {
-      /** Change Note */
-      change_note: string | null;
-    };
-    /**
-     * Choice
-     * @description USR-08: the default review method; `manual` wins over an AI reviewer.
-     */
-    Choice: {
-      /** Ai Reviewer Id */
-      ai_reviewer_id: number | null;
-      /**
-       * Manual
-       * @default false
-       */
-      manual?: boolean;
-    };
-    /** ComparisonRowOut */
-    ComparisonRowOut: {
-      /** Allocation Pct */
-      allocation_pct: string;
-      auto: components["schemas"]["AutoPriceOut"] | null;
-      /** Buy Abs Pct */
-      buy_abs_pct: string | null;
-      /** Deviation Pct */
-      deviation_pct: string | null;
-      /** Exit */
-      exit: boolean;
-      /** Name */
-      name: string;
-      /** Price */
-      price: string | null;
-      /** Price Kind */
-      price_kind: string | null;
-      /** Sell Abs Pct */
-      sell_abs_pct: string | null;
-      /** Status */
-      status: string;
-      /** Target Pct */
-      target_pct: string | null;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type: string;
-      /** Units */
-      units: string | null;
-      /** Value */
-      value: string;
-    };
-    /** Confirmation */
-    Confirmation: {
-      /** Contribution */
-      contribution: number | string;
-      /**
-       * Executed
-       * @default []
-       */
-      executed?: components["schemas"]["ExecutedIn"][];
-      /**
-       * Mode
-       * @default normal
-       */
-      mode?: string;
-      /** Policy Version Id */
-      policy_version_id: number;
-      /** Snapshot Id */
-      snapshot_id: number;
-      /**
-       * Withdrawal
-       * @default 0
-       */
-      withdrawal?: number | string;
-    };
-    /**
-     * ConnectionTest
-     * @description The result in English (`message`) and as code with params (NFR-10).
-     */
-    ConnectionTest: {
-      /** Code */
-      code: string;
-      /** Message */
-      message: string;
-      /** Ok */
-      ok: boolean;
-      /** Params */
-      params: {
-        [key: string]: string | number;
-      };
-    };
-    /** CurrentStructurePreviewOut */
-    CurrentStructurePreviewOut: {
-      /** New Tickers */
-      new_tickers: string[];
-      /** Values */
-      values: [string, string | null][];
-    };
-    /**
-     * Discarded
-     * @description POL-16: whether the policy was deleted with the draft (it was never activated).
-     */
-    Discarded: {
-      /** Policy Deleted */
-      policy_deleted: boolean;
-    };
-    /**
-     * DraftBrief
-     * @description POL-19: a policy's draft in short.
-     */
-    DraftBrief: {
-      /** Changed */
-      changed: boolean;
-      /** Label */
-      label: string;
-      /** Positions */
-      positions: number;
-      review: components["schemas"]["ReviewBrief"] | null;
-      /** Updated At */
-      updated_at: string | null;
-      /** Version No */
-      version_no: number;
-    };
-    /** DraftIn */
-    DraftIn: {
-      /** Positions */
-      positions: components["schemas"]["PositionIn"][];
-      thesis?: components["schemas"]["ThesisIn"] | null;
-    };
-    /** EventOut */
-    EventOut: {
-      /** Id */
-      id: number;
-      /**
-       * Occurred At
-       * Format: date-time
-       */
-      occurred_at: string;
-      /** Params */
-      params: {
-        [key: string]: unknown;
-      } | null;
-      /** Policy Version Id */
-      policy_version_id: number | null;
-      /** Portfolio Id */
-      portfolio_id: number | null;
-      /** Rebalance Id */
-      rebalance_id: number | null;
-      /** Review Id */
-      review_id: number | null;
-      /** Summary */
-      summary: string;
-      /** Type */
-      type: string;
-    };
-    /**
-     * EventType
-     * @enum {string}
-     */
-    EventType:
-      | "policy_activated"
-      | "portfolio_assigned"
-      | "rebalance_confirmed"
-      | "thesis_review_confirmed"
-      | "policy_review_confirmed"
-      | "review_confirmed"
-      | "review_saved"
-      | "thesis_revised";
-    /** ExecutedIn */
-    ExecutedIn: {
-      /** Amount */
-      amount: number | string;
-      /** Phase */
-      phase: string;
-      /** Ticker */
-      ticker: string;
-      /** Units */
-      units?: number | string | null;
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components["schemas"]["ValidationError"][];
-    };
-    /** Health */
-    Health: {
-      /** Status */
-      status: string;
-      /** Version */
-      version: string;
-    };
-    /** InstructionOut */
-    InstructionOut: {
-      /** Action */
-      action: string;
-      /** Amount */
-      amount: string;
-      /** Broker */
-      broker: string | null;
-      /** Phase */
-      phase: string;
-      /** Ticker */
-      ticker: string;
-      /** Units */
-      units: string | null;
-      /** Whole Units */
-      whole_units: boolean | null;
-    };
-    /** LanguageChoice */
-    LanguageChoice: {
-      /** Language */
-      language: string | null;
-    };
-    /**
-     * LegacyModificationOut
-     * @description Investor changes of a review from before REV-10 was dropped; read-only.
-     */
-    LegacyModificationOut: {
-      /** Note */
-      note: string | null;
-      /** Scores */
-      scores: {
-        [key: string]: number;
-      };
-      /** Verdict */
-      verdict: string | null;
-    };
-    /** ListingOut */
-    ListingOut: {
-      /** Available */
-      available: boolean;
-      /** Currency */
-      currency: string;
-      /** Exchange */
-      exchange: string;
-      /** Id */
-      id: number;
-      /** Name */
-      name: string;
-      /** Price */
-      price: string | null;
-      /** Price Date */
-      price_date: string | null;
-      /** Price Updated At */
-      price_updated_at: string | null;
-      /** Provider */
-      provider: string;
-      /** Provider Name */
-      provider_name: string;
-      /** Symbol */
-      symbol: string;
-    };
-    /** LoginRequest */
-    LoginRequest: {
-      /** Password */
-      password: string;
-      /** Username */
-      username: string;
-    };
-    /** LookupIn */
-    LookupIn: {
-      /**
-       * Retry
-       * @default false
-       */
-      retry?: boolean;
-      /** Ticker */
-      ticker: string;
-    };
-    /** LookupOut */
-    LookupOut: {
-      /** Listings */
-      listings: components["schemas"]["ListingOut"][];
-      /** Problems */
-      problems: components["schemas"]["ProblemOut"][];
-      source: components["schemas"]["PriceSourceOut"] | null;
-      /** Status */
-      status: string;
-      /** Ticker */
-      ticker: string;
-    };
-    /**
-     * ManualAnswer
-     * @description REV-18: the answer of an AI outside the app; the model is not asked for (REV-17).
-     */
-    ManualAnswer: {
-      /** Answer */
-      answer: string;
-    };
-    /** Me */
-    Me: {
-      /** Ai Reviewer Id */
-      ai_reviewer_id: number | null;
-      /** Base Currency */
-      base_currency: string | null;
-      /** Id */
-      id: number;
-      /** Is Admin */
-      is_admin: boolean;
-      /** Is Investor */
-      is_investor: boolean;
-      /** Language */
-      language: string | null;
-      /** Manual Review Default */
-      manual_review_default: boolean;
-      /** Must Change Password */
-      must_change_password: boolean;
-      /** Time Zone */
-      time_zone: string | null;
-      /** Username */
-      username: string;
-    };
-    /** NewAccount */
-    NewAccount: {
-      /** Base Currency */
-      base_currency?: string | null;
-      /**
-       * Is Admin
-       * @default false
-       */
-      is_admin?: boolean;
-      /**
-       * Is Investor
-       * @default true
-       */
-      is_investor?: boolean;
-      /** Temporary Password */
-      temporary_password: string;
-      /** Username */
-      username: string;
-    };
-    /**
-     * NewPolicy
-     * @description POL-01: draft v1 holds the thesis given here (the template, filled in by the UI).
-     */
-    NewPolicy: {
-      /** Name */
-      name: string;
-      /**
-       * Thesis Md
-       * @default
-       */
-      thesis_md?: string;
-      /** Thesis Title */
-      thesis_title?: string | null;
-    };
-    /** NewPortfolio */
-    NewPortfolio: {
-      /** Currency */
-      currency?: string | null;
-      /**
-       * Default Contribution
-       * @default 0
-       */
-      default_contribution?: number | string;
-      /** Name */
-      name: string;
-      /** Policy Id */
-      policy_id: number;
-      /**
-       * Precise Amounts
-       * @default false
-       */
-      precise_amounts?: boolean;
-    };
-    /** NewSnapshot */
-    NewSnapshot: {
-      /** Corrects Snapshot Id */
-      corrects_snapshot_id?: number | null;
-      /** Values */
-      values: components["schemas"]["ValueIn"][];
-    };
-    /** PasswordChange */
-    PasswordChange: {
-      /** Current Password */
-      current_password: string;
-      /** New Password */
-      new_password: string;
-    };
-    /** PasswordReset */
-    PasswordReset: {
-      /** Temporary Password */
-      temporary_password: string;
-    };
-    /**
-     * PlanOut
-     * @description RB-02, RB-03: instructions; nothing is stored.
-     */
-    PlanOut: {
-      /** Contribution */
-      contribution: string;
-      /** Instructions */
-      instructions: components["schemas"]["InstructionOut"][];
-      /** Mode */
-      mode: string;
-      /** Policy Id */
-      policy_id: number;
-      /** Policy Name */
-      policy_name: string;
-      /** Policy Version Id */
-      policy_version_id: number;
-      /** Policy Version Label */
-      policy_version_label: string;
-      /** Precise Amounts */
-      precise_amounts: boolean;
-      result: components["schemas"]["ResultOut"];
-      /** Semaphore */
-      semaphore: string | null;
-      /** Semaphore Reason */
-      semaphore_reason: string | null;
-      /** Snapshot Id */
-      snapshot_id: number;
-      /**
-       * Snapshot Taken At
-       * Format: date-time
-       */
-      snapshot_taken_at: string;
-      /** Withdrawal */
-      withdrawal: string;
-    };
-    /** PolicyOut */
-    PolicyOut: {
-      /** Active From */
-      active_from: string | null;
-      /** Active Version No */
-      active_version_no: number | null;
-      /** Archived At */
-      archived_at: string | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      draft: components["schemas"]["DraftBrief"] | null;
-      /** Id */
-      id: number;
-      latest_review: components["schemas"]["ReviewBrief"] | null;
-      /** Mark */
-      mark: string | null;
-      /** Name */
-      name: string;
-      pending_review: components["schemas"]["ReviewBrief"] | null;
-      /** Portfolios */
-      portfolios: components["schemas"]["PortfolioRef"][];
-      /** Semaphore */
-      semaphore: string | null;
-      /** Semaphore Reason */
-      semaphore_reason: string | null;
-      /** Sharing */
-      sharing: string;
-      /** Thesis Warning */
-      thesis_warning: boolean;
-      /** Versions */
-      versions: components["schemas"]["VersionSummary"][];
-    };
-    /**
-     * PolicySummary
-     * @description POL-19: a policy in the policies list.
-     */
-    PolicySummary: {
-      /** Active From */
-      active_from: string | null;
-      /** Active Version Label */
-      active_version_label: string | null;
-      /** Active Version No */
-      active_version_no: number | null;
-      /** Archived At */
-      archived_at: string | null;
-      draft: components["schemas"]["DraftBrief"] | null;
-      /** Has Draft */
-      has_draft: boolean;
-      /** Id */
-      id: number;
-      latest_review: components["schemas"]["ReviewBrief"] | null;
-      /** Mark */
-      mark: string | null;
-      /** Name */
-      name: string;
-      pending_review: components["schemas"]["ReviewBrief"] | null;
-      /** Portfolios */
-      portfolios: components["schemas"]["PortfolioRef"][];
-      /** Semaphore */
-      semaphore: string | null;
-      /** Semaphore Reason */
-      semaphore_reason: string | null;
-      /** Sharing */
-      sharing: string;
-      /** Thesis Warning */
-      thesis_warning: boolean;
-    };
-    /**
-     * PortfolioOut
-     * @description PTF-05.
-     */
-    PortfolioOut: {
-      /** Active Version Label */
-      active_version_label: string | null;
-      /** Archived At */
-      archived_at: string | null;
-      /** Assignments */
-      assignments: components["schemas"]["AssignmentOut"][];
-      /** Brokers */
-      brokers: {
-        [key: string]: string;
-      };
-      /** Currency */
-      currency: string;
-      /** Currency Locked */
-      currency_locked: boolean;
-      /** Default Contribution */
-      default_contribution: string;
-      /** Id */
-      id: number;
-      latest_snapshot: components["schemas"]["SnapshotOut"] | null;
-      /** Name */
-      name: string;
-      /** Policy Id */
-      policy_id: number;
-      /** Policy Name */
-      policy_name: string;
-      /** Policy Semaphore */
-      policy_semaphore: string | null;
-      /** Policy Semaphore Reason */
-      policy_semaphore_reason: string | null;
-      /** Positions */
-      positions: components["schemas"]["PositionSettingsOut"][];
-      /** Precise Amounts */
-      precise_amounts: boolean;
-    };
-    /** PortfolioRef */
-    PortfolioRef: {
-      /** Id */
-      id: number;
-      /** Name */
-      name: string;
-    };
-    /** PortfolioSettings */
-    PortfolioSettings: {
-      /** Currency */
-      currency?: string | null;
-      /** Default Contribution */
-      default_contribution: number | string;
-      /** Precise Amounts */
-      precise_amounts: boolean;
-    };
-    /**
-     * PortfolioSummary
-     * @description CMP-09: portfolio with policy and band status of the latest snapshot.
-     */
-    PortfolioSummary: {
-      /** Archived At */
-      archived_at: string | null;
-      /** Currency */
-      currency: string;
-      /** Id */
-      id: number;
-      latest_snapshot: components["schemas"]["SnapshotOut"] | null;
-      /** Name */
-      name: string;
-      /** Policy Id */
-      policy_id: number;
-      /** Policy Name */
-      policy_name: string;
-      /** Policy Semaphore */
-      policy_semaphore: string | null;
-      /** Policy Semaphore Reason */
-      policy_semaphore_reason: string | null;
-    };
-    /** PositionChangeOut */
-    PositionChangeOut: {
-      /** Change */
-      change: string;
-      /** Fields */
-      fields: {
-        [key: string]: [string, string];
-      };
-      /** Ticker */
-      ticker: string;
-    };
-    /** PositionIn */
-    PositionIn: {
-      /** Buy Threshold Pct */
-      buy_threshold_pct: number | string;
-      /**
-       * Exit
-       * @default false
-       */
-      exit?: boolean;
-      /** Name */
-      name?: string | null;
-      /**
-       * Rationale Md
-       * @default
-       */
-      rationale_md?: string;
-      /** Sell Threshold Pct */
-      sell_threshold_pct: number | string;
-      /** Target Pct */
-      target_pct: number | string;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type?: string | null;
-    };
-    /** PositionOut */
-    PositionOut: {
-      /** Buy Abs Pct */
-      buy_abs_pct: string;
-      /** Buy Threshold Pct */
-      buy_threshold_pct: string;
-      /** Exit */
-      exit: boolean;
-      /** Midband Pct */
-      midband_pct: string;
-      /** Name */
-      name: string;
-      /** Rationale Md */
-      rationale_md: string;
-      /** Sell Abs Pct */
-      sell_abs_pct: string;
-      /** Sell Threshold Pct */
-      sell_threshold_pct: string;
-      /** Target Pct */
-      target_pct: string;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type: string;
-    };
-    /**
-     * PositionResultOut
-     * @description RB-11: one row per position, all phases.
-     */
-    PositionResultOut: {
-      /** Allocation After Pct */
-      allocation_after_pct: string;
-      /** Allocation After Phase1 Pct */
-      allocation_after_phase1_pct: string;
-      /** Allocation Before Pct */
-      allocation_before_pct: string;
-      /** Broker */
-      broker: string | null;
-      /** Buffer Buy */
-      buffer_buy: string;
-      /** Buffer Buy Units */
-      buffer_buy_units: string | null;
-      /** Buffer Deployed */
-      buffer_deployed: string;
-      /** Buy Amount */
-      buy_amount: string;
-      /** Buy Units */
-      buy_units: string | null;
-      /** Difference To Target Pct */
-      difference_to_target_pct: string | null;
-      /** Exit */
-      exit: boolean;
-      /** In Policy */
-      in_policy: boolean;
-      /** Name */
-      name: string;
-      /** Phase1 Action */
-      phase1_action: string;
-      /** Phase3 Action */
-      phase3_action: string;
-      /** Price */
-      price: string | null;
-      /** Sell Amount */
-      sell_amount: string;
-      /** Sell Units */
-      sell_units: string | null;
-      /** Target Pct */
-      target_pct: string | null;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type: string;
-      /** Units After */
-      units_after: string | null;
-      /** Units Before */
-      units_before: string | null;
-      /** Value After */
-      value_after: string;
-      /** Value After Phase1 */
-      value_after_phase1: string;
-      /** Value Before */
-      value_before: string;
-      /** Whole Units */
-      whole_units: boolean | null;
-      /** Withdrawal Sell */
-      withdrawal_sell: string;
-      /** Withdrawal Sell Units */
-      withdrawal_sell_units: string | null;
-    };
-    /** PositionSettingsIn */
-    PositionSettingsIn: {
-      /** Broker */
-      broker?: string | null;
-      /** Whole Units */
-      whole_units?: boolean | null;
-    };
-    /**
-     * PositionSettingsOut
-     * @description PTF-03: per position of the active version, the latest snapshot or with settings.
-     */
-    PositionSettingsOut: {
-      /** Broker */
-      broker: string | null;
-      /** Name */
-      name: string;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type: string;
-      /** Whole Units */
-      whole_units: boolean | null;
-    };
-    /** PrefillRowOut */
-    PrefillRowOut: {
-      auto: components["schemas"]["AutoPriceOut"] | null;
-      /** In Policy */
-      in_policy: boolean;
-      /** Listing Symbol */
-      listing_symbol: string | null;
-      /** Name */
-      name: string;
-      /** Notice */
-      notice: string | null;
-      /** Price */
-      price: string | null;
-      /** Price Kind */
-      price_kind: string | null;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type: string;
-      /** Units */
-      units: string | null;
-      /** Value */
-      value: string;
-    };
-    /** PriceProviderIn */
-    PriceProviderIn: {
-      /** Api Key */
-      api_key?: string | null;
-      /** Daily Call Limit */
-      daily_call_limit?: number | null;
-      /**
-       * Enabled
-       * @default true
-       */
-      enabled?: boolean;
-      /** Provider */
-      provider: string;
-    };
-    /** PriceProviderList */
-    PriceProviderList: {
-      /** Addable */
-      addable: components["schemas"]["AddableProvider"][];
-      /** Keys Available */
-      keys_available: boolean;
-      /** Providers */
-      providers: components["schemas"]["PriceProviderSettings"][];
-    };
-    /**
-     * PriceProviderSettings
-     * @description The stored key itself is never returned (REV-15).
-     */
-    PriceProviderSettings: {
-      /** Api Key Last4 */
-      api_key_last4: string | null;
-      /** Built In */
-      built_in: boolean;
-      /** Calls Today */
-      calls_today: number;
-      /** Daily Call Limit */
-      daily_call_limit: number | null;
-      /** Enabled */
-      enabled: boolean;
-      /** Id */
-      id: number;
-      /** Key Possible */
-      key_possible: boolean;
-      /** Key Required */
-      key_required: boolean;
-      /** Last Run */
-      last_run: {
-        [key: string]: number;
-      } | null;
-      /** Listings In Use */
-      listings_in_use: number;
-      /** Name */
-      name: string;
-      /** Provider */
-      provider: string;
-      /** Quota Exhausted */
-      quota_exhausted: boolean;
-      /**
-       * Updated At
-       * Format: date-time
-       */
-      updated_at: string;
-    };
-    /** PriceSourceIn */
-    PriceSourceIn: {
-      /** Kind */
-      kind: string;
-      /** Listing Id */
-      listing_id?: number | null;
-      /** Name */
-      name?: string | null;
-      /** Type */
-      type?: string | null;
-    };
-    /**
-     * PriceSourceOut
-     * @description `kind` null: never looked up (assets from before price sources).
-     */
-    PriceSourceOut: {
-      /** Kind */
-      kind: string | null;
-      listing: components["schemas"]["ListingOut"] | null;
-      /** Name */
-      name: string;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type: string;
-      /** Updated At */
-      updated_at: string | null;
-    };
-    /** PriceUpdateIn */
-    PriceUpdateIn: {
-      /** Interval Hours */
-      interval_hours: number;
-      /** Time Of Day */
-      time_of_day: string;
-      /** Time Zone */
-      time_zone: string;
-    };
-    /** PriceUpdateOut */
-    PriceUpdateOut: {
-      /** Interval Hours */
-      interval_hours: number;
-      /** Intervals */
-      intervals: number[];
-      last_run: components["schemas"]["PriceUpdateRunOut"] | null;
-      /** Next Run At */
-      next_run_at: string | null;
-      /** Time Of Day */
-      time_of_day: string;
-      /** Time Zone */
-      time_zone: string;
-    };
-    /** PriceUpdateRunOut */
-    PriceUpdateRunOut: {
-      /** Finished At */
-      finished_at: string | null;
-      /** Result */
-      result: {
-        [key: string]: {
-          [key: string]: number;
+    schemas: {
+        /** Account */
+        Account: {
+            /** Active */
+            active: boolean;
+            /** Base Currency */
+            base_currency: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Is Investor */
+            is_investor: boolean;
+            /** Must Change Password */
+            must_change_password: boolean;
+            /** Username */
+            username: string;
         };
-      } | null;
-      /**
-       * Started At
-       * Format: date-time
-       */
-      started_at: string;
-      /** Trigger */
-      trigger: string;
+        /** ActionOut */
+        ActionOut: {
+            /** Action */
+            action: string;
+            /** Broker */
+            broker: string | null;
+            /** Calculated Amount */
+            calculated_amount: string;
+            /** Calculated Units */
+            calculated_units: string | null;
+            /** Phase */
+            phase: string;
+            /** Ticker */
+            ticker: string;
+            /** Whole Units */
+            whole_units: boolean | null;
+        };
+        /** Activation */
+        Activation: {
+            /** Change Note */
+            change_note?: string | null;
+        };
+        /** AddableProvider */
+        AddableProvider: {
+            /** Key Possible */
+            key_possible: boolean;
+            /** Key Required */
+            key_required: boolean;
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+        };
+        /** AiReviewerIn */
+        AiReviewerIn: {
+            /** Api Key */
+            api_key?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /** Model */
+            model: string;
+            /** Monthly Review Limit */
+            monthly_review_limit: number;
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+        };
+        /** AiReviewerList */
+        AiReviewerList: {
+            /** Keys Available */
+            keys_available: boolean;
+            /** Reviewers */
+            reviewers: components["schemas"]["AiReviewerSettings"][];
+        };
+        /**
+         * AiReviewerOption
+         * @description What an investor sees of a reviewer: never its key.
+         */
+        AiReviewerOption: {
+            /** Description */
+            description: string | null;
+            /** Id */
+            id: number;
+            /** Model */
+            model: string;
+            /** Monthly Review Limit */
+            monthly_review_limit: number;
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+        };
+        /**
+         * AiReviewerSettings
+         * @description The stored key itself is never returned (REV-15).
+         */
+        AiReviewerSettings: {
+            /** Api Key Last4 */
+            api_key_last4: string;
+            /** Description */
+            description: string | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: number;
+            /** Model */
+            model: string;
+            /** Monthly Review Limit */
+            monthly_review_limit: number;
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** AllocationShare */
+        AllocationShare: {
+            /** Allocation Pct */
+            allocation_pct: string;
+            /** Ticker */
+            ticker: string;
+        };
+        /** AspectOut */
+        AspectOut: {
+            /** Code */
+            code: string;
+            /** Name */
+            name: string;
+            /** Reasoning Md */
+            reasoning_md: string;
+            /** Score */
+            score: number;
+        };
+        /** AssetOut */
+        AssetOut: {
+            /** Name */
+            name: string;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type: string;
+        };
+        /** AssignmentOut */
+        AssignmentOut: {
+            /** Policy Id */
+            policy_id: number;
+            /** Policy Name */
+            policy_name: string;
+            /**
+             * Valid From
+             * Format: date-time
+             */
+            valid_from: string;
+        };
+        /**
+         * AutoPriceOut
+         * @description CMP-01, CMP-10: an auto price with the listing, its own price and currency, the
+         *     exchange rate and the provider's date.
+         */
+        AutoPriceOut: {
+            /** Exchange */
+            exchange: string;
+            /** Fx Rate */
+            fx_rate: string;
+            /** Listing Currency */
+            listing_currency: string;
+            /** Listing Id */
+            listing_id: number;
+            /** Listing Price */
+            listing_price: string;
+            /** Price Date */
+            price_date: string;
+            /** Provider Name */
+            provider_name: string;
+            /** Symbol */
+            symbol: string;
+        };
+        /** BaseCurrency */
+        BaseCurrency: {
+            /** Base Currency */
+            base_currency: string;
+        };
+        /** ChangeNote */
+        ChangeNote: {
+            /** Change Note */
+            change_note: string | null;
+        };
+        /**
+         * Choice
+         * @description USR-08: the default review method; `manual` wins over an AI reviewer.
+         */
+        Choice: {
+            /** Ai Reviewer Id */
+            ai_reviewer_id: number | null;
+            /**
+             * Manual
+             * @default false
+             */
+            manual?: boolean;
+        };
+        /** ComparisonRowOut */
+        ComparisonRowOut: {
+            /** Allocation Pct */
+            allocation_pct: string;
+            auto: components["schemas"]["AutoPriceOut"] | null;
+            /** Buy Abs Pct */
+            buy_abs_pct: string | null;
+            /** Deviation Pct */
+            deviation_pct: string | null;
+            /** Exit */
+            exit: boolean;
+            /** Name */
+            name: string;
+            /** Price */
+            price: string | null;
+            /** Price Kind */
+            price_kind: string | null;
+            /** Sell Abs Pct */
+            sell_abs_pct: string | null;
+            /** Status */
+            status: string;
+            /** Target Pct */
+            target_pct: string | null;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type: string;
+            /** Units */
+            units: string | null;
+            /** Value */
+            value: string;
+        };
+        /** Confirmation */
+        Confirmation: {
+            /** Contribution */
+            contribution: number | string;
+            /**
+             * Mode
+             * @default normal
+             */
+            mode?: string;
+            /** Policy Version Id */
+            policy_version_id: number;
+            /** Snapshot Id */
+            snapshot_id: number;
+            /**
+             * Withdrawal
+             * @default 0
+             */
+            withdrawal?: number | string;
+        };
+        /**
+         * ConnectionTest
+         * @description The result in English (`message`) and as code with params (NFR-10).
+         */
+        ConnectionTest: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Ok */
+            ok: boolean;
+            /** Params */
+            params: {
+                [key: string]: string | number;
+            };
+        };
+        /** CurrentStructurePreviewOut */
+        CurrentStructurePreviewOut: {
+            /** New Tickers */
+            new_tickers: string[];
+            /** Values */
+            values: [
+                string,
+                string | null
+            ][];
+        };
+        /**
+         * Discarded
+         * @description POL-16: whether the policy was deleted with the draft (it was never activated).
+         */
+        Discarded: {
+            /** Policy Deleted */
+            policy_deleted: boolean;
+        };
+        /**
+         * DraftBrief
+         * @description POL-19: a policy's draft in short.
+         */
+        DraftBrief: {
+            /** Changed */
+            changed: boolean;
+            /** Label */
+            label: string;
+            /** Positions */
+            positions: number;
+            review: components["schemas"]["ReviewBrief"] | null;
+            /** Updated At */
+            updated_at: string | null;
+            /** Version No */
+            version_no: number;
+        };
+        /** DraftIn */
+        DraftIn: {
+            /** Positions */
+            positions: components["schemas"]["PositionIn"][];
+            thesis?: components["schemas"]["ThesisIn"] | null;
+        };
+        /** EventOut */
+        EventOut: {
+            /** Id */
+            id: number;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            } | null;
+            /** Policy Version Id */
+            policy_version_id: number | null;
+            /** Portfolio Id */
+            portfolio_id: number | null;
+            /** Rebalance Id */
+            rebalance_id: number | null;
+            /** Review Id */
+            review_id: number | null;
+            /** Summary */
+            summary: string;
+            /** Type */
+            type: string;
+        };
+        /**
+         * EventType
+         * @enum {string}
+         */
+        EventType: "policy_activated" | "portfolio_assigned" | "rebalance_confirmed" | "thesis_review_confirmed" | "policy_review_confirmed" | "review_confirmed" | "review_saved" | "thesis_revised";
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** Health */
+        Health: {
+            /** Status */
+            status: string;
+            /** Version */
+            version: string;
+        };
+        /** InstructionOut */
+        InstructionOut: {
+            /** Action */
+            action: string;
+            /** Amount */
+            amount: string;
+            /** Broker */
+            broker: string | null;
+            /** Phase */
+            phase: string;
+            /** Ticker */
+            ticker: string;
+            /** Units */
+            units: string | null;
+            /** Whole Units */
+            whole_units: boolean | null;
+        };
+        /** LanguageChoice */
+        LanguageChoice: {
+            /** Language */
+            language: string | null;
+        };
+        /**
+         * LegacyModificationOut
+         * @description Investor changes of a review from before REV-10 was dropped; read-only.
+         */
+        LegacyModificationOut: {
+            /** Note */
+            note: string | null;
+            /** Scores */
+            scores: {
+                [key: string]: number;
+            };
+            /** Verdict */
+            verdict: string | null;
+        };
+        /** ListingOut */
+        ListingOut: {
+            /** Available */
+            available: boolean;
+            /** Currency */
+            currency: string;
+            /** Exchange */
+            exchange: string;
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Price */
+            price: string | null;
+            /** Price Date */
+            price_date: string | null;
+            /** Price Updated At */
+            price_updated_at: string | null;
+            /** Provider */
+            provider: string;
+            /** Provider Name */
+            provider_name: string;
+            /** Symbol */
+            symbol: string;
+        };
+        /** LoginRequest */
+        LoginRequest: {
+            /** Password */
+            password: string;
+            /** Username */
+            username: string;
+        };
+        /** LookupIn */
+        LookupIn: {
+            /**
+             * Retry
+             * @default false
+             */
+            retry?: boolean;
+            /** Ticker */
+            ticker: string;
+        };
+        /** LookupOut */
+        LookupOut: {
+            /** Listings */
+            listings: components["schemas"]["ListingOut"][];
+            /** Problems */
+            problems: components["schemas"]["ProblemOut"][];
+            source: components["schemas"]["PriceSourceOut"] | null;
+            /** Status */
+            status: string;
+            /** Ticker */
+            ticker: string;
+        };
+        /**
+         * ManualAnswer
+         * @description REV-18: the answer of an AI outside the app; the model is not asked for (REV-17).
+         */
+        ManualAnswer: {
+            /** Answer */
+            answer: string;
+        };
+        /** Me */
+        Me: {
+            /** Ai Reviewer Id */
+            ai_reviewer_id: number | null;
+            /** Base Currency */
+            base_currency: string | null;
+            /** Id */
+            id: number;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Is Investor */
+            is_investor: boolean;
+            /** Language */
+            language: string | null;
+            /** Manual Review Default */
+            manual_review_default: boolean;
+            /** Must Change Password */
+            must_change_password: boolean;
+            /** Time Zone */
+            time_zone: string | null;
+            /** Username */
+            username: string;
+        };
+        /** NewAccount */
+        NewAccount: {
+            /** Base Currency */
+            base_currency?: string | null;
+            /**
+             * Is Admin
+             * @default false
+             */
+            is_admin?: boolean;
+            /**
+             * Is Investor
+             * @default true
+             */
+            is_investor?: boolean;
+            /** Temporary Password */
+            temporary_password: string;
+            /** Username */
+            username: string;
+        };
+        /**
+         * NewPolicy
+         * @description POL-01: draft v1 holds the thesis given here (the template, filled in by the UI).
+         */
+        NewPolicy: {
+            /** Name */
+            name: string;
+            /**
+             * Thesis Md
+             * @default
+             */
+            thesis_md?: string;
+            /** Thesis Title */
+            thesis_title?: string | null;
+        };
+        /** NewPortfolio */
+        NewPortfolio: {
+            /** Currency */
+            currency?: string | null;
+            /**
+             * Default Contribution
+             * @default 0
+             */
+            default_contribution?: number | string;
+            /** Name */
+            name: string;
+            /** Policy Id */
+            policy_id: number;
+            /**
+             * Precise Amounts
+             * @default false
+             */
+            precise_amounts?: boolean;
+        };
+        /** NewSnapshot */
+        NewSnapshot: {
+            /** Corrects Snapshot Id */
+            corrects_snapshot_id?: number | null;
+            /** Values */
+            values: components["schemas"]["ValueIn"][];
+        };
+        /** PasswordChange */
+        PasswordChange: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
+        /** PasswordReset */
+        PasswordReset: {
+            /** Temporary Password */
+            temporary_password: string;
+        };
+        /**
+         * PlanOut
+         * @description RB-02, RB-03: instructions; nothing is stored.
+         */
+        PlanOut: {
+            /** Contribution */
+            contribution: string;
+            /** Instructions */
+            instructions: components["schemas"]["InstructionOut"][];
+            /** Mode */
+            mode: string;
+            /** Policy Id */
+            policy_id: number;
+            /** Policy Name */
+            policy_name: string;
+            /** Policy Version Id */
+            policy_version_id: number;
+            /** Policy Version Label */
+            policy_version_label: string;
+            /** Precise Amounts */
+            precise_amounts: boolean;
+            result: components["schemas"]["ResultOut"];
+            /** Semaphore */
+            semaphore: string | null;
+            /** Semaphore Reason */
+            semaphore_reason: string | null;
+            /** Snapshot Id */
+            snapshot_id: number;
+            /**
+             * Snapshot Taken At
+             * Format: date-time
+             */
+            snapshot_taken_at: string;
+            /** Withdrawal */
+            withdrawal: string;
+        };
+        /** PolicyOut */
+        PolicyOut: {
+            /** Active From */
+            active_from: string | null;
+            /** Active Version No */
+            active_version_no: number | null;
+            /** Archived At */
+            archived_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            draft: components["schemas"]["DraftBrief"] | null;
+            /** Id */
+            id: number;
+            latest_review: components["schemas"]["ReviewBrief"] | null;
+            /** Mark */
+            mark: string | null;
+            /** Name */
+            name: string;
+            pending_review: components["schemas"]["ReviewBrief"] | null;
+            /** Portfolios */
+            portfolios: components["schemas"]["PortfolioRef"][];
+            /** Semaphore */
+            semaphore: string | null;
+            /** Semaphore Reason */
+            semaphore_reason: string | null;
+            /** Sharing */
+            sharing: string;
+            /** Thesis Warning */
+            thesis_warning: boolean;
+            /** Versions */
+            versions: components["schemas"]["VersionSummary"][];
+        };
+        /**
+         * PolicySummary
+         * @description POL-19: a policy in the policies list.
+         */
+        PolicySummary: {
+            /** Active From */
+            active_from: string | null;
+            /** Active Version Label */
+            active_version_label: string | null;
+            /** Active Version No */
+            active_version_no: number | null;
+            /** Archived At */
+            archived_at: string | null;
+            draft: components["schemas"]["DraftBrief"] | null;
+            /** Has Draft */
+            has_draft: boolean;
+            /** Id */
+            id: number;
+            latest_review: components["schemas"]["ReviewBrief"] | null;
+            /** Mark */
+            mark: string | null;
+            /** Name */
+            name: string;
+            pending_review: components["schemas"]["ReviewBrief"] | null;
+            /** Portfolios */
+            portfolios: components["schemas"]["PortfolioRef"][];
+            /** Semaphore */
+            semaphore: string | null;
+            /** Semaphore Reason */
+            semaphore_reason: string | null;
+            /** Sharing */
+            sharing: string;
+            /** Thesis Warning */
+            thesis_warning: boolean;
+        };
+        /**
+         * PortfolioOut
+         * @description PTF-05.
+         */
+        PortfolioOut: {
+            /** Active Version Label */
+            active_version_label: string | null;
+            /** Archived At */
+            archived_at: string | null;
+            /** Assignments */
+            assignments: components["schemas"]["AssignmentOut"][];
+            /** Brokers */
+            brokers: {
+                [key: string]: string;
+            };
+            /** Currency */
+            currency: string;
+            /** Currency Locked */
+            currency_locked: boolean;
+            /** Default Contribution */
+            default_contribution: string;
+            /** Id */
+            id: number;
+            latest_snapshot: components["schemas"]["SnapshotOut"] | null;
+            /** Name */
+            name: string;
+            /** Policy Id */
+            policy_id: number;
+            /** Policy Name */
+            policy_name: string;
+            /** Policy Semaphore */
+            policy_semaphore: string | null;
+            /** Policy Semaphore Reason */
+            policy_semaphore_reason: string | null;
+            /** Positions */
+            positions: components["schemas"]["PositionSettingsOut"][];
+            /** Precise Amounts */
+            precise_amounts: boolean;
+        };
+        /** PortfolioRef */
+        PortfolioRef: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+        };
+        /** PortfolioSettings */
+        PortfolioSettings: {
+            /** Currency */
+            currency?: string | null;
+            /** Default Contribution */
+            default_contribution: number | string;
+            /** Precise Amounts */
+            precise_amounts: boolean;
+        };
+        /**
+         * PortfolioSummary
+         * @description CMP-09: portfolio with policy and band status of the latest snapshot.
+         */
+        PortfolioSummary: {
+            /** Archived At */
+            archived_at: string | null;
+            /** Currency */
+            currency: string;
+            /** Id */
+            id: number;
+            latest_snapshot: components["schemas"]["SnapshotOut"] | null;
+            /** Name */
+            name: string;
+            /** Policy Id */
+            policy_id: number;
+            /** Policy Name */
+            policy_name: string;
+            /** Policy Semaphore */
+            policy_semaphore: string | null;
+            /** Policy Semaphore Reason */
+            policy_semaphore_reason: string | null;
+        };
+        /** PositionChangeOut */
+        PositionChangeOut: {
+            /** Change */
+            change: string;
+            /** Fields */
+            fields: {
+                [key: string]: [
+                    string,
+                    string
+                ];
+            };
+            /** Ticker */
+            ticker: string;
+        };
+        /** PositionIn */
+        PositionIn: {
+            /** Buy Threshold Pct */
+            buy_threshold_pct: number | string;
+            /**
+             * Exit
+             * @default false
+             */
+            exit?: boolean;
+            /** Name */
+            name?: string | null;
+            /**
+             * Rationale Md
+             * @default
+             */
+            rationale_md?: string;
+            /** Sell Threshold Pct */
+            sell_threshold_pct: number | string;
+            /** Target Pct */
+            target_pct: number | string;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type?: string | null;
+        };
+        /** PositionOut */
+        PositionOut: {
+            /** Buy Abs Pct */
+            buy_abs_pct: string;
+            /** Buy Threshold Pct */
+            buy_threshold_pct: string;
+            /** Exit */
+            exit: boolean;
+            /** Midband Pct */
+            midband_pct: string;
+            /** Name */
+            name: string;
+            /** Rationale Md */
+            rationale_md: string;
+            /** Sell Abs Pct */
+            sell_abs_pct: string;
+            /** Sell Threshold Pct */
+            sell_threshold_pct: string;
+            /** Target Pct */
+            target_pct: string;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type: string;
+        };
+        /**
+         * PositionResultOut
+         * @description RB-11: one row per position, all phases.
+         */
+        PositionResultOut: {
+            /** Allocation After Pct */
+            allocation_after_pct: string;
+            /** Allocation After Phase1 Pct */
+            allocation_after_phase1_pct: string;
+            /** Allocation Before Pct */
+            allocation_before_pct: string;
+            /** Broker */
+            broker: string | null;
+            /** Buffer Buy */
+            buffer_buy: string;
+            /** Buffer Buy Units */
+            buffer_buy_units: string | null;
+            /** Buffer Deployed */
+            buffer_deployed: string;
+            /** Buy Amount */
+            buy_amount: string;
+            /** Buy Units */
+            buy_units: string | null;
+            /** Difference To Target Pct */
+            difference_to_target_pct: string | null;
+            /** Exit */
+            exit: boolean;
+            /** In Policy */
+            in_policy: boolean;
+            /** Name */
+            name: string;
+            /** Phase1 Action */
+            phase1_action: string;
+            /** Phase3 Action */
+            phase3_action: string;
+            /** Price */
+            price: string | null;
+            /** Sell Amount */
+            sell_amount: string;
+            /** Sell Units */
+            sell_units: string | null;
+            /** Target Pct */
+            target_pct: string | null;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type: string;
+            /** Units After */
+            units_after: string | null;
+            /** Units Before */
+            units_before: string | null;
+            /** Value After */
+            value_after: string;
+            /** Value After Phase1 */
+            value_after_phase1: string;
+            /** Value Before */
+            value_before: string;
+            /** Whole Units */
+            whole_units: boolean | null;
+            /** Withdrawal Sell */
+            withdrawal_sell: string;
+            /** Withdrawal Sell Units */
+            withdrawal_sell_units: string | null;
+        };
+        /** PositionSettingsIn */
+        PositionSettingsIn: {
+            /** Broker */
+            broker?: string | null;
+            /** Whole Units */
+            whole_units?: boolean | null;
+        };
+        /**
+         * PositionSettingsOut
+         * @description PTF-03: per position of the active version, the latest snapshot or with settings.
+         */
+        PositionSettingsOut: {
+            /** Broker */
+            broker: string | null;
+            /** Name */
+            name: string;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type: string;
+            /** Whole Units */
+            whole_units: boolean | null;
+        };
+        /** PrefillRowOut */
+        PrefillRowOut: {
+            auto: components["schemas"]["AutoPriceOut"] | null;
+            /** In Policy */
+            in_policy: boolean;
+            /** Listing Symbol */
+            listing_symbol: string | null;
+            /** Name */
+            name: string;
+            /** Notice */
+            notice: string | null;
+            /** Price */
+            price: string | null;
+            /** Price Kind */
+            price_kind: string | null;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type: string;
+            /** Units */
+            units: string | null;
+            /** Value */
+            value: string;
+        };
+        /** PriceProviderIn */
+        PriceProviderIn: {
+            /** Api Key */
+            api_key?: string | null;
+            /** Daily Call Limit */
+            daily_call_limit?: number | null;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled?: boolean;
+            /** Provider */
+            provider: string;
+        };
+        /** PriceProviderList */
+        PriceProviderList: {
+            /** Addable */
+            addable: components["schemas"]["AddableProvider"][];
+            /** Keys Available */
+            keys_available: boolean;
+            /** Providers */
+            providers: components["schemas"]["PriceProviderSettings"][];
+        };
+        /**
+         * PriceProviderSettings
+         * @description The stored key itself is never returned (REV-15).
+         */
+        PriceProviderSettings: {
+            /** Api Key Last4 */
+            api_key_last4: string | null;
+            /** Built In */
+            built_in: boolean;
+            /** Calls Today */
+            calls_today: number;
+            /** Daily Call Limit */
+            daily_call_limit: number | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: number;
+            /** Key Possible */
+            key_possible: boolean;
+            /** Key Required */
+            key_required: boolean;
+            /** Last Run */
+            last_run: {
+                [key: string]: number;
+            } | null;
+            /** Listings In Use */
+            listings_in_use: number;
+            /** Name */
+            name: string;
+            /** Provider */
+            provider: string;
+            /** Quota Exhausted */
+            quota_exhausted: boolean;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PriceSourceIn */
+        PriceSourceIn: {
+            /** Kind */
+            kind: string;
+            /** Listing Id */
+            listing_id?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Type */
+            type?: string | null;
+        };
+        /**
+         * PriceSourceOut
+         * @description `kind` null: never looked up (assets from before price sources).
+         */
+        PriceSourceOut: {
+            /** Kind */
+            kind: string | null;
+            listing: components["schemas"]["ListingOut"] | null;
+            /** Name */
+            name: string;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type: string;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** PriceUpdateIn */
+        PriceUpdateIn: {
+            /** Interval Hours */
+            interval_hours: number;
+            /** Time Of Day */
+            time_of_day: string;
+            /** Time Zone */
+            time_zone: string;
+        };
+        /** PriceUpdateOut */
+        PriceUpdateOut: {
+            /** Interval Hours */
+            interval_hours: number;
+            /** Intervals */
+            intervals: number[];
+            last_run: components["schemas"]["PriceUpdateRunOut"] | null;
+            /** Next Run At */
+            next_run_at: string | null;
+            /** Time Of Day */
+            time_of_day: string;
+            /** Time Zone */
+            time_zone: string;
+        };
+        /** PriceUpdateRunOut */
+        PriceUpdateRunOut: {
+            /** Finished At */
+            finished_at: string | null;
+            /** Result */
+            result: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            } | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Trigger */
+            trigger: string;
+        };
+        /** ProblemOut */
+        ProblemOut: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+            /** Params */
+            params: {
+                [key: string]: string | number;
+            };
+            /** Provider */
+            provider: string;
+        };
+        /** Reassignment */
+        Reassignment: {
+            /** Policy Id */
+            policy_id: number;
+        };
+        /** RebalanceOut */
+        RebalanceOut: {
+            /** Actions */
+            actions: components["schemas"]["ActionOut"][];
+            /**
+             * Confirmed At
+             * Format: date-time
+             */
+            confirmed_at: string;
+            /** Contribution */
+            contribution: string;
+            /** Id */
+            id: number;
+            /** Input Snapshot Id */
+            input_snapshot_id: number;
+            /** Mode */
+            mode: string;
+            /** Policy Version Id */
+            policy_version_id: number;
+            /** Portfolio Id */
+            portfolio_id: number;
+            /** Precise Amounts */
+            precise_amounts: boolean;
+            /** Result Snapshot Id */
+            result_snapshot_id: number | null;
+            /** Withdrawal */
+            withdrawal: string;
+        };
+        /** RenameIn */
+        RenameIn: {
+            /** Name */
+            name: string;
+        };
+        /**
+         * ResultOut
+         * @description RB-12, RB-13: totals, cash calculation, buys per broker.
+         */
+        ResultOut: {
+            /** Available Cash */
+            available_cash: string;
+            /** Buys By Broker */
+            buys_by_broker: {
+                [key: string]: string;
+            };
+            /** Positions */
+            positions: components["schemas"]["PositionResultOut"][];
+            /** Rounding Cash */
+            rounding_cash: string;
+            /** Total Buffer Used */
+            total_buffer_used: string;
+            /** Total Sell Proceeds */
+            total_sell_proceeds: string;
+            /** Total Value After */
+            total_value_after: string;
+            /** Total Value Before */
+            total_value_before: string;
+            /** Total Withdrawal Sells */
+            total_withdrawal_sells: string;
+            /** Unallocated Cash */
+            unallocated_cash: string;
+        };
+        /**
+         * ReviewBrief
+         * @description A review of a version, in short (THS-08, REV-02, REV-11).
+         */
+        ReviewBrief: {
+            /** Ai Reviewer Name */
+            ai_reviewer_name: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Method */
+            method: string;
+            /** Model */
+            model: string | null;
+            /** Outdated */
+            outdated: boolean;
+            /** Saved At */
+            saved_at: string | null;
+            /** Scoring Version */
+            scoring_version: string;
+            /** Semaphore */
+            semaphore: string | null;
+            /** State */
+            state: string;
+            /** Structure Score */
+            structure_score: number | null;
+            /** Thesis Score */
+            thesis_score: number | null;
+            /** Total */
+            total: number | null;
+        };
+        /**
+         * ReviewLogEntry
+         * @description REV-23: a saved review of a version of the policy.
+         */
+        ReviewLogEntry: {
+            /** Ai Reviewer Name */
+            ai_reviewer_name: string | null;
+            /** At Activation */
+            at_activation: boolean;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Method */
+            method: string;
+            /** Model */
+            model: string | null;
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Scoring Version */
+            scoring_version: string;
+            /** Semaphore */
+            semaphore: string | null;
+            /** Structure Score */
+            structure_score: number | null;
+            /** Thesis Score */
+            thesis_score: number | null;
+            /** Total */
+            total: number | null;
+            /** Version Label */
+            version_label: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** ReviewOut */
+        ReviewOut: {
+            /** Ai Reviewer Name */
+            ai_reviewer_name: string | null;
+            /** Aspects */
+            aspects: components["schemas"]["AspectOut"][];
+            /** Completed At */
+            completed_at: string | null;
+            /** Confirmed */
+            confirmed: boolean;
+            /** Error */
+            error: string | null;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            legacy_modification: components["schemas"]["LegacyModificationOut"] | null;
+            /** Method */
+            method: string;
+            /** Model */
+            model: string | null;
+            /** News From */
+            news_from: string | null;
+            /** News To */
+            news_to: string | null;
+            /** Outdated */
+            outdated: boolean;
+            /** Policy Version Id */
+            policy_version_id: number | null;
+            /** Prompt Id */
+            prompt_id: string | null;
+            /** Provider */
+            provider: string;
+            /** Saved At */
+            saved_at: string | null;
+            /** Scoring Version */
+            scoring_version: string;
+            /** Semaphore */
+            semaphore: string | null;
+            /** Sources */
+            sources: components["schemas"]["SourceOut"][];
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** State */
+            state: string;
+            /** Structure Score */
+            structure_score: number | null;
+            /** Suggestions */
+            suggestions: components["schemas"]["SuggestionOut"][];
+            /** Thesis Score */
+            thesis_score: number | null;
+            /** Total */
+            total: number | null;
+            /** Verdict */
+            verdict: string | null;
+            /** Verdict Reason */
+            verdict_reason: string | null;
+        };
+        /**
+         * ReviewPromptOut
+         * @description REV-19: the review prompt to copy into an AI outside the app.
+         */
+        ReviewPromptOut: {
+            /** Prompt Id */
+            prompt_id: string;
+            /** Text */
+            text: string;
+        };
+        /** Roles */
+        Roles: {
+            /** Base Currency */
+            base_currency?: string | null;
+            /** Is Admin */
+            is_admin: boolean;
+            /** Is Investor */
+            is_investor: boolean;
+        };
+        /** SharingIn */
+        SharingIn: {
+            /** Sharing */
+            sharing: string;
+        };
+        /** SimulationIn */
+        SimulationIn: {
+            /** Contribution */
+            contribution?: number | string | null;
+            /** Cycles */
+            cycles: number;
+            /** Snapshot Id */
+            snapshot_id?: number | null;
+            /** Withdrawal */
+            withdrawal?: number | string | null;
+        };
+        /**
+         * SnapshotListItem
+         * @description CMP-08: a past snapshot with the share of every position it held.
+         */
+        SnapshotListItem: {
+            /** Allocations */
+            allocations: components["schemas"]["AllocationShare"][];
+            /** Corrects Snapshot Id */
+            corrects_snapshot_id: number | null;
+            /** Id */
+            id: number;
+            /** Policy Version Id */
+            policy_version_id: number;
+            /** Policy Version Label */
+            policy_version_label: string;
+            /** Source */
+            source: string;
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
+            /** Total Value */
+            total_value: string;
+        };
+        /** SnapshotOut */
+        SnapshotOut: {
+            /** Corrects Snapshot Id */
+            corrects_snapshot_id: number | null;
+            /** Currency */
+            currency: string;
+            /** Id */
+            id: number;
+            /** Policy Version Id */
+            policy_version_id: number;
+            /** Policy Version Label */
+            policy_version_label: string;
+            /** Portfolio Id */
+            portfolio_id: number;
+            /** Rows */
+            rows: components["schemas"]["ComparisonRowOut"][];
+            /** Source */
+            source: string;
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
+            /** Total Value */
+            total_value: string;
+        };
+        /** SourceOut */
+        SourceOut: {
+            /** Published On */
+            published_on: string | null;
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+        };
+        /** StartReview */
+        StartReview: {
+            /** Ai Reviewer Id */
+            ai_reviewer_id?: number | null;
+            /**
+             * News Days
+             * @default 90
+             */
+            news_days?: number;
+        };
+        /**
+         * SuggestionOut
+         * @description REV-07, REV-22. `change` says what Take over applies (null for suggestions of older
+         *     reviews, which can only be read); `previous` what it replaced.
+         */
+        SuggestionOut: {
+            /** Change */
+            change: {
+                [key: string]: unknown;
+            } | null;
+            /** Content Md */
+            content_md: string;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Previous */
+            previous: {
+                [key: string]: unknown;
+            } | null;
+            /** State */
+            state: string;
+        };
+        /**
+         * SuggestionResult
+         * @description The review with the suggestion's new state, and the draft as it is now.
+         */
+        SuggestionResult: {
+            draft: components["schemas"]["VersionOut"];
+            review: components["schemas"]["ReviewOut"];
+        };
+        /**
+         * ThesisImportPreview
+         * @description IMP-01: a new policy, or the draft (version) of the selected one.
+         */
+        ThesisImportPreview: {
+            /** Creates New Policy */
+            creates_new_policy: boolean;
+            /** Title */
+            title: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** ThesisIn */
+        ThesisIn: {
+            /** Content Md */
+            content_md: string;
+            /** Title */
+            title: string;
+        };
+        /** TimeZoneChoice */
+        TimeZoneChoice: {
+            /** Time Zone */
+            time_zone: string | null;
+        };
+        /**
+         * Usage
+         * @description REV-16: reviews used and left this month with the chosen AI reviewer;
+         *     `unavailable_reason` explains why no review can be started, in English;
+         *     `unavailable_code` and `unavailable_params` let the frontend translate it (NFR-10).
+         */
+        Usage: {
+            /** Ai Reviewer Id */
+            ai_reviewer_id: number | null;
+            /** Ai Reviewer Name */
+            ai_reviewer_name: string | null;
+            /** Left */
+            left: number;
+            /** Limit */
+            limit: number;
+            /** Unavailable Code */
+            unavailable_code: string | null;
+            /** Unavailable Params */
+            unavailable_params: {
+                [key: string]: string | number;
+            };
+            /** Unavailable Reason */
+            unavailable_reason: string | null;
+            /** Used */
+            used: number;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
+        /**
+         * ValueIn
+         * @description CMP-01: units and the price or the value; the cash buffer has only a value.
+         */
+        ValueIn: {
+            /** Name */
+            name?: string | null;
+            /** Price */
+            price?: number | string | null;
+            /** Ticker */
+            ticker: string;
+            /** Type */
+            type?: string | null;
+            /** Units */
+            units?: number | string | null;
+            /** Value */
+            value?: number | string | null;
+        };
+        /** Version */
+        Version: {
+            /** Commit */
+            commit: string;
+            /** Version */
+            version: string;
+        };
+        /** VersionDiffOut */
+        VersionDiffOut: {
+            /** Positions */
+            positions: components["schemas"]["PositionChangeOut"][];
+            /** Thesis Changed */
+            thesis_changed: boolean;
+            /** Thesis Diff */
+            thesis_diff: string;
+        };
+        /** VersionOut */
+        VersionOut: {
+            /** Active From */
+            active_from: string | null;
+            /** Active Until */
+            active_until: string | null;
+            /** Change Note */
+            change_note: string | null;
+            /** Id */
+            id: number;
+            /** Is Draft */
+            is_draft: boolean;
+            /** Label */
+            label: string;
+            /** Mark */
+            mark: string | null;
+            /** Positions */
+            positions: components["schemas"]["PositionOut"][];
+            review: components["schemas"]["ReviewBrief"] | null;
+            /** Reviews */
+            reviews: components["schemas"]["ReviewBrief"][];
+            /** Thesis Md */
+            thesis_md: string;
+            /** Thesis Title */
+            thesis_title: string;
+            /** Version No */
+            version_no: number;
+        };
+        /**
+         * VersionRef
+         * @description A version looked up by its ID (e.g. from a timeline event), with its policy.
+         */
+        VersionRef: {
+            /** Active From */
+            active_from: string | null;
+            /** Active Until */
+            active_until: string | null;
+            /** Change Note */
+            change_note: string | null;
+            /** Id */
+            id: number;
+            /** Is Draft */
+            is_draft: boolean;
+            /** Label */
+            label: string;
+            /** Mark */
+            mark: string | null;
+            /** Policy Id */
+            policy_id: number;
+            /** Policy Name */
+            policy_name: string;
+            /** Positions */
+            positions: components["schemas"]["PositionOut"][];
+            review: components["schemas"]["ReviewBrief"] | null;
+            /** Reviews */
+            reviews: components["schemas"]["ReviewBrief"][];
+            /** Thesis Md */
+            thesis_md: string;
+            /** Thesis Title */
+            thesis_title: string;
+            /** Version No */
+            version_no: number;
+        };
+        /** VersionSummary */
+        VersionSummary: {
+            /** Active From */
+            active_from: string | null;
+            /** Active Until */
+            active_until: string | null;
+            /** Change Note */
+            change_note: string | null;
+            /** Id */
+            id: number;
+            /** Is Draft */
+            is_draft: boolean;
+            /** Label */
+            label: string;
+            /** Mark */
+            mark: string | null;
+            review: components["schemas"]["ReviewBrief"] | null;
+            /** Reviews */
+            reviews: components["schemas"]["ReviewBrief"][];
+            /** Thesis Title */
+            thesis_title: string;
+            /** Version No */
+            version_no: number;
+        };
     };
-    /** ProblemOut */
-    ProblemOut: {
-      /** Code */
-      code: string;
-      /** Message */
-      message: string;
-      /** Params */
-      params: {
-        [key: string]: string | number;
-      };
-      /** Provider */
-      provider: string;
-    };
-    /** Reassignment */
-    Reassignment: {
-      /** Policy Id */
-      policy_id: number;
-    };
-    /** RebalanceOut */
-    RebalanceOut: {
-      /** Actions */
-      actions: components["schemas"]["ActionOut"][];
-      /**
-       * Confirmed At
-       * Format: date-time
-       */
-      confirmed_at: string;
-      /** Contribution */
-      contribution: string;
-      /** Id */
-      id: number;
-      /** Input Snapshot Id */
-      input_snapshot_id: number;
-      /** Mode */
-      mode: string;
-      /** Policy Version Id */
-      policy_version_id: number;
-      /** Portfolio Id */
-      portfolio_id: number;
-      /** Precise Amounts */
-      precise_amounts: boolean;
-      /** Result Snapshot Id */
-      result_snapshot_id: number | null;
-      /** Withdrawal */
-      withdrawal: string;
-    };
-    /** RenameIn */
-    RenameIn: {
-      /** Name */
-      name: string;
-    };
-    /**
-     * ResultOut
-     * @description RB-12, RB-13: totals, cash calculation, buys per broker.
-     */
-    ResultOut: {
-      /** Available Cash */
-      available_cash: string;
-      /** Buys By Broker */
-      buys_by_broker: {
-        [key: string]: string;
-      };
-      /** Positions */
-      positions: components["schemas"]["PositionResultOut"][];
-      /** Rounding Cash */
-      rounding_cash: string;
-      /** Total Buffer Used */
-      total_buffer_used: string;
-      /** Total Sell Proceeds */
-      total_sell_proceeds: string;
-      /** Total Value After */
-      total_value_after: string;
-      /** Total Value Before */
-      total_value_before: string;
-      /** Total Withdrawal Sells */
-      total_withdrawal_sells: string;
-      /** Unallocated Cash */
-      unallocated_cash: string;
-    };
-    /**
-     * ReviewBrief
-     * @description A review of a version, in short (THS-08, REV-02, REV-11).
-     */
-    ReviewBrief: {
-      /** Ai Reviewer Name */
-      ai_reviewer_name: string | null;
-      /** Completed At */
-      completed_at: string | null;
-      /** Id */
-      id: number;
-      /** Kind */
-      kind: string;
-      /** Method */
-      method: string;
-      /** Model */
-      model: string | null;
-      /** Outdated */
-      outdated: boolean;
-      /** Saved At */
-      saved_at: string | null;
-      /** Scoring Version */
-      scoring_version: string;
-      /** Semaphore */
-      semaphore: string | null;
-      /** State */
-      state: string;
-      /** Structure Score */
-      structure_score: number | null;
-      /** Thesis Score */
-      thesis_score: number | null;
-      /** Total */
-      total: number | null;
-    };
-    /**
-     * ReviewLogEntry
-     * @description REV-23: a saved review of a version of the policy.
-     */
-    ReviewLogEntry: {
-      /** Ai Reviewer Name */
-      ai_reviewer_name: string | null;
-      /** At Activation */
-      at_activation: boolean;
-      /** Id */
-      id: number;
-      /** Kind */
-      kind: string;
-      /** Method */
-      method: string;
-      /** Model */
-      model: string | null;
-      /**
-       * Saved At
-       * Format: date-time
-       */
-      saved_at: string;
-      /** Scoring Version */
-      scoring_version: string;
-      /** Semaphore */
-      semaphore: string | null;
-      /** Structure Score */
-      structure_score: number | null;
-      /** Thesis Score */
-      thesis_score: number | null;
-      /** Total */
-      total: number | null;
-      /** Version Label */
-      version_label: string;
-      /** Version No */
-      version_no: number;
-    };
-    /** ReviewOut */
-    ReviewOut: {
-      /** Ai Reviewer Name */
-      ai_reviewer_name: string | null;
-      /** Aspects */
-      aspects: components["schemas"]["AspectOut"][];
-      /** Completed At */
-      completed_at: string | null;
-      /** Confirmed */
-      confirmed: boolean;
-      /** Error */
-      error: string | null;
-      /** Id */
-      id: number;
-      /** Kind */
-      kind: string;
-      legacy_modification: components["schemas"]["LegacyModificationOut"] | null;
-      /** Method */
-      method: string;
-      /** Model */
-      model: string | null;
-      /** News From */
-      news_from: string | null;
-      /** News To */
-      news_to: string | null;
-      /** Outdated */
-      outdated: boolean;
-      /** Policy Version Id */
-      policy_version_id: number | null;
-      /** Prompt Id */
-      prompt_id: string | null;
-      /** Provider */
-      provider: string;
-      /** Saved At */
-      saved_at: string | null;
-      /** Scoring Version */
-      scoring_version: string;
-      /** Semaphore */
-      semaphore: string | null;
-      /** Sources */
-      sources: components["schemas"]["SourceOut"][];
-      /**
-       * Started At
-       * Format: date-time
-       */
-      started_at: string;
-      /** State */
-      state: string;
-      /** Structure Score */
-      structure_score: number | null;
-      /** Suggestions */
-      suggestions: components["schemas"]["SuggestionOut"][];
-      /** Thesis Score */
-      thesis_score: number | null;
-      /** Total */
-      total: number | null;
-      /** Verdict */
-      verdict: string | null;
-      /** Verdict Reason */
-      verdict_reason: string | null;
-    };
-    /**
-     * ReviewPromptOut
-     * @description REV-19: the review prompt to copy into an AI outside the app.
-     */
-    ReviewPromptOut: {
-      /** Prompt Id */
-      prompt_id: string;
-      /** Text */
-      text: string;
-    };
-    /** Roles */
-    Roles: {
-      /** Base Currency */
-      base_currency?: string | null;
-      /** Is Admin */
-      is_admin: boolean;
-      /** Is Investor */
-      is_investor: boolean;
-    };
-    /** SharingIn */
-    SharingIn: {
-      /** Sharing */
-      sharing: string;
-    };
-    /** SimulationIn */
-    SimulationIn: {
-      /** Contribution */
-      contribution?: number | string | null;
-      /** Cycles */
-      cycles: number;
-      /** Snapshot Id */
-      snapshot_id?: number | null;
-      /** Withdrawal */
-      withdrawal?: number | string | null;
-    };
-    /** SnapshotOut */
-    SnapshotOut: {
-      /** Corrects Snapshot Id */
-      corrects_snapshot_id: number | null;
-      /** Currency */
-      currency: string;
-      /** Id */
-      id: number;
-      /** Policy Version Id */
-      policy_version_id: number;
-      /** Policy Version Label */
-      policy_version_label: string;
-      /** Portfolio Id */
-      portfolio_id: number;
-      /** Rows */
-      rows: components["schemas"]["ComparisonRowOut"][];
-      /** Source */
-      source: string;
-      /**
-       * Taken At
-       * Format: date-time
-       */
-      taken_at: string;
-      /** Total Value */
-      total_value: string;
-    };
-    /** SnapshotSummary */
-    SnapshotSummary: {
-      /** Corrects Snapshot Id */
-      corrects_snapshot_id: number | null;
-      /** Id */
-      id: number;
-      /** Policy Version Id */
-      policy_version_id: number;
-      /** Policy Version Label */
-      policy_version_label: string;
-      /** Source */
-      source: string;
-      /**
-       * Taken At
-       * Format: date-time
-       */
-      taken_at: string;
-      /** Total Value */
-      total_value: string;
-    };
-    /** SourceOut */
-    SourceOut: {
-      /** Published On */
-      published_on: string | null;
-      /** Title */
-      title: string;
-      /** Url */
-      url: string;
-    };
-    /** StartReview */
-    StartReview: {
-      /** Ai Reviewer Id */
-      ai_reviewer_id?: number | null;
-      /**
-       * News Days
-       * @default 90
-       */
-      news_days?: number;
-    };
-    /**
-     * SuggestionOut
-     * @description REV-07, REV-22. `change` says what Take over applies (null for suggestions of older
-     *     reviews, which can only be read); `previous` what it replaced.
-     */
-    SuggestionOut: {
-      /** Change */
-      change: {
-        [key: string]: unknown;
-      } | null;
-      /** Content Md */
-      content_md: string;
-      /** Id */
-      id: number;
-      /** Kind */
-      kind: string;
-      /** Previous */
-      previous: {
-        [key: string]: unknown;
-      } | null;
-      /** State */
-      state: string;
-    };
-    /**
-     * SuggestionResult
-     * @description The review with the suggestion's new state, and the draft as it is now.
-     */
-    SuggestionResult: {
-      draft: components["schemas"]["VersionOut"];
-      review: components["schemas"]["ReviewOut"];
-    };
-    /**
-     * ThesisImportPreview
-     * @description IMP-01: a new policy, or the draft (version) of the selected one.
-     */
-    ThesisImportPreview: {
-      /** Creates New Policy */
-      creates_new_policy: boolean;
-      /** Title */
-      title: string;
-      /** Version No */
-      version_no: number;
-    };
-    /** ThesisIn */
-    ThesisIn: {
-      /** Content Md */
-      content_md: string;
-      /** Title */
-      title: string;
-    };
-    /** TimeZoneChoice */
-    TimeZoneChoice: {
-      /** Time Zone */
-      time_zone: string | null;
-    };
-    /**
-     * Usage
-     * @description REV-16: reviews used and left this month with the chosen AI reviewer;
-     *     `unavailable_reason` explains why no review can be started, in English;
-     *     `unavailable_code` and `unavailable_params` let the frontend translate it (NFR-10).
-     */
-    Usage: {
-      /** Ai Reviewer Id */
-      ai_reviewer_id: number | null;
-      /** Ai Reviewer Name */
-      ai_reviewer_name: string | null;
-      /** Left */
-      left: number;
-      /** Limit */
-      limit: number;
-      /** Unavailable Code */
-      unavailable_code: string | null;
-      /** Unavailable Params */
-      unavailable_params: {
-        [key: string]: string | number;
-      };
-      /** Unavailable Reason */
-      unavailable_reason: string | null;
-      /** Used */
-      used: number;
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Context */
-      ctx?: Record<string, never>;
-      /** Input */
-      input?: unknown;
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-    };
-    /**
-     * ValueIn
-     * @description CMP-01: units and the price or the value; the cash buffer has only a value.
-     */
-    ValueIn: {
-      /** Name */
-      name?: string | null;
-      /** Price */
-      price?: number | string | null;
-      /** Ticker */
-      ticker: string;
-      /** Type */
-      type?: string | null;
-      /** Units */
-      units?: number | string | null;
-      /** Value */
-      value?: number | string | null;
-    };
-    /** Version */
-    Version: {
-      /** Commit */
-      commit: string;
-      /** Version */
-      version: string;
-    };
-    /** VersionDiffOut */
-    VersionDiffOut: {
-      /** Positions */
-      positions: components["schemas"]["PositionChangeOut"][];
-      /** Thesis Changed */
-      thesis_changed: boolean;
-      /** Thesis Diff */
-      thesis_diff: string;
-    };
-    /** VersionOut */
-    VersionOut: {
-      /** Active From */
-      active_from: string | null;
-      /** Active Until */
-      active_until: string | null;
-      /** Change Note */
-      change_note: string | null;
-      /** Id */
-      id: number;
-      /** Is Draft */
-      is_draft: boolean;
-      /** Label */
-      label: string;
-      /** Mark */
-      mark: string | null;
-      /** Positions */
-      positions: components["schemas"]["PositionOut"][];
-      review: components["schemas"]["ReviewBrief"] | null;
-      /** Reviews */
-      reviews: components["schemas"]["ReviewBrief"][];
-      /** Thesis Md */
-      thesis_md: string;
-      /** Thesis Title */
-      thesis_title: string;
-      /** Version No */
-      version_no: number;
-    };
-    /**
-     * VersionRef
-     * @description A version looked up by its ID (e.g. from a timeline event), with its policy.
-     */
-    VersionRef: {
-      /** Active From */
-      active_from: string | null;
-      /** Active Until */
-      active_until: string | null;
-      /** Change Note */
-      change_note: string | null;
-      /** Id */
-      id: number;
-      /** Is Draft */
-      is_draft: boolean;
-      /** Label */
-      label: string;
-      /** Mark */
-      mark: string | null;
-      /** Policy Id */
-      policy_id: number;
-      /** Policy Name */
-      policy_name: string;
-      /** Positions */
-      positions: components["schemas"]["PositionOut"][];
-      review: components["schemas"]["ReviewBrief"] | null;
-      /** Reviews */
-      reviews: components["schemas"]["ReviewBrief"][];
-      /** Thesis Md */
-      thesis_md: string;
-      /** Thesis Title */
-      thesis_title: string;
-      /** Version No */
-      version_no: number;
-    };
-    /** VersionSummary */
-    VersionSummary: {
-      /** Active From */
-      active_from: string | null;
-      /** Active Until */
-      active_until: string | null;
-      /** Change Note */
-      change_note: string | null;
-      /** Id */
-      id: number;
-      /** Is Draft */
-      is_draft: boolean;
-      /** Label */
-      label: string;
-      /** Mark */
-      mark: string | null;
-      review: components["schemas"]["ReviewBrief"] | null;
-      /** Reviews */
-      reviews: components["schemas"]["ReviewBrief"][];
-      /** Thesis Title */
-      thesis_title: string;
-      /** Version No */
-      version_no: number;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  list_accounts_api_admin_accounts_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Account"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_account_api_admin_accounts_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["NewAccount"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Account"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_account_api_admin_accounts__account_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        account_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_base_currency_api_admin_accounts__account_id__base_currency_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        account_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BaseCurrency"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Account"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  deactivate_api_admin_accounts__account_id__deactivate_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        account_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Account"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  reactivate_api_admin_accounts__account_id__reactivate_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        account_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Account"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  reset_password_api_admin_accounts__account_id__reset_password_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        account_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PasswordReset"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Account"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_roles_api_admin_accounts__account_id__roles_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        account_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["Roles"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Account"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_reviewers_api_admin_ai_reviewers_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AiReviewerList"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_reviewer_api_admin_ai_reviewers_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AiReviewerIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AiReviewerSettings"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_reviewer_api_admin_ai_reviewers__reviewer_id__put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        reviewer_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AiReviewerIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AiReviewerSettings"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  archive_reviewer_api_admin_ai_reviewers__reviewer_id__archive_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        reviewer_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  test_connection_api_admin_ai_reviewers__reviewer_id__test_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        reviewer_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ConnectionTest"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_providers_api_admin_price_providers_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PriceProviderList"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_provider_api_admin_price_providers_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PriceProviderIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PriceProviderSettings"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_provider_api_admin_price_providers__provider_id__put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        provider_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PriceProviderIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PriceProviderSettings"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  archive_provider_api_admin_price_providers__provider_id__archive_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        provider_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  test_connection_api_admin_price_providers__provider_id__test_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        provider_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ConnectionTest"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_update_api_admin_price_update_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PriceUpdateOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_update_api_admin_price_update_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PriceUpdateIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PriceUpdateOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_options_api_ai_reviewers_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AiReviewerOption"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  choose_api_ai_reviewers_choice_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["Choice"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Choice"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_assets_api_assets_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AssetOut"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_language_api_auth_language_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LanguageChoice"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Me"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  login_api_auth_login_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LoginRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Me"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  logout_api_auth_logout_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  me_api_auth_me_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Me"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  change_password_api_auth_password_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PasswordChange"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_time_zone_api_auth_time_zone_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TimeZoneChoice"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Me"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  health_api_health_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Health"];
-        };
-      };
-    };
-  };
-  list_policies_api_policies_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PolicySummary"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_policy_api_policies_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["NewPolicy"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PolicyOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  import_thesis_as_policy_api_policies_import_thesis_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PolicyOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  preview_thesis_as_policy_api_policies_import_thesis_preview_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ThesisImportPreview"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_policy_api_policies__policy_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PolicyOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  start_active_review_api_policies__policy_id__active_review_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: {
-      content: {
-        "application/json": components["schemas"]["StartReview"] | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_active_review_prompt_api_policies__policy_id__active_review_prompt_get: {
-    parameters: {
-      query?: {
-        news_days?: number;
-      };
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewPromptOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  submit_manual_active_review_api_policies__policy_id__active_review_manual_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ManualAnswer"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  archive_policy_api_policies__policy_id__archive_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PolicyOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  compare_versions_api_policies__policy_id__compare_get: {
-    parameters: {
-      query: {
-        from_version: number;
-        to_version: number;
-      };
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionDiffOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_draft_api_policies__policy_id__draft_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["DraftIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_draft_api_policies__policy_id__draft_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_draft_api_policies__policy_id__draft_delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Discarded"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  activate_draft_api_policies__policy_id__draft_activate_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["Activation"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_change_note_api_policies__policy_id__draft_change_note_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ChangeNote"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  start_review_api_policies__policy_id__draft_review_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: {
-      content: {
-        "application/json": components["schemas"]["StartReview"] | null;
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_review_prompt_api_policies__policy_id__draft_review_prompt_get: {
-    parameters: {
-      query?: {
-        news_days?: number;
-      };
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewPromptOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  submit_manual_review_api_policies__policy_id__draft_review_manual_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ManualAnswer"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  import_target_structure_api_policies__policy_id__import_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  import_thesis_api_policies__policy_id__import_thesis_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  preview_thesis_api_policies__policy_id__import_thesis_preview_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ThesisImportPreview"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  preview_target_structure_api_policies__policy_id__import_preview_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionDiffOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  rename_policy_api_policies__policy_id__name_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RenameIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PolicyOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_review_log_api_policies__policy_id__reviews_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewLogEntry"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_sharing_api_policies__policy_id__sharing_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["SharingIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PolicyOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_version_api_policies__policy_id__versions__version_no__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-        version_no: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  export_target_structure_api_policies__policy_id__versions__version_no__export_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-        version_no: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_version_review_api_policies__policy_id__versions__version_no__review_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-        version_no: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  export_thesis_api_policies__policy_id__versions__version_no__thesis_export_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        policy_id: number;
-        version_no: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_version_by_id_api_policy_versions__version_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        version_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["VersionRef"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_portfolios_api_portfolios_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PortfolioSummary"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_portfolio_api_portfolios_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["NewPortfolio"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PortfolioOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_portfolio_api_portfolios__portfolio_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PortfolioOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  archive_api_portfolios__portfolio_id__archive_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PortfolioOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  import_current_structure_api_portfolios__portfolio_id__import_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SnapshotOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  preview_current_structure_api_portfolios__portfolio_id__import_preview_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CurrentStructurePreviewOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_positions_api_portfolios__portfolio_id__positions_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": {
-          [key: string]: components["schemas"]["PositionSettingsIn"];
-        };
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PortfolioOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  prefill_api_portfolios__portfolio_id__prefill_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PrefillRowOut"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  reassign_api_portfolios__portfolio_id__reassign_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["Reassignment"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PortfolioOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  preview_api_portfolios__portfolio_id__rebalance_get: {
-    parameters: {
-      query?: {
-        snapshot_id?: number | null;
-        contribution?: number | string | null;
-        withdrawal?: number | string | null;
-        mode?: string | null;
-      };
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PlanOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_rebalances_api_portfolios__portfolio_id__rebalances_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RebalanceOut"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  confirm_api_portfolios__portfolio_id__rebalances_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["Confirmation"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RebalanceOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_settings_api_portfolios__portfolio_id__settings_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PortfolioSettings"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PortfolioOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  simulate_api_portfolios__portfolio_id__simulate_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["SimulationIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ResultOut"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_snapshots_api_portfolios__portfolio_id__snapshots_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SnapshotSummary"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_snapshot_api_portfolios__portfolio_id__snapshots_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        portfolio_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["NewSnapshot"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SnapshotOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_sources_api_price_sources_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PriceSourceOut"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  lookup_api_price_sources_lookup_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LookupIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LookupOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_source_api_price_sources__ticker__put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        ticker: string;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PriceSourceIn"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PriceSourceOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_rebalance_api_rebalances__rebalance_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        rebalance_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["RebalanceOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_rebalance_result_api_rebalances__rebalance_id__result_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        rebalance_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ResultOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_usage_api_reviews_usage_get: {
-    parameters: {
-      query?: {
-        ai_reviewer_id?: number | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Usage"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_review_api_reviews__review_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        review_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ReviewOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        review_id: number;
-        suggestion_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SuggestionResult"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  take_over_suggestion_api_reviews__review_id__suggestions__suggestion_id__take_over_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        review_id: number;
-        suggestion_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SuggestionResult"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        review_id: number;
-        suggestion_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SuggestionResult"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_schema_api_schemas__import_type__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        import_type: string;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            [key: string]: unknown;
-          };
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  get_snapshot_api_snapshots__snapshot_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        snapshot_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SnapshotOut"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  export_current_structure_api_snapshots__snapshot_id__export_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        snapshot_id: number;
-      };
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  timeline_api_timeline_get: {
-    parameters: {
-      query?: {
-        portfolio_id?: number | null;
-        policy_id?: number | null;
-        type?: components["schemas"]["EventType"][] | null;
-        start?: string | null;
-        end?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: {
-        itk_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["EventOut"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  version_api_version_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Version"];
-        };
-      };
-    };
-  };
+    list_accounts_api_admin_accounts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_account_api_admin_accounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewAccount"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_account_api_admin_accounts__account_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_base_currency_api_admin_accounts__account_id__base_currency_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BaseCurrency"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deactivate_api_admin_accounts__account_id__deactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reactivate_api_admin_accounts__account_id__reactivate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_password_api_admin_accounts__account_id__reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordReset"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_roles_api_admin_accounts__account_id__roles_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Roles"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Account"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reviewers_api_admin_ai_reviewers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiReviewerList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_reviewer_api_admin_ai_reviewers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiReviewerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiReviewerSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_reviewer_api_admin_ai_reviewers__reviewer_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reviewer_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiReviewerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiReviewerSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_reviewer_api_admin_ai_reviewers__reviewer_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reviewer_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_connection_api_admin_ai_reviewers__reviewer_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reviewer_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionTest"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_providers_api_admin_price_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceProviderList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_provider_api_admin_price_providers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceProviderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceProviderSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_provider_api_admin_price_providers__provider_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceProviderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceProviderSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_provider_api_admin_price_providers__provider_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_connection_api_admin_price_providers__provider_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionTest"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_update_api_admin_price_update_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceUpdateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_update_api_admin_price_update_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceUpdateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_options_api_ai_reviewers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiReviewerOption"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    choose_api_ai_reviewers_choice_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Choice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Choice"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_assets_api_assets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_language_api_auth_language_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LanguageChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_api_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_api_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_api_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_api_auth_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_time_zone_api_auth_time_zone_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimeZoneChoice"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    health_api_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    list_policies_api_policies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicySummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_policy_api_policies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewPolicy"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_thesis_as_policy_api_policies_import_thesis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_thesis_as_policy_api_policies_import_thesis_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThesisImportPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_policy_api_policies__policy_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_active_review_api_policies__policy_id__active_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartReview"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_review_prompt_api_policies__policy_id__active_review_prompt_get: {
+        parameters: {
+            query?: {
+                news_days?: number;
+            };
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPromptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_manual_active_review_api_policies__policy_id__active_review_manual_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_policy_api_policies__policy_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_versions_api_policies__policy_id__compare_get: {
+        parameters: {
+            query: {
+                from_version: number;
+                to_version: number;
+            };
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDiffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_draft_api_policies__policy_id__draft_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_draft_api_policies__policy_id__draft_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_draft_api_policies__policy_id__draft_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Discarded"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    activate_draft_api_policies__policy_id__draft_activate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Activation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_change_note_api_policies__policy_id__draft_change_note_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeNote"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_review_api_policies__policy_id__draft_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartReview"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_prompt_api_policies__policy_id__draft_review_prompt_get: {
+        parameters: {
+            query?: {
+                news_days?: number;
+            };
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPromptOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_manual_review_api_policies__policy_id__draft_review_manual_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManualAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_target_structure_api_policies__policy_id__import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_thesis_api_policies__policy_id__import_thesis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_thesis_api_policies__policy_id__import_thesis_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThesisImportPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_target_structure_api_policies__policy_id__import_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionDiffOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_policy_api_policies__policy_id__name_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_log_api_policies__policy_id__reviews_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewLogEntry"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_sharing_api_policies__policy_id__sharing_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_api_policies__policy_id__versions__version_no__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+                version_no: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_target_structure_api_policies__policy_id__versions__version_no__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+                version_no: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_review_api_policies__policy_id__versions__version_no__review_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+                version_no: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_thesis_api_policies__policy_id__versions__version_no__thesis_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: number;
+                version_no: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_version_by_id_api_policy_versions__version_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionRef"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_portfolios_api_portfolios_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_portfolio_api_portfolios_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewPortfolio"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_portfolio_api_portfolios__portfolio_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_api_portfolios__portfolio_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_current_structure_api_portfolios__portfolio_id__import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_current_structure_api_portfolios__portfolio_id__import_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentStructurePreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_positions_api_portfolios__portfolio_id__positions_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: components["schemas"]["PositionSettingsIn"];
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prefill_api_portfolios__portfolio_id__prefill_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrefillRowOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reassign_api_portfolios__portfolio_id__reassign_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Reassignment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_portfolios__portfolio_id__rebalance_get: {
+        parameters: {
+            query?: {
+                snapshot_id?: number | null;
+                contribution?: number | string | null;
+                withdrawal?: number | string | null;
+                mode?: string | null;
+            };
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_rebalances_api_portfolios__portfolio_id__rebalances_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RebalanceOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_api_portfolios__portfolio_id__rebalances_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Confirmation"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RebalanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_settings_api_portfolios__portfolio_id__settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioSettings"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    simulate_api_portfolios__portfolio_id__simulate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SimulationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_snapshots_api_portfolios__portfolio_id__snapshots_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_snapshot_api_portfolios__portfolio_id__snapshots_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                portfolio_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewSnapshot"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sources_api_price_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceSourceOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lookup_api_price_sources_lookup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LookupIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LookupOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_source_api_price_sources__ticker__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PriceSourceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceSourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_rebalance_api_rebalances__rebalance_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rebalance_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RebalanceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_rebalance_result_api_rebalances__rebalance_id__result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rebalance_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_usage_api_reviews_usage_get: {
+        parameters: {
+            query?: {
+                ai_reviewer_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Usage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_api_reviews__review_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_suggestion_api_reviews__review_id__suggestions__suggestion_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: number;
+                suggestion_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    take_over_suggestion_api_reviews__review_id__suggestions__suggestion_id__take_over_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: number;
+                suggestion_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undo_suggestion_api_reviews__review_id__suggestions__suggestion_id__undo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: number;
+                suggestion_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_schema_api_schemas__import_type__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                import_type: string;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_snapshot_api_snapshots__snapshot_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                snapshot_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SnapshotOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_current_structure_api_snapshots__snapshot_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                snapshot_id: number;
+            };
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    timeline_api_timeline_get: {
+        parameters: {
+            query?: {
+                portfolio_id?: number | null;
+                policy_id?: number | null;
+                type?: components["schemas"]["EventType"][] | null;
+                start?: string | null;
+                end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                itk_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    version_api_version_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Version"];
+                };
+            };
+        };
+    };
 }

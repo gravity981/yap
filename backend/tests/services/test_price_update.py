@@ -1,5 +1,5 @@
 """The price update, exchange rates and auto prices in snapshots (PRC-07 to PRC-12, CMP-01,
-CMP-10, RB-17)."""
+CMP-10)."""
 
 from datetime import UTC, date, datetime
 from decimal import Decimal
@@ -23,7 +23,6 @@ from yap.services import (
     price_providers,
     price_sources,
     price_update,
-    rebalances,
     snapshots,
 )
 from yap.services.common import ValidationError
@@ -248,7 +247,7 @@ def test_only_one_run_at_a_time(session: Session, factory: Factory) -> None:
 # --- Auto prices in snapshots -------------------------------------------------------------
 
 
-@pytest.mark.req("CMP-01", "CMP-10", "PRC-11", "RB-17")
+@pytest.mark.req("CMP-01", "CMP-10", "PRC-11")
 def test_snapshots_take_and_keep_the_auto_price(session: Session, factory: Factory) -> None:
     adapters = Scripted({"AAA.US": Decimal("100"), "BBB.SW": Decimal("50")})
     alice, portfolio, _ = setup(session, factory, adapters)
@@ -276,33 +275,6 @@ def test_snapshots_take_and_keep_the_auto_price(session: Session, factory: Facto
     run(session, factory, adapters)
     session.refresh(aaa)
     assert (aaa.price, aaa.listing_price) == (Decimal("80.0"), 100)
-    # A confirmed rebalance keeps the input's auto price in its result (RB-17)
-    plan = rebalances.plan(
-        session,
-        alice,
-        factory.clock,
-        portfolio.id,
-        snapshot_id=snapshot.id,
-        contribution=Decimal(0),
-    )
-    record = rebalances.confirm(
-        session,
-        alice,
-        factory.clock,
-        portfolio.id,
-        snapshot_id=snapshot.id,
-        contribution=Decimal(0),
-        policy_version_id=plan.version.id,
-        executed=[],
-    )
-    result = {v.asset.ticker: v for v in record_result(session, record)}
-    assert (result["AAA"].price_kind, result["AAA"].price) == ("auto", Decimal("80.0"))
-
-
-def record_result(session: Session, record):  # type: ignore[no-untyped-def]
-    from yap.db.models import Snapshot
-
-    return session.get(Snapshot, record.result_snapshot_id).values  # type: ignore[union-attr]
 
 
 @pytest.mark.req("PRC-11")

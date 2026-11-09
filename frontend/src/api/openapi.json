@@ -89,21 +89,6 @@
             ],
             "title": "Calculated Units"
           },
-          "executed_amount": {
-            "title": "Executed Amount",
-            "type": "string"
-          },
-          "executed_units": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Executed Units"
-          },
           "phase": {
             "title": "Phase",
             "type": "string"
@@ -131,9 +116,7 @@
           "broker",
           "whole_units",
           "calculated_units",
-          "executed_units",
-          "calculated_amount",
-          "executed_amount"
+          "calculated_amount"
         ],
         "title": "ActionOut",
         "type": "object"
@@ -174,7 +157,12 @@
             "type": "string"
           }
         },
-        "required": ["provider", "name", "key_possible", "key_required"],
+        "required": [
+          "provider",
+          "name",
+          "key_possible",
+          "key_required"
+        ],
         "title": "AddableProvider",
         "type": "object"
       },
@@ -224,7 +212,12 @@
             "type": "string"
           }
         },
-        "required": ["name", "provider", "model", "monthly_review_limit"],
+        "required": [
+          "name",
+          "provider",
+          "model",
+          "monthly_review_limit"
+        ],
         "title": "AiReviewerIn",
         "type": "object"
       },
@@ -242,7 +235,10 @@
             "type": "array"
           }
         },
-        "required": ["reviewers", "keys_available"],
+        "required": [
+          "reviewers",
+          "keys_available"
+        ],
         "title": "AiReviewerList",
         "type": "object"
       },
@@ -281,7 +277,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "description", "provider", "model", "monthly_review_limit"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "provider",
+          "model",
+          "monthly_review_limit"
+        ],
         "title": "AiReviewerOption",
         "type": "object"
       },
@@ -347,6 +350,24 @@
         "title": "AiReviewerSettings",
         "type": "object"
       },
+      "AllocationShare": {
+        "properties": {
+          "allocation_pct": {
+            "title": "Allocation Pct",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "allocation_pct"
+        ],
+        "title": "AllocationShare",
+        "type": "object"
+      },
       "AspectOut": {
         "properties": {
           "code": {
@@ -366,7 +387,12 @@
             "type": "number"
           }
         },
-        "required": ["code", "name", "score", "reasoning_md"],
+        "required": [
+          "code",
+          "name",
+          "score",
+          "reasoning_md"
+        ],
         "title": "AspectOut",
         "type": "object"
       },
@@ -385,7 +411,11 @@
             "type": "string"
           }
         },
-        "required": ["ticker", "name", "type"],
+        "required": [
+          "ticker",
+          "name",
+          "type"
+        ],
         "title": "AssetOut",
         "type": "object"
       },
@@ -405,7 +435,11 @@
             "type": "string"
           }
         },
-        "required": ["policy_id", "policy_name", "valid_from"],
+        "required": [
+          "policy_id",
+          "policy_name",
+          "valid_from"
+        ],
         "title": "AssignmentOut",
         "type": "object"
       },
@@ -465,7 +499,9 @@
             "type": "string"
           }
         },
-        "required": ["base_currency"],
+        "required": [
+          "base_currency"
+        ],
         "title": "BaseCurrency",
         "type": "object"
       },
@@ -483,7 +519,9 @@
             "title": "Change Note"
           }
         },
-        "required": ["change_note"],
+        "required": [
+          "change_note"
+        ],
         "title": "ChangeNote",
         "type": "object"
       },
@@ -507,7 +545,9 @@
             "type": "boolean"
           }
         },
-        "required": ["ai_reviewer_id"],
+        "required": [
+          "ai_reviewer_id"
+        ],
         "title": "Choice",
         "type": "object"
       },
@@ -662,14 +702,6 @@
             ],
             "title": "Contribution"
           },
-          "executed": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/ExecutedIn"
-            },
-            "title": "Executed",
-            "type": "array"
-          },
           "mode": {
             "default": "normal",
             "title": "Mode",
@@ -696,7 +728,11 @@
             "title": "Withdrawal"
           }
         },
-        "required": ["snapshot_id", "contribution", "policy_version_id"],
+        "required": [
+          "snapshot_id",
+          "contribution",
+          "policy_version_id"
+        ],
         "title": "Confirmation",
         "type": "object"
       },
@@ -733,7 +769,12 @@
             "type": "object"
           }
         },
-        "required": ["ok", "message", "code", "params"],
+        "required": [
+          "ok",
+          "message",
+          "code",
+          "params"
+        ],
         "title": "ConnectionTest",
         "type": "object"
       },
@@ -771,7 +812,10 @@
             "type": "array"
           }
         },
-        "required": ["values", "new_tickers"],
+        "required": [
+          "values",
+          "new_tickers"
+        ],
         "title": "CurrentStructurePreviewOut",
         "type": "object"
       },
@@ -783,7 +827,9 @@
             "type": "boolean"
           }
         },
-        "required": ["policy_deleted"],
+        "required": [
+          "policy_deleted"
+        ],
         "title": "Discarded",
         "type": "object"
       },
@@ -829,7 +875,14 @@
             "type": "integer"
           }
         },
-        "required": ["version_no", "label", "updated_at", "positions", "changed", "review"],
+        "required": [
+          "version_no",
+          "label",
+          "updated_at",
+          "positions",
+          "changed",
+          "review"
+        ],
         "title": "DraftBrief",
         "type": "object"
       },
@@ -853,7 +906,9 @@
             ]
           }
         },
-        "required": ["positions"],
+        "required": [
+          "positions"
+        ],
         "title": "DraftIn",
         "type": "object"
       },
@@ -961,46 +1016,6 @@
         "title": "EventType",
         "type": "string"
       },
-      "ExecutedIn": {
-        "properties": {
-          "amount": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              }
-            ],
-            "title": "Amount"
-          },
-          "phase": {
-            "title": "Phase",
-            "type": "string"
-          },
-          "ticker": {
-            "title": "Ticker",
-            "type": "string"
-          },
-          "units": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Units"
-          }
-        },
-        "required": ["phase", "ticker", "amount"],
-        "title": "ExecutedIn",
-        "type": "object"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1025,7 +1040,10 @@
             "type": "string"
           }
         },
-        "required": ["status", "version"],
+        "required": [
+          "status",
+          "version"
+        ],
         "title": "Health",
         "type": "object"
       },
@@ -1081,7 +1099,15 @@
             "title": "Whole Units"
           }
         },
-        "required": ["phase", "ticker", "action", "broker", "amount", "units", "whole_units"],
+        "required": [
+          "phase",
+          "ticker",
+          "action",
+          "broker",
+          "amount",
+          "units",
+          "whole_units"
+        ],
         "title": "InstructionOut",
         "type": "object"
       },
@@ -1099,7 +1125,9 @@
             "title": "Language"
           }
         },
-        "required": ["language"],
+        "required": [
+          "language"
+        ],
         "title": "LanguageChoice",
         "type": "object"
       },
@@ -1136,7 +1164,11 @@
             "title": "Verdict"
           }
         },
-        "required": ["note", "verdict", "scores"],
+        "required": [
+          "note",
+          "verdict",
+          "scores"
+        ],
         "title": "LegacyModificationOut",
         "type": "object"
       },
@@ -1236,7 +1268,10 @@
             "type": "string"
           }
         },
-        "required": ["username", "password"],
+        "required": [
+          "username",
+          "password"
+        ],
         "title": "LoginRequest",
         "type": "object"
       },
@@ -1252,7 +1287,9 @@
             "type": "string"
           }
         },
-        "required": ["ticker"],
+        "required": [
+          "ticker"
+        ],
         "title": "LookupIn",
         "type": "object"
       },
@@ -1291,7 +1328,13 @@
             "type": "string"
           }
         },
-        "required": ["ticker", "status", "listings", "problems", "source"],
+        "required": [
+          "ticker",
+          "status",
+          "listings",
+          "problems",
+          "source"
+        ],
         "title": "LookupOut",
         "type": "object"
       },
@@ -1303,7 +1346,9 @@
             "type": "string"
           }
         },
-        "required": ["answer"],
+        "required": [
+          "answer"
+        ],
         "title": "ManualAnswer",
         "type": "object"
       },
@@ -1425,7 +1470,10 @@
             "type": "string"
           }
         },
-        "required": ["username", "temporary_password"],
+        "required": [
+          "username",
+          "temporary_password"
+        ],
         "title": "NewAccount",
         "type": "object"
       },
@@ -1453,7 +1501,9 @@
             "title": "Thesis Title"
           }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "title": "NewPolicy",
         "type": "object"
       },
@@ -1496,7 +1546,10 @@
             "type": "boolean"
           }
         },
-        "required": ["name", "policy_id"],
+        "required": [
+          "name",
+          "policy_id"
+        ],
         "title": "NewPortfolio",
         "type": "object"
       },
@@ -1521,7 +1574,9 @@
             "type": "array"
           }
         },
-        "required": ["values"],
+        "required": [
+          "values"
+        ],
         "title": "NewSnapshot",
         "type": "object"
       },
@@ -1536,7 +1591,10 @@
             "type": "string"
           }
         },
-        "required": ["current_password", "new_password"],
+        "required": [
+          "current_password",
+          "new_password"
+        ],
         "title": "PasswordChange",
         "type": "object"
       },
@@ -1547,7 +1605,9 @@
             "type": "string"
           }
         },
-        "required": ["temporary_password"],
+        "required": [
+          "temporary_password"
+        ],
         "title": "PasswordReset",
         "type": "object"
       },
@@ -2109,7 +2169,10 @@
             "type": "string"
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "title": "PortfolioRef",
         "type": "object"
       },
@@ -2142,7 +2205,10 @@
             "type": "boolean"
           }
         },
-        "required": ["default_contribution", "precise_amounts"],
+        "required": [
+          "default_contribution",
+          "precise_amounts"
+        ],
         "title": "PortfolioSettings",
         "type": "object"
       },
@@ -2256,7 +2322,11 @@
             "type": "string"
           }
         },
-        "required": ["ticker", "change", "fields"],
+        "required": [
+          "ticker",
+          "change",
+          "fields"
+        ],
         "title": "PositionChangeOut",
         "type": "object"
       },
@@ -2332,7 +2402,12 @@
             "title": "Type"
           }
         },
-        "required": ["ticker", "target_pct", "buy_threshold_pct", "sell_threshold_pct"],
+        "required": [
+          "ticker",
+          "target_pct",
+          "buy_threshold_pct",
+          "sell_threshold_pct"
+        ],
         "title": "PositionIn",
         "type": "object"
       },
@@ -2696,7 +2771,13 @@
             "title": "Whole Units"
           }
         },
-        "required": ["ticker", "name", "type", "broker", "whole_units"],
+        "required": [
+          "ticker",
+          "name",
+          "type",
+          "broker",
+          "whole_units"
+        ],
         "title": "PositionSettingsOut",
         "type": "object"
       },
@@ -2838,7 +2919,9 @@
             "type": "string"
           }
         },
-        "required": ["provider"],
+        "required": [
+          "provider"
+        ],
         "title": "PriceProviderIn",
         "type": "object"
       },
@@ -2863,7 +2946,11 @@
             "type": "array"
           }
         },
-        "required": ["providers", "addable", "keys_available"],
+        "required": [
+          "providers",
+          "addable",
+          "keys_available"
+        ],
         "title": "PriceProviderList",
         "type": "object"
       },
@@ -3011,7 +3098,9 @@
             "title": "Type"
           }
         },
-        "required": ["kind"],
+        "required": [
+          "kind"
+        ],
         "title": "PriceSourceIn",
         "type": "object"
       },
@@ -3064,7 +3153,14 @@
             "title": "Updated At"
           }
         },
-        "required": ["ticker", "name", "type", "kind", "listing", "updated_at"],
+        "required": [
+          "ticker",
+          "name",
+          "type",
+          "kind",
+          "listing",
+          "updated_at"
+        ],
         "title": "PriceSourceOut",
         "type": "object"
       },
@@ -3083,7 +3179,11 @@
             "type": "string"
           }
         },
-        "required": ["time_of_day", "time_zone", "interval_hours"],
+        "required": [
+          "time_of_day",
+          "time_zone",
+          "interval_hours"
+        ],
         "title": "PriceUpdateIn",
         "type": "object"
       },
@@ -3183,7 +3283,12 @@
             "type": "string"
           }
         },
-        "required": ["trigger", "started_at", "finished_at", "result"],
+        "required": [
+          "trigger",
+          "started_at",
+          "finished_at",
+          "result"
+        ],
         "title": "PriceUpdateRunOut",
         "type": "object"
       },
@@ -3219,7 +3324,12 @@
             "type": "string"
           }
         },
-        "required": ["message", "code", "params", "provider"],
+        "required": [
+          "message",
+          "code",
+          "params",
+          "provider"
+        ],
         "title": "ProblemOut",
         "type": "object"
       },
@@ -3230,7 +3340,9 @@
             "type": "integer"
           }
         },
-        "required": ["policy_id"],
+        "required": [
+          "policy_id"
+        ],
         "title": "Reassignment",
         "type": "object"
       },
@@ -3315,7 +3427,9 @@
             "type": "string"
           }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "title": "RenameIn",
         "type": "object"
       },
@@ -3928,7 +4042,10 @@
             "type": "string"
           }
         },
-        "required": ["prompt_id", "text"],
+        "required": [
+          "prompt_id",
+          "text"
+        ],
         "title": "ReviewPromptOut",
         "type": "object"
       },
@@ -3954,7 +4071,10 @@
             "type": "boolean"
           }
         },
-        "required": ["is_admin", "is_investor"],
+        "required": [
+          "is_admin",
+          "is_investor"
+        ],
         "title": "Roles",
         "type": "object"
       },
@@ -3965,7 +4085,9 @@
             "type": "string"
           }
         },
-        "required": ["sharing"],
+        "required": [
+          "sharing"
+        ],
         "title": "SharingIn",
         "type": "object"
       },
@@ -4015,8 +4137,70 @@
             "title": "Withdrawal"
           }
         },
-        "required": ["cycles"],
+        "required": [
+          "cycles"
+        ],
         "title": "SimulationIn",
+        "type": "object"
+      },
+      "SnapshotListItem": {
+        "description": "CMP-08: a past snapshot with the share of every position it held.",
+        "properties": {
+          "allocations": {
+            "items": {
+              "$ref": "#/components/schemas/AllocationShare"
+            },
+            "title": "Allocations",
+            "type": "array"
+          },
+          "corrects_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrects Snapshot Id"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "policy_version_id": {
+            "title": "Policy Version Id",
+            "type": "integer"
+          },
+          "policy_version_label": {
+            "title": "Policy Version Label",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "taken_at": {
+            "format": "date-time",
+            "title": "Taken At",
+            "type": "string"
+          },
+          "total_value": {
+            "title": "Total Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "taken_at",
+          "source",
+          "corrects_snapshot_id",
+          "policy_version_id",
+          "policy_version_label",
+          "total_value",
+          "allocations"
+        ],
+        "title": "SnapshotListItem",
         "type": "object"
       },
       "SnapshotOut": {
@@ -4088,57 +4272,6 @@
         "title": "SnapshotOut",
         "type": "object"
       },
-      "SnapshotSummary": {
-        "properties": {
-          "corrects_snapshot_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Corrects Snapshot Id"
-          },
-          "id": {
-            "title": "Id",
-            "type": "integer"
-          },
-          "policy_version_id": {
-            "title": "Policy Version Id",
-            "type": "integer"
-          },
-          "policy_version_label": {
-            "title": "Policy Version Label",
-            "type": "string"
-          },
-          "source": {
-            "title": "Source",
-            "type": "string"
-          },
-          "taken_at": {
-            "format": "date-time",
-            "title": "Taken At",
-            "type": "string"
-          },
-          "total_value": {
-            "title": "Total Value",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "taken_at",
-          "source",
-          "corrects_snapshot_id",
-          "policy_version_id",
-          "policy_version_label",
-          "total_value"
-        ],
-        "title": "SnapshotSummary",
-        "type": "object"
-      },
       "SourceOut": {
         "properties": {
           "published_on": {
@@ -4161,7 +4294,11 @@
             "type": "string"
           }
         },
-        "required": ["title", "published_on", "url"],
+        "required": [
+          "title",
+          "published_on",
+          "url"
+        ],
         "title": "SourceOut",
         "type": "object"
       },
@@ -4231,7 +4368,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "kind", "content_md", "change", "previous", "state"],
+        "required": [
+          "id",
+          "kind",
+          "content_md",
+          "change",
+          "previous",
+          "state"
+        ],
         "title": "SuggestionOut",
         "type": "object"
       },
@@ -4245,7 +4389,10 @@
             "$ref": "#/components/schemas/ReviewOut"
           }
         },
-        "required": ["review", "draft"],
+        "required": [
+          "review",
+          "draft"
+        ],
         "title": "SuggestionResult",
         "type": "object"
       },
@@ -4265,7 +4412,11 @@
             "type": "integer"
           }
         },
-        "required": ["creates_new_policy", "version_no", "title"],
+        "required": [
+          "creates_new_policy",
+          "version_no",
+          "title"
+        ],
         "title": "ThesisImportPreview",
         "type": "object"
       },
@@ -4280,7 +4431,10 @@
             "type": "string"
           }
         },
-        "required": ["title", "content_md"],
+        "required": [
+          "title",
+          "content_md"
+        ],
         "title": "ThesisIn",
         "type": "object"
       },
@@ -4298,7 +4452,9 @@
             "title": "Time Zone"
           }
         },
-        "required": ["time_zone"],
+        "required": [
+          "time_zone"
+        ],
         "title": "TimeZoneChoice",
         "type": "object"
       },
@@ -4424,7 +4580,11 @@
             "type": "string"
           }
         },
-        "required": ["loc", "msg", "type"],
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
         "title": "ValidationError",
         "type": "object"
       },
@@ -4500,7 +4660,9 @@
             "title": "Value"
           }
         },
-        "required": ["ticker"],
+        "required": [
+          "ticker"
+        ],
         "title": "ValueIn",
         "type": "object"
       },
@@ -4515,7 +4677,10 @@
             "type": "string"
           }
         },
-        "required": ["version", "commit"],
+        "required": [
+          "version",
+          "commit"
+        ],
         "title": "Version",
         "type": "object"
       },
@@ -4537,7 +4702,11 @@
             "type": "string"
           }
         },
-        "required": ["positions", "thesis_changed", "thesis_diff"],
+        "required": [
+          "positions",
+          "thesis_changed",
+          "thesis_diff"
+        ],
         "title": "VersionDiffOut",
         "type": "object"
       },
@@ -4940,7 +5109,9 @@
           }
         },
         "summary": "List Accounts",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       },
       "post": {
         "operationId": "create_account_api_admin_accounts_post",
@@ -4995,7 +5166,9 @@
           }
         },
         "summary": "Create Account",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/accounts/{account_id}": {
@@ -5044,7 +5217,9 @@
           }
         },
         "summary": "Delete Account",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/accounts/{account_id}/base-currency": {
@@ -5110,7 +5285,9 @@
           }
         },
         "summary": "Set Base Currency",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/accounts/{account_id}/deactivate": {
@@ -5166,7 +5343,9 @@
           }
         },
         "summary": "Deactivate",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/accounts/{account_id}/reactivate": {
@@ -5222,7 +5401,9 @@
           }
         },
         "summary": "Reactivate",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/accounts/{account_id}/reset-password": {
@@ -5288,7 +5469,9 @@
           }
         },
         "summary": "Reset Password",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/accounts/{account_id}/roles": {
@@ -5355,7 +5538,9 @@
           }
         },
         "summary": "Set Roles",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/ai-reviewers": {
@@ -5402,7 +5587,9 @@
           }
         },
         "summary": "List Reviewers",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       },
       "post": {
         "operationId": "create_reviewer_api_admin_ai_reviewers_post",
@@ -5457,7 +5644,9 @@
           }
         },
         "summary": "Create Reviewer",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/ai-reviewers/{reviewer_id}": {
@@ -5523,7 +5712,9 @@
           }
         },
         "summary": "Update Reviewer",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/ai-reviewers/{reviewer_id}/archive": {
@@ -5573,7 +5764,9 @@
           }
         },
         "summary": "Archive Reviewer",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/ai-reviewers/{reviewer_id}/test": {
@@ -5630,7 +5823,9 @@
           }
         },
         "summary": "Test Connection",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/price-providers": {
@@ -5677,7 +5872,9 @@
           }
         },
         "summary": "List Providers",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       },
       "post": {
         "operationId": "create_provider_api_admin_price_providers_post",
@@ -5732,7 +5929,9 @@
           }
         },
         "summary": "Create Provider",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/price-providers/{provider_id}": {
@@ -5798,7 +5997,9 @@
           }
         },
         "summary": "Update Provider",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/price-providers/{provider_id}/archive": {
@@ -5848,7 +6049,9 @@
           }
         },
         "summary": "Archive Provider",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/price-providers/{provider_id}/test": {
@@ -5905,7 +6108,9 @@
           }
         },
         "summary": "Test Connection",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/admin/price-update": {
@@ -5952,7 +6157,9 @@
           }
         },
         "summary": "Get Update",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       },
       "put": {
         "description": "PRC-07: the time of day is read in the given time zone (USR-11, NFR-14).",
@@ -6008,7 +6215,9 @@
           }
         },
         "summary": "Set Update",
-        "tags": ["admin"]
+        "tags": [
+          "admin"
+        ]
       }
     },
     "/api/ai-reviewers": {
@@ -6059,7 +6268,9 @@
           }
         },
         "summary": "List Options",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/ai-reviewers/choice": {
@@ -6116,7 +6327,9 @@
           }
         },
         "summary": "Choose",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/assets": {
@@ -6167,7 +6380,9 @@
           }
         },
         "summary": "List Assets",
-        "tags": ["catalog"]
+        "tags": [
+          "catalog"
+        ]
       }
     },
     "/api/auth/language": {
@@ -6225,7 +6440,9 @@
           }
         },
         "summary": "Set Language",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/auth/login": {
@@ -6264,7 +6481,9 @@
           }
         },
         "summary": "Login",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/auth/logout": {
@@ -6304,7 +6523,9 @@
           }
         },
         "summary": "Logout",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/auth/me": {
@@ -6351,7 +6572,9 @@
           }
         },
         "summary": "Me",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/auth/password": {
@@ -6401,7 +6624,9 @@
           }
         },
         "summary": "Change Password",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/auth/time-zone": {
@@ -6459,7 +6684,9 @@
           }
         },
         "summary": "Set Time Zone",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/api/health": {
@@ -6478,7 +6705,9 @@
           }
         },
         "summary": "Health",
-        "tags": ["meta"]
+        "tags": [
+          "meta"
+        ]
       }
     },
     "/api/policies": {
@@ -6529,7 +6758,9 @@
           }
         },
         "summary": "List Policies",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       },
       "post": {
         "operationId": "create_policy_api_policies_post",
@@ -6584,7 +6815,9 @@
           }
         },
         "summary": "Create Policy",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/import-thesis": {
@@ -6632,7 +6865,9 @@
           }
         },
         "summary": "Import Thesis As Policy",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/import-thesis/preview": {
@@ -6679,7 +6914,9 @@
           }
         },
         "summary": "Preview Thesis As Policy",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}": {
@@ -6735,7 +6972,9 @@
           }
         },
         "summary": "Get Policy",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/active/review": {
@@ -6809,7 +7048,9 @@
           }
         },
         "summary": "Start Active Review",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/policies/{policy_id}/active/review-prompt": {
@@ -6876,7 +7117,9 @@
           }
         },
         "summary": "Get Active Review Prompt",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/policies/{policy_id}/active/review/manual": {
@@ -6943,7 +7186,9 @@
           }
         },
         "summary": "Submit Manual Active Review",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/policies/{policy_id}/archive": {
@@ -6999,7 +7244,9 @@
           }
         },
         "summary": "Archive Policy",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/compare": {
@@ -7074,7 +7321,9 @@
           }
         },
         "summary": "Compare Versions",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/draft": {
@@ -7131,7 +7380,9 @@
           }
         },
         "summary": "Delete Draft",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       },
       "post": {
         "operationId": "create_draft_api_policies__policy_id__draft_post",
@@ -7185,7 +7436,9 @@
           }
         },
         "summary": "Create Draft",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       },
       "put": {
         "operationId": "update_draft_api_policies__policy_id__draft_put",
@@ -7249,7 +7502,9 @@
           }
         },
         "summary": "Update Draft",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/draft/activate": {
@@ -7315,7 +7570,9 @@
           }
         },
         "summary": "Activate Draft",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/draft/change-note": {
@@ -7382,7 +7639,9 @@
           }
         },
         "summary": "Update Change Note",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/draft/review": {
@@ -7456,7 +7715,9 @@
           }
         },
         "summary": "Start Review",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/policies/{policy_id}/draft/review-prompt": {
@@ -7523,7 +7784,9 @@
           }
         },
         "summary": "Get Review Prompt",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/policies/{policy_id}/draft/review/manual": {
@@ -7590,7 +7853,9 @@
           }
         },
         "summary": "Submit Manual Review",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/policies/{policy_id}/import": {
@@ -7646,7 +7911,9 @@
           }
         },
         "summary": "Import Target Structure",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/import-thesis": {
@@ -7703,7 +7970,9 @@
           }
         },
         "summary": "Import Thesis",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/import-thesis/preview": {
@@ -7759,7 +8028,9 @@
           }
         },
         "summary": "Preview Thesis",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/import/preview": {
@@ -7815,7 +8086,9 @@
           }
         },
         "summary": "Preview Target Structure",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/name": {
@@ -7882,7 +8155,9 @@
           }
         },
         "summary": "Rename Policy",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/reviews": {
@@ -7943,7 +8218,9 @@
           }
         },
         "summary": "Get Review Log",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/policies/{policy_id}/sharing": {
@@ -8010,7 +8287,9 @@
           }
         },
         "summary": "Set Sharing",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/versions/{version_no}": {
@@ -8075,7 +8354,9 @@
           }
         },
         "summary": "Get Version",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/policies/{policy_id}/versions/{version_no}/export": {
@@ -8138,7 +8419,9 @@
           }
         },
         "summary": "Export Target Structure",
-        "tags": ["catalog"]
+        "tags": [
+          "catalog"
+        ]
       }
     },
     "/api/policies/{policy_id}/versions/{version_no}/review": {
@@ -8204,7 +8487,9 @@
           }
         },
         "summary": "Get Version Review",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/policies/{policy_id}/versions/{version_no}/thesis/export": {
@@ -8268,7 +8553,9 @@
           }
         },
         "summary": "Export Thesis",
-        "tags": ["catalog"]
+        "tags": [
+          "catalog"
+        ]
       }
     },
     "/api/policy-versions/{version_id}": {
@@ -8324,7 +8611,9 @@
           }
         },
         "summary": "Get Version By Id",
-        "tags": ["policies"]
+        "tags": [
+          "policies"
+        ]
       }
     },
     "/api/portfolios": {
@@ -8376,7 +8665,9 @@
           }
         },
         "summary": "List Portfolios",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       },
       "post": {
         "operationId": "create_portfolio_api_portfolios_post",
@@ -8431,7 +8722,9 @@
           }
         },
         "summary": "Create Portfolio",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}": {
@@ -8487,7 +8780,9 @@
           }
         },
         "summary": "Get Portfolio",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/archive": {
@@ -8543,7 +8838,9 @@
           }
         },
         "summary": "Archive",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/import": {
@@ -8599,7 +8896,9 @@
           }
         },
         "summary": "Import Current Structure",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/import/preview": {
@@ -8655,7 +8954,9 @@
           }
         },
         "summary": "Preview Current Structure",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/positions": {
@@ -8726,7 +9027,9 @@
           }
         },
         "summary": "Set Positions",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/prefill": {
@@ -8786,7 +9089,9 @@
           }
         },
         "summary": "Prefill",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/reassign": {
@@ -8852,7 +9157,9 @@
           }
         },
         "summary": "Reassign",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/rebalance": {
@@ -8978,7 +9285,9 @@
           }
         },
         "summary": "Preview",
-        "tags": ["rebalances"]
+        "tags": [
+          "rebalances"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/rebalances": {
@@ -9038,7 +9347,9 @@
           }
         },
         "summary": "List Rebalances",
-        "tags": ["rebalances"]
+        "tags": [
+          "rebalances"
+        ]
       },
       "post": {
         "operationId": "confirm_api_portfolios__portfolio_id__rebalances_post",
@@ -9102,7 +9413,9 @@
           }
         },
         "summary": "Confirm",
-        "tags": ["rebalances"]
+        "tags": [
+          "rebalances"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/settings": {
@@ -9168,7 +9481,9 @@
           }
         },
         "summary": "Update Settings",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/simulate": {
@@ -9238,7 +9553,9 @@
           }
         },
         "summary": "Simulate",
-        "tags": ["rebalances"]
+        "tags": [
+          "rebalances"
+        ]
       }
     },
     "/api/portfolios/{portfolio_id}/snapshots": {
@@ -9277,7 +9594,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/SnapshotSummary"
+                    "$ref": "#/components/schemas/SnapshotListItem"
                   },
                   "title": "Response List Snapshots Api Portfolios  Portfolio Id  Snapshots Get",
                   "type": "array"
@@ -9298,7 +9615,9 @@
           }
         },
         "summary": "List Snapshots",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       },
       "post": {
         "operationId": "create_snapshot_api_portfolios__portfolio_id__snapshots_post",
@@ -9362,7 +9681,9 @@
           }
         },
         "summary": "Create Snapshot",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/price-sources": {
@@ -9414,7 +9735,9 @@
           }
         },
         "summary": "List Sources",
-        "tags": ["prices"]
+        "tags": [
+          "prices"
+        ]
       }
     },
     "/api/price-sources/lookup": {
@@ -9472,7 +9795,9 @@
           }
         },
         "summary": "Lookup",
-        "tags": ["prices"]
+        "tags": [
+          "prices"
+        ]
       }
     },
     "/api/price-sources/{ticker}": {
@@ -9538,7 +9863,9 @@
           }
         },
         "summary": "Set Source",
-        "tags": ["prices"]
+        "tags": [
+          "prices"
+        ]
       }
     },
     "/api/rebalances/{rebalance_id}": {
@@ -9594,7 +9921,9 @@
           }
         },
         "summary": "Get Rebalance",
-        "tags": ["rebalances"]
+        "tags": [
+          "rebalances"
+        ]
       }
     },
     "/api/rebalances/{rebalance_id}/result": {
@@ -9651,7 +9980,9 @@
           }
         },
         "summary": "Get Rebalance Result",
-        "tags": ["rebalances"]
+        "tags": [
+          "rebalances"
+        ]
       }
     },
     "/api/reviews/usage": {
@@ -9715,7 +10046,9 @@
           }
         },
         "summary": "Get Usage",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/reviews/{review_id}": {
@@ -9771,7 +10104,9 @@
           }
         },
         "summary": "Get Review",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/reviews/{review_id}/suggestions/{suggestion_id}/dismiss": {
@@ -9837,7 +10172,9 @@
           }
         },
         "summary": "Dismiss Suggestion",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/reviews/{review_id}/suggestions/{suggestion_id}/take-over": {
@@ -9903,7 +10240,9 @@
           }
         },
         "summary": "Take Over Suggestion",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/reviews/{review_id}/suggestions/{suggestion_id}/undo": {
@@ -9969,7 +10308,9 @@
           }
         },
         "summary": "Undo Suggestion",
-        "tags": ["reviews"]
+        "tags": [
+          "reviews"
+        ]
       }
     },
     "/api/schemas/{import_type}": {
@@ -10028,7 +10369,9 @@
           }
         },
         "summary": "Get Schema",
-        "tags": ["catalog"]
+        "tags": [
+          "catalog"
+        ]
       }
     },
     "/api/snapshots/{snapshot_id}": {
@@ -10084,7 +10427,9 @@
           }
         },
         "summary": "Get Snapshot",
-        "tags": ["portfolios"]
+        "tags": [
+          "portfolios"
+        ]
       }
     },
     "/api/snapshots/{snapshot_id}/export": {
@@ -10138,7 +10483,9 @@
           }
         },
         "summary": "Export Current Structure",
-        "tags": ["catalog"]
+        "tags": [
+          "catalog"
+        ]
       }
     },
     "/api/timeline": {
@@ -10274,7 +10621,9 @@
           }
         },
         "summary": "Timeline",
-        "tags": ["timeline"]
+        "tags": [
+          "timeline"
+        ]
       }
     },
     "/api/version": {
@@ -10293,7 +10642,9 @@
           }
         },
         "summary": "Version",
-        "tags": ["meta"]
+        "tags": [
+          "meta"
+        ]
       }
     }
   }

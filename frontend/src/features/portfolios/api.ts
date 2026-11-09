@@ -7,7 +7,7 @@ import { rawBody } from "@/features/policies/api";
 export type PortfolioSummary = components["schemas"]["PortfolioSummary"];
 export type Portfolio = components["schemas"]["PortfolioOut"];
 export type Snapshot = components["schemas"]["SnapshotOut"];
-export type SnapshotSummary = components["schemas"]["SnapshotSummary"];
+export type SnapshotListItem = components["schemas"]["SnapshotListItem"];
 export type PrefillRow = components["schemas"]["PrefillRowOut"];
 export type ValueIn = components["schemas"]["ValueIn"];
 export type PositionSettings = components["schemas"]["PositionSettingsIn"];

@@ -15,7 +15,7 @@ import { formatAmount, formatDateTime, formatUnits } from "@/lib/format";
 import { useRebalance } from "./api";
 import { actionLabel } from "./rebalance";
 
-/** RB-16, RB-18, TL-02: a confirmed rebalance with calculated and executed amounts. */
+/** RB-16, RB-18, TL-02: a confirmed rebalance with its calculated instructions. */
 export function RebalanceDetailPage({ rebalanceId }: { rebalanceId: number }) {
   const { t } = useTranslation();
   const rebalance = useRebalance(rebalanceId);
@@ -82,9 +82,7 @@ export function RebalanceDetailPage({ rebalanceId }: { rebalanceId: number }) {
             <TableHead>{t("rebalance.detail.action")}</TableHead>
             <TableHead>{t("rebalance.detail.broker")}</TableHead>
             <TableHead className="text-right">{t("rebalance.detail.calculatedUnits")}</TableHead>
-            <TableHead className="text-right">{t("rebalance.detail.executedUnits")}</TableHead>
             <TableHead className="text-right">{t("rebalance.detail.calculated")}</TableHead>
-            <TableHead className="text-right">{t("rebalance.detail.executed")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -98,13 +96,7 @@ export function RebalanceDetailPage({ rebalanceId }: { rebalanceId: number }) {
                 {a.calculated_units === null ? "–" : formatUnits(a.calculated_units)}
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {a.executed_units === null ? "–" : formatUnits(a.executed_units)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
                 {formatAmount(a.calculated_amount, precise)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatAmount(a.executed_amount, precise)}
               </TableCell>
             </TableRow>
           ))}

@@ -264,7 +264,6 @@ def test_set_aside_rebalances_become_withdrawals_and_back(
         contribution=Decimal(0),
         withdrawal=set_aside,
         policy_version_id=plan.version.id,
-        executed=[],
     )
     session.commit()
     session.close()

@@ -61,7 +61,9 @@ position is from its target, whether it is within its band, and how the portfoli
 by asset type. Prices come from price providers where your assets are listed, converted into
 the portfolio's currency; for anything else you enter the price, and the one last entered is
 pre-filled. Each snapshot keeps the prices it was taken with, so earlier comparisons and
-rebalances never change.
+rebalances never change. The history tab shows how the share of each position developed
+over the snapshots as a line chart (the four largest positions, the rest together as
+"other"), above the list of past snapshots.
 
 When you add a ticker, the app looks it up at the price providers: one listing is used
 right away, with several (e.g. on SIX and in London) you choose. Your choices are in your
@@ -76,9 +78,10 @@ them, an optional contribution or withdrawal and the policy's rules, the app cal
 to do: buy dips from the cash buffer, sell what is above its band, buy what is below target,
 with the units and amounts per broker. Positions traded in whole units are rounded (buys
 down, sells up); what that leaves over is shown, not invested. A withdrawal is paid from the sells first;
-anything missing is sold from the positions furthest above target. The instructions can be printed or saved as PDF. After
-trading, you confirm what was actually executed; the rebalance and the resulting values are
-stored. A simulation shows how several rebalancing cycles would play out.
+anything missing is sold from the positions furthest above target. The instructions can be printed or saved as PDF. When
+you decide to go ahead, you confirm the rebalance: that means the trades will be carried out
+as calculated, not that they were. Nothing is adjusted at confirmation and no values are
+stored; after trading, you record the new values. A simulation shows how several rebalancing cycles would play out.
 
 The thesis status informs you; it never trades for you. With a **warning**, the page shows
 an amber hint with the reason of the latest review and a link to the policy; the calculation

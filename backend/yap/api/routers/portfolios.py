@@ -17,9 +17,9 @@ from yap.api.schemas import (
     PositionSettingsOut,
     PrefillRowOut,
     Reassignment,
+    SnapshotListItem,
     SnapshotOut,
-    SnapshotSummary,
-    snapshot_summary,
+    snapshot_list_item,
 )
 from yap.db.models import Asset, Investor, PolicyVersion, Portfolio
 from yap.imports import importer
@@ -214,9 +214,9 @@ def prefill(
 @router.get("/portfolios/{portfolio_id}/snapshots")
 def list_snapshots(
     portfolio_id: int, session: DbSession, user: CurrentUser
-) -> list[SnapshotSummary]:
+) -> list[SnapshotListItem]:
     return [
-        snapshot_summary(snapshots.compare(s))
+        snapshot_list_item(snapshots.compare(s))
         for s in snapshots.list_snapshots(session, user, portfolio_id)
     ]
 

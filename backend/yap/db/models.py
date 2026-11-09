@@ -411,9 +411,7 @@ class RebalanceAction(Base):
     # Copied at confirmation, like the broker; null for positions without units (RB-24)
     whole_units: Mapped[bool | None] = mapped_column(Boolean)
     calculated_units: Mapped[Decimal | None]
-    executed_units: Mapped[Decimal | None]
     calculated_amount: Mapped[Decimal]
-    executed_amount: Mapped[Decimal]
 
 
 class Review(Base):

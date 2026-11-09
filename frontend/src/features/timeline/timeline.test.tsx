@@ -21,7 +21,7 @@ const event = (id: number, type: string, summary: string, extra: Record<string, 
 const events = [
   event(1, "policy_activated", "core-v1 activated (no portfolios)", { policy_version_id: 201 }),
   event(2, "policy_activated", "core-v2 activated (Main): less ETH", { policy_version_id: 202 }),
-  event(3, "rebalance_confirmed", "Main: rebalanced, sold 140, bought 150", {
+  event(3, "rebalance_confirmed", "Main: rebalanced, sold 150, bought 150", {
     portfolio_id: 5,
     rebalance_id: 77,
   }),
@@ -96,7 +96,6 @@ function setup(handlers: Record<string, Handler> = {}) {
             action: "Sell",
             broker: null,
             calculated_amount: "150",
-            executed_amount: "140",
           },
         ],
       }),
@@ -144,9 +143,8 @@ describe("timeline", () => {
     expect(await screen.findByText(/target: 20 → 18/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "core-v2" })).toHaveAttribute("href", "/policies/3");
 
-    await userEvent.click(screen.getByText("Main: rebalanced, sold 140, bought 150"));
-    expect(await screen.findByText(/AAA Sell: 140/)).toBeInTheDocument();
-    expect(screen.getByText(/calculated 150/)).toBeInTheDocument();
+    await userEvent.click(screen.getByText("Main: rebalanced, sold 150, bought 150"));
+    expect(await screen.findByText(/AAA Sell: 150/)).toBeInTheDocument();
     expect(screen.getByText("Thesis 'Core' has a new revision 2")).toBeInTheDocument();
   });
 

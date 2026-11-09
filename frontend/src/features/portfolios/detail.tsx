@@ -24,6 +24,7 @@ import {
   type Portfolio,
   type PositionSettings,
 } from "./api";
+import { AllocationCourse } from "./allocation-course";
 import { ComparisonView, sourceLabel } from "./comparison";
 
 /** PTF-05: policy, active version, assignment history, latest snapshot. */
@@ -104,6 +105,7 @@ export function PortfolioPage({ portfolioId }: { portfolioId: number }) {
           )}
         </TabsContent>
         <TabsContent value="history" className="grid gap-6">
+          {snapshots.data && <AllocationCourse snapshots={snapshots.data} />}
           <section className="grid gap-2">
             <h2 className="font-semibold">{t("portfolios.detail.snapshots")}</h2>
             <ul className="grid gap-1 text-sm">

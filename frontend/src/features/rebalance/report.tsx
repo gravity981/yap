@@ -6,20 +6,12 @@ import { api, unwrap } from "@/api/client";
 import { AllocationBars, TypePie } from "@/components/charts";
 import { FormError } from "@/components/form";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { usePortfolio } from "@/features/portfolios/api";
 import { formatAmount, formatDateTime } from "@/lib/format";
 
 import { usePlan, useRebalance, type Result } from "./api";
 import { CalculationSteps } from "./explanation";
-import { actionLabel, CashCard, InstructionCards, PlanView, ResultTable } from "./rebalance";
+import { CashCard, InstructionCards, PlanView, ResultTable } from "./rebalance";
 
 /** RB-19: a print-optimised report; "Save as PDF" in the browser's print dialog. */
 function ReportLayout({
@@ -151,36 +143,12 @@ export function ConfirmedReportPage({ rebalanceId }: { rebalanceId: number }) {
           ticker: a.ticker,
           action: a.action,
           broker: a.broker,
-          amount: a.executed_amount,
-          units: a.executed_units,
+          amount: a.calculated_amount,
+          units: a.calculated_units,
           whole_units: a.whole_units,
         }))}
         precise={precise}
       />
-      <Table aria-label={t("rebalance.report.table")}>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("rebalance.detail.position")}</TableHead>
-            <TableHead>{t("rebalance.detail.action")}</TableHead>
-            <TableHead className="text-right">{t("rebalance.detail.calculated")}</TableHead>
-            <TableHead className="text-right">{t("rebalance.detail.executed")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {r.actions.map((a) => (
-            <TableRow key={`${a.phase}${a.ticker}`}>
-              <TableCell className="font-medium">{a.ticker}</TableCell>
-              <TableCell>{actionLabel(a.action)}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatAmount(a.calculated_amount, precise)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatAmount(a.executed_amount, precise)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
       <CashCard
         contribution={r.contribution}
         withdrawal={r.withdrawal}

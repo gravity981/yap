@@ -578,22 +578,11 @@ function DistanceIndicator({ diff }: { diff: number }) {
   );
 }
 
-/** RB-16: units and amounts as executed, pre-filled with the calculated ones. */
+/** RB-16: confirming commits to carrying the trades out as calculated; nothing is adjusted. */
 function ConfirmForm({ portfolioId, plan }: { portfolioId: number; plan: Plan }) {
   const { t } = useTranslation();
-  const confirm = useConfirm(portfolioId);
   const navigate = useNavigate();
-  const key = (phase: string, ticker: string) => `${phase}:${ticker}`;
-  const [executed, setExecuted] = useState<Record<string, string>>(() =>
-    Object.fromEntries(plan.instructions.map((i) => [key(i.phase, i.ticker), i.amount])),
-  );
-  const [executedUnits, setExecutedUnits] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      plan.instructions.flatMap((i) =>
-        i.units === null ? [] : [[key(i.phase, i.ticker), i.units]],
-      ),
-    ),
-  );
+  const confirm = useConfirm(portfolioId);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -604,12 +593,6 @@ function ConfirmForm({ portfolioId, plan }: { portfolioId: number; plan: Plan })
         withdrawal: plan.withdrawal,
         mode: plan.mode,
         policy_version_id: plan.policy_version_id,
-        executed: plan.instructions.map((i) => ({
-          phase: i.phase,
-          ticker: i.ticker,
-          amount: executed[key(i.phase, i.ticker)] || "0",
-          ...(i.units !== null && { units: executedUnits[key(i.phase, i.ticker)] || "0" }),
-        })),
       },
       {
         onSuccess: (r) =>
@@ -627,38 +610,6 @@ function ConfirmForm({ portfolioId, plan }: { portfolioId: number; plan: Plan })
       </CardHeader>
       <CardContent>
         <form className="grid gap-3" onSubmit={submit}>
-          <div className="grid gap-2 lg:grid-cols-2">
-            {plan.instructions.map((i) => {
-              const k = key(i.phase, i.ticker);
-              const names = { action: actionLabel(i.action), ticker: i.ticker };
-              return (
-                <div key={k} className="grid grid-cols-[1fr_6rem_8rem] items-center gap-2 text-sm">
-                  <span>
-                    {i.ticker}{" "}
-                    <span className="text-muted-foreground">{actionLabel(i.action)}</span>
-                  </span>
-                  {i.units === null ? (
-                    <span />
-                  ) : (
-                    <Input
-                      aria-label={t("rebalance.confirm.executedUnits", names)}
-                      placeholder={t("rebalance.confirm.units")}
-                      inputMode="decimal"
-                      value={executedUnits[k]}
-                      onChange={(e) => setExecutedUnits({ ...executedUnits, [k]: e.target.value })}
-                    />
-                  )}
-                  <Input
-                    aria-label={t("rebalance.confirm.executed", names)}
-                    placeholder={t("rebalance.confirm.amount")}
-                    inputMode="decimal"
-                    value={executed[k]}
-                    onChange={(e) => setExecuted({ ...executed, [k]: e.target.value })}
-                  />
-                </div>
-              );
-            })}
-          </div>
           <FormError error={confirm.error} />
           <div className="flex justify-end">
             <Button type="submit" disabled={confirm.isPending}>

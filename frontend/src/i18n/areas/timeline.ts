@@ -29,7 +29,6 @@ export const en = {
   firstVersion: "First version of the policy.",
   portfolio: "Portfolio",
   follows: " follows ",
-  calculated: "(calculated {{amount}})",
   openRebalance: "Open rebalance",
   revision: "revision {{no}} ({{status}})",
   // The entries, written from their stored values; the English ones are the backend's
@@ -86,7 +85,6 @@ export const de: Messages<typeof en> = {
   firstVersion: "Erste Version der Anlagestrategie.",
   portfolio: "Portfolio",
   follows: " folgt ",
-  calculated: "(berechnet {{amount}})",
   openRebalance: "Rebalancing öffnen",
   revision: "Revision {{no}} ({{status}})",
   summary: {

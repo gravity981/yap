@@ -100,7 +100,14 @@ function setup(handlers: Record<string, Handler> = {}) {
     "GET /api/portfolios/5": () => json(portfolio()),
     "GET /api/portfolios/5/snapshots": () =>
       json([
-        { ...snapshot(), rows: undefined },
+        {
+          ...snapshot(),
+          rows: undefined,
+          allocations: [
+            { ticker: "XUS", allocation_pct: "60" },
+            { ticker: "BTC", allocation_pct: "40" },
+          ],
+        },
         {
           ...snapshot({
             id: 40,
@@ -108,6 +115,10 @@ function setup(handlers: Record<string, Handler> = {}) {
             policy_version_label: "core-v1",
           }),
           rows: undefined,
+          allocations: [
+            { ticker: "XUS", allocation_pct: "70" },
+            { ticker: "BTC", allocation_pct: "30" },
+          ],
         },
       ]),
     "GET /api/portfolios/5/prefill": () =>
@@ -271,6 +282,22 @@ describe("portfolios", () => {
     await userEvent.click(await screen.findByRole("tab", { name: "History" }));
     expect(await screen.findByText(/core-v1 · manual/)).toBeInTheDocument();
     expect(screen.getByText(/from 1 Jan 2026|from Jan 1, 2026/)).toBeInTheDocument();
+  });
+
+  it("[CMP-08] shows the allocation over the snapshots as a line chart", async () => {
+    setup();
+    renderApp("/portfolios/5");
+    await userEvent.click(await screen.findByRole("tab", { name: "History" }));
+    const figure = await screen.findByRole("figure", { name: "Allocation over the snapshots" });
+    expect(
+      within(figure)
+        .getAllByRole("img")
+        .map((e) => e.getAttribute("aria-label")),
+    ).toEqual([
+      expect.stringMatching(/XUS 70\.0\s?%, BTC 30\.0\s?%/),
+      expect.stringMatching(/XUS 60\.0\s?%, BTC 40\.0\s?%/),
+    ]);
+    expect(within(figure).getByText("BTC")).toBeVisible();
   });
 
   it("[PTF-03] [PTF-04] saves settings, positions and a new policy", async () => {

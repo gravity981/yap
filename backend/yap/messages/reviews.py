@@ -64,10 +64,6 @@ MESSAGES: dict[str, str] = {
         "Selling the whole portfolio is only offered when the thesis is broken"
     ),
     "rebalance_mode_invalid": "The mode must be normal or sell_all",
-    "rebalance_no_instruction": "No {phase} instruction for {ticker}",
-    "rebalance_executed_negative": "Executed amounts must be 0 or more",
-    "rebalance_buffer_exceeded": "Buffer buys together exceed the cash buffer",
-    "rebalance_sell_exceeds": "Sell of {ticker} exceeds the position's value",
     "rebalance_not_found": "Rebalance {id} not found",
     "rebalance_cycles_invalid": "Cycles must be between 1 and {max}",
 }

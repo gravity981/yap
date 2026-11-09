@@ -306,7 +306,7 @@ describe("rebalancing", () => {
     );
   });
 
-  it("[RB-24] [RB-16] shows units and confirms executed units", async () => {
+  it("[RB-24] [RB-16] shows units and cash left over by rounding", async () => {
     const withUnits = plan({
       instructions: [
         {
@@ -321,22 +321,8 @@ describe("rebalancing", () => {
       ],
       result: result({ unallocated_cash: "60", rounding_cash: "49.6" }),
     });
-    const calls = setup({
+    setup({
       "GET /api/portfolios/5/rebalance": () => json(withUnits),
-      "POST /api/portfolios/5/rebalances": () => json({ id: 77 }, 201),
-      "GET /api/rebalances/77": () =>
-        json({
-          id: 77,
-          portfolio_id: 5,
-          confirmed_at: "2026-11-04T10:00:00+00:00",
-          input_snapshot_id: 41,
-          result_snapshot_id: null,
-          policy_version_id: 202,
-          contribution: "0",
-          withdrawal: "0",
-          precise_amounts: false,
-          actions: [],
-        }),
     });
     renderApp("/portfolios/5/rebalance?snapshot=41");
     const sells = await screen.findByRole("list", { name: "Sell" });
@@ -345,18 +331,6 @@ describe("rebalancing", () => {
     expect(within(cash).getByText("Left over by whole units").nextSibling).toHaveTextContent("50");
     // The rest is cash no position can take
     expect(within(cash).getByText("Unallocated (no position can take it)")).toBeInTheDocument();
-    const units = screen.getByLabelText("Executed units Sell AAA");
-    expect(units).toHaveValue("2");
-    await userEvent.clear(units);
-    await userEvent.type(units, "1");
-    await userEvent.clear(screen.getByLabelText("Executed Sell AAA"));
-    await userEvent.type(screen.getByLabelText("Executed Sell AAA"), "101");
-    await userEvent.click(screen.getByRole("button", { name: "Confirm rebalance" }));
-    await waitFor(() =>
-      expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({
-        executed: [{ phase: "1B", ticker: "AAA", amount: "101", units: "1" }],
-      }),
-    );
   });
 
   it("[RB-10] shows cash that no position can take", async () => {
@@ -379,7 +353,7 @@ describe("rebalancing", () => {
     expect(within(bbb).getByLabelText("below target by 3.2 %")).toHaveTextContent("▼ 3.2 %");
   });
 
-  it("[RB-16] confirms with the executed amounts", async () => {
+  it("[RB-16] confirms the trades as calculated, without adjusting anything", async () => {
     const calls = setup({
       "POST /api/portfolios/5/rebalances": () =>
         json(
@@ -388,7 +362,7 @@ describe("rebalancing", () => {
             portfolio_id: 5,
             confirmed_at: "2026-03-01T10:00:00+00:00",
             input_snapshot_id: 41,
-            result_snapshot_id: 42,
+            result_snapshot_id: null,
             policy_version_id: 202,
             contribution: "500",
             withdrawal: "0",
@@ -403,7 +377,7 @@ describe("rebalancing", () => {
           portfolio_id: 5,
           confirmed_at: "2026-03-01T10:00:00+00:00",
           input_snapshot_id: 41,
-          result_snapshot_id: 42,
+          result_snapshot_id: null,
           policy_version_id: 202,
           contribution: "500",
           withdrawal: "0",
@@ -415,17 +389,16 @@ describe("rebalancing", () => {
               action: "Sell",
               broker: "Southbank",
               calculated_amount: "150.4",
-              executed_amount: "140",
+              calculated_units: null,
+              whole_units: null,
             },
           ],
         }),
     });
     renderApp("/portfolios/5/rebalance?snapshot=41");
-    const sell = await screen.findByLabelText("Executed Sell AAA");
-    expect(sell).toHaveValue("150.4");
-    await userEvent.clear(sell);
-    await userEvent.type(sell, "140");
-    await userEvent.click(screen.getByRole("button", { name: "Confirm rebalance" }));
+    expect(await screen.findByText(/not that they have been/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Executed/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Carry out as calculated" }));
     expect(await screen.findByRole("heading", { name: /Rebalance of/ })).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")?.body).toEqual({
       snapshot_id: 41,
@@ -433,18 +406,10 @@ describe("rebalancing", () => {
       withdrawal: "0",
       mode: "normal",
       policy_version_id: 202,
-      executed: [
-        { phase: "1B", ticker: "AAA", amount: "140" },
-        { phase: "3", ticker: "BBB", amount: "650.4" },
-      ],
     });
     const row = screen.getByRole("cell", { name: "AAA" }).closest("tr")!;
     expect(within(row).getByText("150")).toBeInTheDocument();
-    expect(within(row).getByText("140")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "values after" })).toHaveAttribute(
-      "href",
-      "/snapshots/42",
-    );
+    expect(screen.queryByRole("link", { name: "values after" })).not.toBeInTheDocument();
   });
 
   it("[RB-16] shows why a confirmation was refused", async () => {
@@ -456,7 +421,7 @@ describe("rebalancing", () => {
         ),
     });
     renderApp("/portfolios/5/rebalance?snapshot=41");
-    await userEvent.click(await screen.findByRole("button", { name: "Confirm rebalance" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Carry out as calculated" }));
     expect(await screen.findByText(/changed since the preview/)).toBeInTheDocument();
   });
 
@@ -464,7 +429,9 @@ describe("rebalancing", () => {
     setup({ "GET /api/portfolios/5/rebalance": () => json(plan({ instructions: [] })) });
     renderApp("/portfolios/5/rebalance?snapshot=41");
     expect(await screen.findByText(/Nothing to rebalance/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Confirm rebalance" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Carry out as calculated" }),
+    ).not.toBeInTheDocument();
   });
 
   it("[RB-20] simulates several cycles", async () => {
@@ -557,7 +524,7 @@ describe("rebalancing", () => {
           portfolio_id: 5,
           confirmed_at: "2026-03-01T10:00:00+00:00",
           input_snapshot_id: 41,
-          result_snapshot_id: 42,
+          result_snapshot_id: null,
           policy_version_id: 202,
           contribution: "500",
           withdrawal: "0",
@@ -568,7 +535,7 @@ describe("rebalancing", () => {
     });
     renderApp("/portfolios/5/rebalance?snapshot=41");
     await screen.findByText("The latest review gave no reason.", { exact: false });
-    await userEvent.click(await screen.findByRole("button", { name: "Confirm rebalance" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Carry out as calculated" }));
     expect(await screen.findByText("Sold completely, thesis broken")).toBeInTheDocument();
     expect(calls.find((c) => c.method === "POST")?.body).toMatchObject({ mode: "sell_all" });
   });

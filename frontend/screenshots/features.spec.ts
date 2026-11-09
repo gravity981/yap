@@ -279,7 +279,6 @@ test("feature screenshots", async ({ page, browser }) => {
       contribution: 1500,
       policy_version_id: versionId,
       mode: "normal",
-      executed: [],
     });
     // The latest values: bitcoin ran above its band, the cash buffer below
     await call(request, "POST", `/portfolios/${portfolio.id}/snapshots`, {

@@ -135,6 +135,12 @@ export const en = {
     above_sell_threshold: "above sell threshold",
     not_in_policy: "not in policy",
   },
+  course: {
+    label: "Allocation over the snapshots",
+    caption: "Share of each position in the portfolio per snapshot",
+    other: "other",
+    hint: "The course of the allocation appears once there are at least two snapshots.",
+  },
   charts: {
     ofPortfolio: "{{ticker}}: {{allocation}} of the portfolio",
     target: "target {{target}}",
@@ -285,6 +291,12 @@ export const de: Messages<typeof en> = {
     within_band: "im Band",
     above_sell_threshold: "über Verkaufsschwelle",
     not_in_policy: "nicht in der Anlagestrategie",
+  },
+  course: {
+    label: "Anteile über die Stände",
+    caption: "Anteil jeder Position am Portfolio pro Stand",
+    other: "übrige",
+    hint: "Der Verlauf der Anteile erscheint, sobald es mindestens zwei Stände gibt.",
   },
   charts: {
     ofPortfolio: "{{ticker}}: {{allocation}} des Portfolios",

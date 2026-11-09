@@ -1,4 +1,4 @@
-"""Rebalance preview, confirmation and simulation (RB-01 to RB-03, RB-16, RB-17, RB-20,
+"""Rebalance preview, confirmation and simulation (RB-01 to RB-03, RB-16, RB-20,
 RB-22)."""
 
 from decimal import ROUND_FLOOR, Decimal
@@ -15,13 +15,11 @@ from yap.db.models import (
     Portfolio,
     Rebalance,
     RebalanceAction,
-    Snapshot,
 )
 from yap.domain.rebalancing import Mode
 from yap.services import policies, portfolios, rebalances, snapshots
 from yap.services.common import ConflictError, NotFoundError, ValidationError
 from yap.services.portfolios import PositionSettings
-from yap.services.rebalances import Executed
 from yap.services.snapshots import ValueSpec
 from yap.services.timeline import EventType, list_events
 
@@ -111,9 +109,7 @@ def test_plan_uses_active_version_and_brokers(session: Session, factory: Factory
     ]
 
 
-def confirm(
-    session: Session, owner: Investor, factory: Factory, portfolio: Portfolio, executed=(), **kw
-):  # type: ignore[no-untyped-def]
+def confirm(session: Session, owner: Investor, factory: Factory, portfolio: Portfolio, **kw):  # type: ignore[no-untyped-def]
     plan = rebalances.plan(session, owner, factory.clock, portfolio.id, **kw)
     return plan, rebalances.confirm(
         session,
@@ -124,107 +120,45 @@ def confirm(
         contribution=plan.contribution,
         withdrawal=plan.withdrawal,
         policy_version_id=plan.version.id,
-        executed=list(executed),
     )
 
 
-@pytest.mark.req("RB-16", "RB-17", "TL-01")
-def test_confirm_stores_calculated_and_executed_amounts(session: Session, factory: Factory) -> None:
+@pytest.mark.req("RB-16", "TL-01")
+def test_confirm_stores_the_calculated_instructions(session: Session, factory: Factory) -> None:
     # AAA 70 % > 60 % -> sell to midband 55 % of 1000 = 550 -> sell 150
     owner, portfolio = setup(factory, AAA=700, BBB=300, CASH=0)
     factory.clock.advance(hours=1)
-    plan, record = confirm(
-        session,
-        owner,
-        factory,
-        portfolio,
-        executed=[Executed("1B", "aaa", Decimal(140))],  # sold a bit less
-        contribution=Decimal(0),
-    )
+    plan, record = confirm(session, owner, factory, portfolio, contribution=Decimal(0))
     rows = session.execute(
         select(RebalanceAction, Asset.ticker)
         .join(Asset, Asset.id == RebalanceAction.asset_id)
         .where(RebalanceAction.rebalance_id == record.id)
     ).all()
-    actions = {(a.phase, t): (a.action, a.calculated_amount, a.executed_amount) for a, t in rows}
-    assert actions[("1B", "AAA")] == ("Sell", Decimal(150), Decimal(140))
-    label, calculated, bbb_bought = actions[("3", "BBB")]
+    actions = {(a.phase, t): (a.action, a.calculated_amount) for a, t in rows}
+    assert actions[("1B", "AAA")] == ("Sell", Decimal(150))
+    label, _ = actions[("3", "BBB")]
     assert label == "Buy (Below Target)"
-    assert calculated == bbb_bought  # not adjusted -> executed as calculated
-    bought = sum(executed for (phase, _), (_, _, executed) in actions.items() if phase == "3")
+    bought = sum(amount for (phase, _), (_, amount) in actions.items() if phase == "3")
     assert record.policy_version_id == plan.version.id
     assert record.confirmed_at == factory.clock.now()
 
-    result = session.get(Snapshot, record.result_snapshot_id)
-    assert result is not None and result.source == "rebalance"
-    values = {v.asset.ticker: v.value for v in result.values}
-    assert values["AAA"] == 560  # 700 - 140
-    assert values["BBB"] == 300 + bbb_bought
-    assert snapshots.latest_snapshot(session, owner, portfolio.id) == result
+    # Confirming commits to the trades; the values change only when they are recorded
+    assert record.result_snapshot_id is None
+    assert snapshots.latest_snapshot(session, owner, portfolio.id) == plan.snapshot
 
     event = list_events(session, owner)[-1]
     assert event.type == EventType.REBALANCE_CONFIRMED
-    assert event.summary == f"Main: rebalanced, sold 140, bought {bought:,.0f}"
+    assert event.summary == f"Main: rebalanced, sold 150, bought {bought:,.0f}"
     # The values of the summary, for the timeline in the UI's language (TL-02, NFR-10)
     assert event.params == {
         "portfolio": "Main",
-        "sold": "140",
+        "sold": "150.0000",
         "bought": str(bought),
         "withdrawal": None,
         "mode": "normal",
         "precise": False,
     }
     assert event.rebalance_id == record.id
-
-
-@pytest.mark.req("RB-16")
-def test_executed_amount_validation(session: Session, factory: Factory) -> None:
-    owner, portfolio = setup(factory, AAA=700, BBB=300, CASH=0)
-    plan = rebalances.plan(session, owner, factory.clock, portfolio.id, contribution=Decimal(0))
-
-    def confirm_with(*executed: Executed) -> None:
-        rebalances.confirm(
-            session,
-            owner,
-            factory.clock,
-            portfolio.id,
-            snapshot_id=plan.snapshot.id,
-            contribution=Decimal(0),
-            policy_version_id=plan.version.id,
-            executed=list(executed),
-        )
-
-    with pytest.raises(ValidationError) as err:
-        confirm_with(
-            Executed("3", "AAA", Decimal(1)), Executed("1B", "AAA", Decimal(-1))
-        )  # AAA is sold, not bought
-    assert [p for p, _ in err.value.problems] == ["executed[0]", "executed[1].amount"]
-    with pytest.raises(ValidationError, match="exceeds the position"):
-        confirm_with(Executed("1B", "AAA", Decimal(701)))
-    confirm_with(Executed("1B", "AAA", Decimal(700)))  # selling everything is allowed
-
-
-@pytest.mark.req("RB-16")
-def test_buffer_buys_cannot_exceed_the_buffer(session: Session, factory: Factory) -> None:
-    # BBB 20 % < buy threshold 27 % -> buffer buys
-    owner, portfolio = setup(factory, AAA=500, BBB=200, CASH=300)
-    plan = rebalances.plan(session, owner, factory.clock, portfolio.id, contribution=Decimal(0))
-    assert ("1A", "BBB") in [(i.phase, i.ticker) for i in plan.actions]
-    with pytest.raises(ValidationError, match="exceed the cash buffer"):
-        rebalances.confirm(
-            session,
-            owner,
-            factory.clock,
-            portfolio.id,
-            snapshot_id=plan.snapshot.id,
-            contribution=Decimal(0),
-            policy_version_id=plan.version.id,
-            executed=[Executed("1A", "BBB", Decimal(301))],
-        )
-    _, record = confirm(session, owner, factory, portfolio, contribution=Decimal(0))
-    result = session.get(Snapshot, record.result_snapshot_id)
-    values = {v.asset.ticker: v.value for v in result.values}  # type: ignore[union-attr]
-    assert values["CASH"] == 300 - (values["BBB"] - 200)  # buffer pays for the dip buy
 
 
 @pytest.mark.req("RB-16")
@@ -245,26 +179,7 @@ def test_confirm_refuses_when_policy_changed_since_preview(
             snapshot_id=plan.snapshot.id,
             contribution=plan.contribution,
             policy_version_id=plan.version.id,
-            executed=[],
         )
-
-
-@pytest.mark.req("RB-17", "RB-08")
-def test_positions_outside_policy_disappear_from_resulting_snapshot(
-    session: Session, factory: Factory
-) -> None:
-    owner, portfolio = setup(factory, AAA=500, BBB=450, CASH=50)
-    snapshots.create_snapshot(
-        session,
-        owner,
-        factory.clock,
-        portfolio.id,
-        [ValueSpec("AAA", Decimal(500)), ValueSpec("OLD", Decimal(100), "Old", "stock")],
-    )
-    _, record = confirm(session, owner, factory, portfolio)
-    result = session.get(Snapshot, record.result_snapshot_id)
-    tickers = {v.asset.ticker for v in result.values}  # type: ignore[union-attr]
-    assert "OLD" not in tickers and {"AAA", "BBB", "CASH"} <= tickers
 
 
 @pytest.mark.req("RB-18", "NFR-05")
@@ -323,7 +238,7 @@ def test_plan_rejects_a_withdrawal_above_value_plus_contribution(
         assert err.value.problems[0][0] == "withdrawal"
 
 
-@pytest.mark.req("RB-16", "RB-17", "RB-22")
+@pytest.mark.req("RB-16", "RB-22")
 def test_confirm_with_withdrawal_sells_in_phase_3(session: Session, factory: Factory) -> None:
     # F = 1000 - 200 = 800; no sell threshold reached, so all 200 come from the positions
     # above target, which end at their target values 400 / 360 / 40
@@ -333,7 +248,6 @@ def test_confirm_with_withdrawal_sells_in_phase_3(session: Session, factory: Fac
         owner,
         factory,
         portfolio,
-        executed=[Executed("3", "AAA", Decimal(90))],  # sold a bit less
         contribution=Decimal(0),
         withdrawal=Decimal(200),
     )
@@ -343,41 +257,12 @@ def test_confirm_with_withdrawal_sells_in_phase_3(session: Session, factory: Fac
     assert sum(sells.values()) == 200
     assert record.withdrawal == 200
 
-    result = session.get(Snapshot, record.result_snapshot_id)
-    values = {v.asset.ticker: v.value for v in result.values}  # type: ignore[union-attr]
-    assert values["AAA"] == 410
-    assert values["BBB"] == 450 - sells["BBB"]
     event = list_events(session, owner)[-1]
-    assert event.summary == "Main: rebalanced, sold 190, bought 0, withdrew 200"
+    assert event.summary == "Main: rebalanced, sold 200, bought 0, withdrew 200"
     assert event.params is not None and event.params["withdrawal"] == "200"
 
     recalculated = rebalances.recalculate(session, owner, record.id)
     assert recalculated.total_withdrawal_sells == 200
-
-
-@pytest.mark.req("RB-16", "RB-22")
-def test_withdrawal_sells_cannot_exceed_the_position(session: Session, factory: Factory) -> None:
-    owner, portfolio = setup(factory, AAA=500, BBB=450, CASH=50)
-    plan = rebalances.plan(
-        session,
-        owner,
-        factory.clock,
-        portfolio.id,
-        contribution=Decimal(0),
-        withdrawal=Decimal(200),
-    )
-    with pytest.raises(ValidationError, match="Sell of AAA exceeds"):
-        rebalances.confirm(
-            session,
-            owner,
-            factory.clock,
-            portfolio.id,
-            snapshot_id=plan.snapshot.id,
-            contribution=Decimal(0),
-            withdrawal=Decimal(200),
-            policy_version_id=plan.version.id,
-            executed=[Executed("3", "AAA", Decimal(501))],
-        )
 
 
 @pytest.mark.req("RB-20")
@@ -445,58 +330,26 @@ def test_plan_converts_amounts_into_units(session: Session, factory: Factory) ->
     assert fractional.result.rounding_cash == 0
 
 
-@pytest.mark.req("RB-16", "RB-17", "RB-24")
-def test_confirm_stores_units_and_builds_the_result_from_them(
-    session: Session, factory: Factory
-) -> None:
+@pytest.mark.req("RB-16", "RB-24")
+def test_confirm_stores_the_calculated_units(session: Session, factory: Factory) -> None:
     owner, portfolio = unit_setup(factory, AAA=(70, 10), BBB=(30, 10), CASH=(0, 1))
     factory.clock.advance(hours=1)
-    plan, record = confirm(
-        session,
-        owner,
-        factory,
-        portfolio,
-        # Sold 14 units for 141 instead of 15 for 150; BBB as calculated
-        executed=[Executed("1B", "AAA", Decimal(141), Decimal(14))],
-        contribution=Decimal(0),
-    )
+    _, record = confirm(session, owner, factory, portfolio, contribution=Decimal(0))
     actions = {
-        ticker: (a.calculated_units, a.executed_units, a.executed_amount, a.whole_units)
+        ticker: (a.calculated_units, a.calculated_amount, a.whole_units)
         for a, ticker in session.execute(
             select(RebalanceAction, Asset.ticker)
             .join(Asset, Asset.id == RebalanceAction.asset_id)
             .where(RebalanceAction.rebalance_id == record.id)
         )
     }
-    assert actions["AAA"] == (15, 14, 141, True)
-    bbb = next(i for i in plan.actions if i.ticker == "BBB")
-    cash = next(i for i in plan.actions if i.ticker == "CASH")
-    assert actions["BBB"][:2] == (bbb.units, bbb.units)  # executed as calculated
-    result = session.get(Snapshot, record.result_snapshot_id)
-    assert result is not None and bbb.units is not None
-    assert {v.asset.ticker: (v.units, v.price, v.value) for v in result.values} == {
-        "AAA": (56, 10, Decimal("560.00")),  # 70 - 14 at the input price
-        "BBB": (30 + bbb.units, 10, (30 + bbb.units) * 10),
-        "CASH": (snapshots.money(cash.amount), 1, snapshots.money(cash.amount)),
-    }
-    # The stored result keeps whole units even if the setting changes afterwards
+    assert actions["AAA"] == (15, 150, True)
+    # The stored actions keep whole units even if the setting changes afterwards
     portfolios.set_positions(
         session, owner, portfolio.id, {"AAA": PositionSettings(whole_units=False)}
     )
     again = rebalances.recalculate(session, owner, record.id)
     assert [r.sell_units for r in again.positions if r.position.ticker == "AAA"] == [15]
-
-
-@pytest.mark.req("RB-16", "RB-24")
-def test_executed_units_are_checked(session: Session, factory: Factory) -> None:
-    owner, portfolio = unit_setup(factory, AAA=(70, 10), BBB=(30, 10), CASH=(0, 1))
-    for executed, path in (
-        (Executed("1B", "AAA", Decimal(150), Decimal(-1)), "executed[0].units"),
-        (Executed("1B", "AAA", Decimal(150), Decimal(71)), "executed"),
-    ):
-        with pytest.raises(ValidationError) as err:
-            confirm(session, owner, factory, portfolio, [executed], contribution=Decimal(0))
-        assert [p for p, _ in err.value.problems] == [path]
 
 
 @pytest.mark.req("RB-19", "RB-24")
@@ -506,9 +359,7 @@ def test_rebalances_from_before_units_are_recalculated_without_units(
     owner, portfolio = unit_setup(factory, AAA=(70, 10), BBB=(7, 40), CASH=(0, 1))
     _, record = confirm(session, owner, factory, portfolio, contribution=Decimal(0))
     session.execute(text("DROP TRIGGER rebalance_action_no_update"))
-    session.execute(
-        text("UPDATE rebalance_action SET calculated_units = NULL, executed_units = NULL")
-    )
+    session.execute(text("UPDATE rebalance_action SET calculated_units = NULL"))
     result = rebalances.recalculate(session, owner, record.id)
     assert all(r.buy_units is None and r.sell_units is None for r in result.positions)
     assert result.rounding_cash == 0
@@ -561,7 +412,6 @@ def test_selling_the_whole_portfolio_is_only_for_a_broken_thesis(
                 snapshot_id=latest.id,
                 contribution=Decimal(0),
                 policy_version_id=1,
-                executed=[],
                 mode=Mode.SELL_ALL,
             )
     assert session.scalar(select(func.count()).select_from(Rebalance)) == 0
@@ -569,7 +419,7 @@ def test_selling_the_whole_portfolio_is_only_for_a_broken_thesis(
         rebalances.parse_mode("sell_everything")
 
 
-@pytest.mark.req("RB-25", "TL-02", "RB-16", "RB-17")
+@pytest.mark.req("RB-25", "TL-02", "RB-16")
 def test_confirming_the_sale_of_the_whole_portfolio(session: Session, factory: Factory) -> None:
     owner, portfolio = setup(factory, verdict="broken", AAA=500, BBB=450, CASH=50)
     p = rebalances.plan(session, owner, factory.clock, portfolio.id, mode=Mode.SELL_ALL)
@@ -586,17 +436,9 @@ def test_confirming_the_sale_of_the_whole_portfolio(session: Session, factory: F
         snapshot_id=p.snapshot.id,
         contribution=p.contribution,
         policy_version_id=p.version.id,
-        executed=[],
         mode=Mode.SELL_ALL,
     )
     assert record.mode == "sell_all"
-    # The cash stays in the portfolio: the buffer holds it, all other positions are empty
-    assert record.result_snapshot_id is not None
-    values = {
-        v.asset.ticker: v.value
-        for v in snapshots.get_snapshot(session, owner, record.result_snapshot_id).values
-    }
-    assert values == {"AAA": 0, "BBB": 0, "CASH": 1100}
     (event,) = [e for e in list_events(session, owner) if e.type == EventType.REBALANCE_CONFIRMED]
     assert event.summary == "Main: sold completely, thesis broken"
     assert event.params["mode"] == "sell_all"
@@ -634,15 +476,9 @@ def test_the_sale_of_the_whole_portfolio_pays_a_withdrawal_from_the_buffer(
         contribution=Decimal(0),
         withdrawal=Decimal(980),
         policy_version_id=p.version.id,
-        executed=[],
         mode=Mode.SELL_ALL,
     )
-    assert record.result_snapshot_id is not None
-    values = {
-        v.asset.ticker: v.value
-        for v in snapshots.get_snapshot(session, owner, record.result_snapshot_id).values
-    }
-    assert values == {"AAA": 0, "BBB": 0, "CASH": 20}
+    assert record.withdrawal == 980
 
 
 @pytest.mark.req("RB-25")
@@ -662,6 +498,5 @@ def test_the_usual_rebalance_stays_possible_with_a_broken_thesis(
         snapshot_id=p.snapshot.id,
         contribution=p.contribution,
         policy_version_id=p.version.id,
-        executed=[],
     )
     assert record.mode == "normal"
