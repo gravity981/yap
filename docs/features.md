@@ -94,6 +94,11 @@ completely, nothing is bought, the cash stays in the portfolio unless you enter 
 withdrawal) or rebalance as usual. The choice is stored with the confirmed rebalance and
 named in the timeline.
 
+Above the cash summary, a chart shows each position's share of the portfolio before and
+after the rebalance, with its target marked. Beside it, the portfolio value before, your
+contribution, the payout (withdrawal) and the portfolio value after are listed separately;
+the payout leaves the portfolio and is not part of the value after.
+
 ![Rebalancing instructions with the cash summary](screenshots/rebalance.png)
 
 ![A broken thesis offers to sell the whole portfolio](screenshots/rebalance-broken.png)

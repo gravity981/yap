@@ -341,6 +341,20 @@ describe("rebalancing", () => {
     expect(within(bbb).getByLabelText("below target by 3.2 %")).toHaveTextContent("▼ 3.2 %");
   });
 
+  it("[RB-27] shows the allocation before and after per position, and value and payout apart", async () => {
+    setup();
+    renderApp("/portfolios/5/rebalance?snapshot=41");
+    const chart = await screen.findByRole("figure", {
+      name: "Allocation before and after the rebalance",
+    });
+    expect(within(chart).getByLabelText(/^AAA: 50.0 % before, 55.0 % after/)).toBeInTheDocument();
+    expect(within(chart).getByTestId("target-AAA")).toBeInTheDocument();
+    const list = screen.getByLabelText("Portfolio value");
+    expect(within(list).getByText("Value before")).toBeInTheDocument();
+    expect(within(list).getByText("− Payout (withdrawal)")).toBeInTheDocument();
+    expect(within(list).getByText("Value after")).toBeInTheDocument();
+  });
+
   it("[RB-16] confirms the trades as calculated, without adjusting anything", async () => {
     const calls = setup({
       "POST /api/portfolios/5/rebalances": () =>

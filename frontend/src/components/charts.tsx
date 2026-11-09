@@ -138,6 +138,128 @@ export function AllocationBars({ rows }: { rows: AllocationRow[] }) {
   );
 }
 
+// --- Before and after a rebalance, per position (RB-27) --------------------------
+
+export interface BeforeAfterRow {
+  ticker: string;
+  name: string;
+  before: number;
+  after: number;
+  target: number | null;
+}
+
+function describeBeforeAfter(row: BeforeAfterRow): string {
+  const parts = [
+    i18n.t("rebalance.preview.of", {
+      ticker: row.ticker,
+      before: formatPct(row.before),
+      after: formatPct(row.after),
+    }),
+  ];
+  if (row.target !== null) {
+    parts.push(i18n.t("portfolios.charts.target", { target: formatPct(row.target) }));
+  }
+  return parts.join(", ");
+}
+
+function ShareBar({
+  id,
+  value,
+  pct,
+  className,
+}: {
+  id: string;
+  value: number;
+  pct: (v: number) => string;
+  className: string;
+}) {
+  return (
+    <div className="relative h-3.5" data-testid={id}>
+      <div className={cn("h-full rounded-r-[4px]", className)} style={{ width: pct(value) }} />
+      <span
+        className="absolute top-1/2 -translate-y-1/2 pl-1.5 text-xs tabular-nums"
+        style={{ left: pct(value) }}
+      >
+        {formatPct(value)}
+      </span>
+    </div>
+  );
+}
+
+/** Share of the portfolio per position before and after the rebalance, with the target. */
+export function BeforeAfterBars({ rows }: { rows: BeforeAfterRow[] }) {
+  const { t } = useTranslation();
+  const [active, setActive] = useState<string | null>(null);
+  const max = Math.max(1, ...rows.map((r) => Math.max(r.before, r.after, r.target ?? 0))) * 1.08;
+  const pct = (v: number) => `${(Math.min(v, max) / max) * 100}%`;
+
+  return (
+    <figure className="grid gap-2" aria-label={t("rebalance.preview.chart")}>
+      <ul className="grid gap-2">
+        {rows.map((r) => (
+          <li key={r.ticker} className="grid grid-cols-[4.5rem_1fr] items-center gap-2">
+            <span className="truncate text-sm font-medium" title={r.name}>
+              {r.ticker}
+            </span>
+            <div
+              className="relative grid h-9 content-center gap-0.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              tabIndex={0}
+              role="img"
+              aria-label={describeBeforeAfter(r)}
+              onPointerEnter={() => setActive(r.ticker)}
+              onPointerLeave={() => setActive(null)}
+              onFocus={() => setActive(r.ticker)}
+              onBlur={() => setActive(null)}
+            >
+              <ShareBar
+                id={`before-${r.ticker}`}
+                value={r.before}
+                pct={pct}
+                className="bg-muted-foreground/40"
+              />
+              <ShareBar
+                id={`after-${r.ticker}`}
+                value={r.after}
+                pct={pct}
+                className="bg-[var(--series-1)]"
+              />
+              {r.target !== null && (
+                <div
+                  className="absolute inset-y-0 w-0.5 bg-foreground"
+                  style={{ left: pct(r.target) }}
+                  data-testid={`target-${r.ticker}`}
+                />
+              )}
+              {active === r.ticker && (
+                <div
+                  role="tooltip"
+                  className="absolute bottom-full left-0 z-10 mb-1 rounded-md border bg-card px-2 py-1 text-xs shadow-md"
+                >
+                  <span className="text-muted-foreground">{describeBeforeAfter(r)}</span>
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <figcaption className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-4 rounded-sm bg-muted-foreground/40" aria-hidden />{" "}
+          {t("rebalance.preview.before")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-4 rounded-sm bg-[var(--series-1)]" aria-hidden />{" "}
+          {t("rebalance.preview.after")}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-3 w-0.5 bg-foreground" aria-hidden />{" "}
+          {t("portfolios.charts.targetLegend")}
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
+
 // --- Pie by type (CMP-07) --------------------------------------------------------
 
 // Colour follows the type, never its rank (fixed slots)

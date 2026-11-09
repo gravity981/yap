@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BeforeAfterBars } from "@/components/charts";
 import { usePortfolio } from "@/features/portfolios/api";
 import { formatAmount, formatDateTime, formatPct, formatUnits } from "@/lib/format";
 
@@ -255,6 +256,12 @@ export function PlanView({ plan, printable = false }: { plan: Plan; printable?: 
   return (
     <div className="grid gap-4">
       <InstructionCards instructions={plan.instructions} precise={plan.precise_amounts} />
+      <PreviewCard
+        result={plan.result}
+        precise={plan.precise_amounts}
+        contribution={plan.contribution}
+        withdrawal={plan.withdrawal}
+      />
       <CashCard
         contribution={plan.contribution}
         withdrawal={plan.withdrawal}
@@ -341,6 +348,62 @@ function withdrawalSellsByBroker(result: Result): [string, number][] {
     if (amount > 0) sums.set(p.broker ?? "", (sums.get(p.broker ?? "") ?? 0) + amount);
   }
   return [...sums];
+}
+
+/** RB-27: allocation before and after per position; portfolio value and payout apart. */
+export function PreviewCard({
+  result: r,
+  precise,
+  contribution,
+  withdrawal,
+}: {
+  result: Result;
+  precise: boolean;
+  contribution: string;
+  withdrawal: string;
+}) {
+  const { t } = useTranslation();
+  const notInvested = Number(r.unallocated_cash);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t("rebalance.preview.title")}</CardTitle>
+        <CardDescription>{t("rebalance.preview.description")}</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+        <BeforeAfterBars
+          rows={r.positions.map((p) => ({
+            ticker: p.ticker,
+            name: p.name,
+            before: Number(p.allocation_before_pct),
+            after: Number(p.allocation_after_pct),
+            target: p.target_pct === null ? null : Number(p.target_pct),
+          }))}
+        />
+        <dl
+          className="grid h-fit grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm"
+          aria-label={t("rebalance.preview.value")}
+        >
+          <dt>{t("rebalance.preview.valueBefore")}</dt>
+          <dd className="text-right tabular-nums">{formatAmount(r.total_value_before, precise)}</dd>
+          <dt>{t("rebalance.preview.contribution")}</dt>
+          <dd className="text-right tabular-nums">{formatAmount(contribution, precise)}</dd>
+          <dt>{t("rebalance.preview.payout")}</dt>
+          <dd className="text-right tabular-nums">{formatAmount(withdrawal, precise)}</dd>
+          {notInvested > 0.005 && (
+            <>
+              <dt>{t("rebalance.preview.notInvested")}</dt>
+              <dd className="text-right tabular-nums">{formatAmount(notInvested, precise)}</dd>
+            </>
+          )}
+          <dt className="border-t pt-1 font-medium">{t("rebalance.preview.valueAfter")}</dt>
+          <dd className="border-t pt-1 text-right font-medium tabular-nums">
+            {formatAmount(r.total_value_after, precise)}
+          </dd>
+        </dl>
+      </CardContent>
+    </Card>
+  );
 }
 
 /** RB-09, RB-13: cash calculation, and buys or withdrawal sells per broker. */
